@@ -1,0 +1,9 @@
+[submodule "third_party/foundry-vtt-community-macros"]
+	path = third_party/foundry-vtt-community-macros
+	url = https://github.com/foundry-vtt-community/macros
+[submodule "third_party/foundry-vtt-community-tables"]
+	path = third_party/foundry-vtt-community-tables
+	url = https://github.com/foundry-vtt-community/tables
+[submodule "third_party/foundryvtt-shadowdark"]
+	path = third_party/foundryvtt-shadowdark
+	url = https://github.com/Muttley/foundryvtt-shadowdark
