@@ -1,0 +1,12 @@
+[
+  {
+    "id": "NVFsFt4pGz7xOqCm",
+    "name": "Random Encounter Check",
+    "file": "random-encounter-check.js"
+  },
+  {
+    "id": "KpL9uRjT3vXeHwYi",
+    "name": "The Lost Citadel: Random Encounter",
+    "file": "scarlet-minotaur-encounter-check.js"
+  }
+]

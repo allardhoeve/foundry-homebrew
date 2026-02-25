@@ -51,7 +51,17 @@ See `scarlet-minotaur-random-encounter-check.md` for full design notes and the e
 
 ## Installation
 
-Macros are pasted directly into a FoundryVTT macro slot and run as-needed. No module installation required.
+### As a module (recommended)
+
+Install directly from the Foundry **Add-on Modules** tab using the manifest URL:
+
+```
+https://raw.githubusercontent.com/allardhoeve/foundry-macros/main/module.json
+```
+
+The macros will appear in a **Macros** compendium pack under the module. Import them into your world and run from there.
+
+### Manual (paste into macro slot)
 
 1. In Foundry, open the Macro Directory.
 2. Create a new macro with type **Script**.
@@ -64,6 +74,9 @@ Each macro registers a singleton application on the `game` object so re-running 
 
 ```
 .
+├── module.json                             # FoundryVTT module manifest
+├── macros.json                             # Compendium metadata (name, id per macro)
+├── build.mjs                               # Build script: .js → LevelDB pack
 ├── random-encounter-check.js               # Generic Shadowdark encounter check
 ├── scarlet-minotaur-encounter-check.js     # Lost Citadel encounter check
 ├── scarlet-minotaur-random-encounter-check.md  # Design notes for the above
@@ -71,6 +84,19 @@ Each macro registers a singleton application on the `game` object so re-running 
 ├── examples/                               # Reference macros and tables
 └── third_party/                            # Git submodules (community macros/tables, Shadowdark system)
 ```
+
+`packs/` is a build artifact and is not committed to the repository.
+
+## Releasing
+
+Push a version tag to trigger the GitHub Actions release workflow:
+
+```bash
+git tag v1.0.1
+git push origin v1.0.1
+```
+
+The workflow builds the compendium pack, stamps the version into `module.json`, zips everything, and attaches `module.zip` to the GitHub release. The manifest URL in `module.json` always points to the latest release zip.
 
 ## Requirements
 

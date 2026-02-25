@@ -1,2 +1,5 @@
 .idea
 .claude
+node_modules/
+packs/
+src/

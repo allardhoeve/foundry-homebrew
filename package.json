@@ -1,0 +1,16 @@
+{
+  "name": "foundry-homebrew",
+  "version": "1.0.0",
+  "description": "FoundryVTT macros for Shadowdark and The Lost Citadel",
+  "private": true,
+  "type": "module",
+  "scripts": {
+    "build": "node build.mjs",
+    "clean": "rimraf packs",
+    "rebuild": "npm run clean && npm run build"
+  },
+  "devDependencies": {
+    "@foundryvtt/foundryvtt-cli": "^1.0.0",
+    "rimraf": "^5.0.0"
+  }
+}
