@@ -1,6 +1,6 @@
 {
   "id": "foundry-homebrew",
-  "title": "Foundry Homebrew",
+  "title": "Allard's Foundry Homebrew",
   "description": "A collection of FoundryVTT macros for Shadowdark and The Lost Citadel.",
   "version": "1.0.0",
   "compatibility": {
@@ -23,6 +23,13 @@
         "PLAYER": "NONE",
         "ASSISTANT": "NONE"
       }
+    }
+  ],
+  "packFolders": [
+    {
+      "name": "Allard's Foundry Homebrew",
+      "sorting": "a",
+      "packs": ["macros"]
     }
   ],
   "url": "https://github.com/allardhoeve/foundry-homebrew",
