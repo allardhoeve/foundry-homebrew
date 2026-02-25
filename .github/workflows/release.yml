@@ -34,9 +34,8 @@ jobs:
           zip -r module.zip \
             module.json \
             packs/ \
-            random-encounter-check.js \
-            scarlet-minotaur-encounter-check.js \
-            macros.json \
+            macros/ \
+            assets/ \
             LICENSE
 
       - name: Publish GitHub release
