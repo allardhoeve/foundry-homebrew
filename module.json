@@ -18,11 +18,7 @@
       "name": "macros",
       "label": "Macros",
       "path": "packs/macros",
-      "type": "Macro",
-      "ownership": {
-        "PLAYER": "NONE",
-        "ASSISTANT": "NONE"
-      }
+      "type": "Macro"
     }
   ],
   "packFolders": [

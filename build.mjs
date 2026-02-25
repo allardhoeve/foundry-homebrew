@@ -8,7 +8,7 @@ import { readFileSync, writeFileSync, mkdirSync, rmSync } from "fs";
 import { resolve } from "path";
 import { compilePack } from "@foundryvtt/foundryvtt-cli";
 
-const macros = JSON.parse(readFileSync("macros.json", "utf8"));
+const macros = JSON.parse(readFileSync("macros/macros.json", "utf8"));
 const srcDir = resolve("src/packs/macros");
 const outDir = resolve("packs/macros");
 
@@ -24,7 +24,7 @@ for (const macro of macros) {
     type: "script",
     scope: "global",
     command,
-    img: "icons/svg/dice-target.svg",
+    img: "modules/foundry-homebrew/assets/minotaur256.png",
     ownership: { default: 3 },
     flags: {},
   };
