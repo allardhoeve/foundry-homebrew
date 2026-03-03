@@ -8,6 +8,7 @@ import { readFileSync, writeFileSync, mkdirSync, rmSync } from "fs";
 import { resolve } from "path";
 import { compilePack } from "@foundryvtt/foundryvtt-cli";
 
+const { version } = JSON.parse(readFileSync("package.json", "utf8"));
 const macros = JSON.parse(readFileSync("macros/macros.json", "utf8"));
 const srcDir = resolve("src/packs/macros");
 const outDir = resolve("packs/macros");
@@ -15,7 +16,8 @@ const outDir = resolve("packs/macros");
 // Write intermediate JSON source files that the CLI expects.
 mkdirSync(srcDir, { recursive: true });
 for (const macro of macros) {
-  const command = readFileSync(macro.file, "utf8");
+  const source = readFileSync(macro.file, "utf8");
+  const command = `// v${version}\n${source}`;
   const safeName = macro.name.replace(/[^a-zA-Z0-9]/g, "_");
   const doc = {
     _key: `!macros!${macro.id}`,
