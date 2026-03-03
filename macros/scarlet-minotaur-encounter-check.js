@@ -119,11 +119,9 @@ class ScarletMinotaurEncounterApp extends foundry.applications.api.ApplicationV2
     // Renders fresh each time so the penalty display stays current after rolls.
     async _renderHTML(_context, _options) {
         const penalty        = game.settings.get(SETTING_NS, SETTING_KEY);
-        const penaltyLabel   = penalty > 0 ? `-${penalty}` : "none";
         const penaltyColor   = penalty > 0 ? "#8B0000" : "#555";
         const penaltyBg      = penalty > 0 ? "#fff5f5" : "#f5f5f5";
         const penaltyBorder  = penalty > 0 ? "#ffbbbb" : "#ddd";
-        const penaltyNote    = penalty > 0 ? " — resets when the Minotaur is encountered" : "";
 
         const container = document.createElement("div");
         container.innerHTML = `
@@ -141,8 +139,28 @@ class ScarletMinotaurEncounterApp extends foundry.applications.api.ApplicationV2
                     background: ${penaltyBg};
                     border: 1px solid ${penaltyBorder};
                     border-radius: 4px;
+                    display: flex;
+                    align-items: center;
+                    gap: 6px;
                 ">
-                    Scarlet Minotaur penalty: <strong>${penaltyLabel}</strong>${penaltyNote}
+                    <span>⚙ Scarlet Minotaur penalty:</span>
+                    <select data-action="set-penalty" style="
+                        font-size: 12px;
+                        font-weight: bold;
+                        color: ${penaltyColor};
+                        background: ${penaltyBg};
+                        border: 1px solid ${penaltyBorder};
+                        border-radius: 3px;
+                        padding: 2px 4px;
+                        cursor: pointer;
+                    ">
+                        <option value="0" ${penalty === 0 ? 'selected' : ''}>none</option>
+                        <option value="2" ${penalty === 2 ? 'selected' : ''}>−2</option>
+                        <option value="4" ${penalty === 4 ? 'selected' : ''}>−4</option>
+                        <option value="6" ${penalty === 6 ? 'selected' : ''}>−6</option>
+                        <option value="8" ${penalty === 8 ? 'selected' : ''}>−8</option>
+                    </select>
+                    ${penalty > 0 ? '<span style="font-size: 11px; color: #888; margin-left: auto;">resets on Minotaur</span>' : ''}
                 </div>
                 <div style="display: grid; gap: 8px;">
                     <button type="button" data-roll="1d12" data-label="Normal Check">
@@ -153,10 +171,6 @@ class ScarletMinotaurEncounterApp extends foundry.applications.api.ApplicationV2
                     </button>
                     <button type="button" data-roll="1d1" data-label="Encounter">
                         1 - Encounter now
-                    </button>
-                    <button type="button" data-action="reset"
-                        style="font-size: 11px; color: #888; background: none; border: 1px solid #ccc; padding: 4px; cursor: pointer;">
-                        Reset Minotaur Penalty
                     </button>
                 </div>
             </div>
@@ -180,9 +194,8 @@ class ScarletMinotaurEncounterApp extends foundry.applications.api.ApplicationV2
             });
         });
 
-        root.querySelector("button[data-action='reset']")?.addEventListener("click", async (event) => {
-            event.preventDefault();
-            await game.settings.set(SETTING_NS, SETTING_KEY, 0);
+        root.querySelector("select[data-action='set-penalty']")?.addEventListener("change", async (event) => {
+            await game.settings.set(SETTING_NS, SETTING_KEY, Number(event.target.value));
             this.render();
         });
     }
