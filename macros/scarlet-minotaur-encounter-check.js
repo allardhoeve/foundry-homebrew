@@ -49,7 +49,7 @@ const encounterMessages = [
     "Something stirs in the darkness...",
     "The shadows grow hungry.",
     "Fate turns against you. Something approaches.",
-    "The dungeon awakens. You are not alone.",
+    "The Citadel awakens. You are not alone.",
     "A chill runs down your spine. Too late to run.",
     "The darkness has noticed you.",
     "Dread footsteps echo in the black.",
@@ -61,7 +61,7 @@ const safeMessages = [
     "Fortune favors you... for now.",
     "The shadows remain still. Continue onward.",
     "No eyes watch from the black. Yet.",
-    "The dungeon sleeps. Tread carefully.",
+    "The Citadel sleeps. Tread carefully.",
     "You move like ghosts through the gloom.",
     "The fates grant you a moment's reprieve.",
     "Silence. The predators hunt elsewhere.",
@@ -99,7 +99,7 @@ const MINOTAUR_ASCII = escapeHtml([
     "                `.                   <",
     "                  +:         `:   -';",
     "                   `:         : .::/",
-    "                    ;+_  :::. :..;;;       LS",
+    "                    ;+_  :::. :..;;;",
     "                    ;;;;,;;;;;;;;,;;"
 ].join("\n"));
 
@@ -119,16 +119,25 @@ class ScarletMinotaurEncounterApp extends foundry.applications.api.ApplicationV2
     // Renders fresh each time so the penalty display stays current after rolls.
     async _renderHTML(_context, _options) {
         const penalty        = game.settings.get(SETTING_NS, SETTING_KEY);
-        const penaltyColor   = penalty > 0 ? "#8B0000" : "#555";
-        const penaltyBg      = penalty > 0 ? "#fff5f5" : "#f5f5f5";
-        const penaltyBorder  = penalty > 0 ? "#ffbbbb" : "#ddd";
+        const penaltyColor   = penalty > 0 ? "#ff6666" : "#aaa";
+        const penaltyBg      = penalty > 0 ? "rgba(139,0,0,0.15)" : "rgba(255,255,255,0.07)";
+        const penaltyBorder  = penalty > 0 ? "rgba(139,0,0,0.4)" : "rgba(255,255,255,0.15)";
 
         const container = document.createElement("div");
         container.innerHTML = `
             <div style="padding: 10px;">
-                <div style="font-size: 12px; color: #666; margin-bottom: 8px;">
-                    Normal encounter roll is 1:6. You should roll this every other round, unless the partry made noise.
-                    In that case roll it that round. As convenience you can roll 1:12 every round, so you don't have to 
+                <div style="
+                    font-size: 12px;
+                    color: #999;
+                    margin-bottom: 10px;
+                    padding: 6px 8px;
+                    background: rgba(0,100,0,0.15);
+                    border: 1px solid rgba(0,100,0,0.4);
+                    border-radius: 4px;
+                    line-height: 1.5;
+                ">
+                    Normal encounter roll is 1:6. You should roll this every other round, unless the party made noise.
+                    In that case roll it that round. As convenience you can roll 1:12 every round, so you don't have to
                     track what round you rolled. An encounter occurs on a 1.
                 </div>
                 <div style="
@@ -140,10 +149,11 @@ class ScarletMinotaurEncounterApp extends foundry.applications.api.ApplicationV2
                     border: 1px solid ${penaltyBorder};
                     border-radius: 4px;
                     display: flex;
-                    align-items: center;
-                    gap: 6px;
+                    align-items: baseline;
+                    flex-wrap: wrap;
+                    gap: 4px 6px;
                 ">
-                    <span>⚙ Scarlet Minotaur penalty:</span>
+                    <span>Scarlet Minotaur penalty:</span>
                     <select data-action="set-penalty" style="
                         font-size: 12px;
                         font-weight: bold;
@@ -151,16 +161,17 @@ class ScarletMinotaurEncounterApp extends foundry.applications.api.ApplicationV2
                         background: ${penaltyBg};
                         border: 1px solid ${penaltyBorder};
                         border-radius: 3px;
-                        padding: 2px 4px;
+                        padding: 2px 2px;
+                        width: auto;
                         cursor: pointer;
                     ">
-                        <option value="0" ${penalty === 0 ? 'selected' : ''}>none</option>
+                        <option value="0" ${penalty === 0 ? 'selected' : ''}>0</option>
                         <option value="2" ${penalty === 2 ? 'selected' : ''}>−2</option>
                         <option value="4" ${penalty === 4 ? 'selected' : ''}>−4</option>
                         <option value="6" ${penalty === 6 ? 'selected' : ''}>−6</option>
                         <option value="8" ${penalty === 8 ? 'selected' : ''}>−8</option>
                     </select>
-                    ${penalty > 0 ? '<span style="font-size: 11px; color: #888; margin-left: auto;">resets on Minotaur</span>' : ''}
+                    ${penalty > 0 ? '<div style="font-size: 11px; color: #999; width: 100%;">The penalty resets when you roll the Minotaur.</div>' : ''}
                 </div>
                 <div style="display: grid; gap: 8px;">
                     <button type="button" data-roll="1d12" data-label="Normal Check">
@@ -306,13 +317,9 @@ class ScarletMinotaurEncounterApp extends foundry.applications.api.ApplicationV2
                     <div style="width: 60px; height: 2px; background: #660000; margin: 10px auto;"></div>
                     <div style="font-size: 13px; color: #ffaaaa; font-style: italic; line-height: 1.5; margin: 10px 0;">
                         Thundering hooves crack the stone. A blood-red hide fills the corridor.
-                        The champion of this dungeon does not negotiate.
                     </div>
                     <div style="font-size: 12px; color: #cc6666; margin-top: 10px; padding: 8px; background: rgba(100,0,0,0.35); border-radius: 3px; font-style: italic;">
                         "${pick(encounterMessages)}"
-                    </div>
-                    <div style="font-size: 10px; color: #884444; margin-top: 12px; letter-spacing: 1px; text-transform: uppercase;">
-                        Area 18 · Penalty resets
                     </div>
                 </div>
             `,
