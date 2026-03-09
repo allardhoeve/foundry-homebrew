@@ -4,12 +4,25 @@
 
 const PLT_MODULE_PATH = "modules/foundry-homebrew";
 
+// Playback rate for ignite/extinguish transition animations (1.0 = normal speed)
+const PLT_TRANSITION_SPEED = 0.5;
+
+// Light remaining-fraction thresholds for state changes
+const PLT_BRIGHT_THRESHOLD = 0.5;   // above this → bright
+const PLT_GOOD_THRESHOLD = 0.25;    // above this → good, below → fading
+
+// How long to wait (ms) before re-rendering after a hook fires
+const PLT_DEBOUNCE_MS = 250;
+
+// Default window width in pixels
+const PLT_WINDOW_WIDTH = 320;
+
 const PLT_VIDEOS = {
     torch: {
         bright: "yellow.mp4",
         good: "orange.mp4",
         fading: "red.mp4",
-        darkness: "darkness.mp4",
+        darkness: null,
         ignite: "ignite.mp4",
         extinguish: "extinguish.mp4",
     },
@@ -17,15 +30,34 @@ const PLT_VIDEOS = {
         bright: "staff.mp4",
         good: "staff.mp4",
         fading: "staff.mp4",
-        darkness: "darkness.mp4",
+        darkness: null,
         ignite: "staffIgnite.mp4",
         extinguish: "staffExtinguish.mp4",
     },
 };
 
 const PLT_STYLES = `
+    /* Override Foundry window chrome */
+    #player-light-tracker {
+        background: #000000;
+        border: 1px solid #333;
+        border-radius: 4px;
+        box-shadow: 0 0 20px rgba(0, 0, 0, 0.8);
+    }
+
+    #player-light-tracker .window-header {
+        background: transparent;
+        border: none;
+        padding: 2px 4px;
+        min-height: 0;
+    }
+
+    #player-light-tracker .window-title {
+        display: none;
+    }
+
     .plt-window {
-        background: #0a0a0a;
+        background: #000000;
         color: #e8dcc8;
         text-align: center;
         padding: 24px 20px;
@@ -54,7 +86,7 @@ const PLT_STYLES = `
 
     .plt-animation {
         width: 100%;
-        height: 200px;
+        aspect-ratio: 750 / 1334;
         position: relative;
         overflow: hidden;
     }
@@ -65,7 +97,7 @@ const PLT_STYLES = `
         left: 0;
         width: 100%;
         height: 100%;
-        object-fit: cover;
+        object-fit: contain;
         transition: opacity 0.8s ease;
     }
 
@@ -100,6 +132,31 @@ const PLT_STYLES = `
     @keyframes plt-flicker {
         0%, 100% { opacity: 1; }
         50% { opacity: 0.7; }
+    }
+
+    .plt-debug-bar {
+        width: 100%;
+        display: flex;
+        align-items: center;
+        gap: 8px;
+        padding: 4px 8px;
+        background: #000000;
+        border-bottom: 1px solid #333;
+        font-size: 11px;
+        color: #888;
+    }
+
+    .plt-debug-bar label {
+        white-space: nowrap;
+    }
+
+    .plt-debug-bar select {
+        flex: 1;
+        background: #111;
+        color: #ccc;
+        border: 1px solid #444;
+        padding: 2px 4px;
+        font-size: 11px;
     }
 
     .plt-douse-btn {
@@ -143,8 +200,8 @@ function getLightState(item) {
     const total = item.system.light.longevityMins * 60;
     if (total <= 0) return { key: STATES.BRIGHT, text: "Your light shines brightly" };
     const fraction = remaining / total;
-    if (fraction > 0.5) return { key: STATES.BRIGHT, text: "Your light shines brightly" };
-    if (fraction > 0.25) return { key: STATES.GOOD, text: "Your light shines well" };
+    if (fraction > PLT_BRIGHT_THRESHOLD) return { key: STATES.BRIGHT, text: "Your light shines brightly" };
+    if (fraction > PLT_GOOD_THRESHOLD) return { key: STATES.GOOD, text: "Your light shines well" };
     return { key: STATES.FADING, text: "Your light starts to fade" };
 }
 
@@ -168,16 +225,22 @@ class PlayerLightTrackerApp extends foundry.applications.api.ApplicationV2 {
             minimizable: false,
         },
         position: {
-            width: 320,
+            width: PLT_WINDOW_WIDTH,
         },
     });
 
     constructor(options = {}) {
         super(options);
         this._hookIds = [];
+        this._viewedActorId = null;
     }
 
     get actor() {
+        // GM override: use the explicitly selected actor from the debug dropdown
+        if (this._viewedActorId) {
+            const viewed = game.actors.get(this._viewedActorId);
+            if (viewed) return viewed;
+        }
         // Prefer the explicitly assigned character, fall back to first owned PC
         return game.user.character
             ?? game.actors.find(a => a.isOwner && a.type === "Player");
@@ -202,11 +265,27 @@ class PlayerLightTrackerApp extends foundry.applications.api.ApplicationV2 {
         const videos = PLT_VIDEOS[lightType];
         const videoFile = videos[stateKey];
 
+        // Build GM debug bar
+        let debugBarHTML = "";
+        if (game.user.isGM) {
+            const playerActors = game.actors.filter(a => a.type === "Player");
+            const currentId = this.actor?._id ?? "";
+            const options = playerActors.map(a =>
+                `<option value="${a._id}" ${a._id === currentId ? "selected" : ""}>${a.name}</option>`
+            ).join("");
+            debugBarHTML = `
+                <div class="plt-debug-bar">
+                    <label>Viewing:</label>
+                    <select class="plt-debug-select">${options}</select>
+                </div>`;
+        }
+
         container.innerHTML = `
             <div class="plt-window plt-state-${stateKey}" data-state="${stateKey}" data-light-type="${lightType}">
+                ${debugBarHTML}
                 <div class="plt-animation">
-                    <video class="plt-video" autoplay loop muted playsinline
-                           src="${getVideoPath(videoFile)}"></video>
+                    ${videoFile ? `<video class="plt-video" autoplay loop muted playsinline
+                           src="${getVideoPath(videoFile)}"></video>` : ""}
                 </div>
                 <div class="plt-status-text">${statusText}</div>
                 ${lightName ? `<div class="plt-light-name">${lightName}</div>` : ""}
@@ -223,12 +302,22 @@ class PlayerLightTrackerApp extends foundry.applications.api.ApplicationV2 {
     async _onRender(context, options) {
         await super._onRender(context, options);
 
-        // Strip Foundry window chrome
-        this._stripWindowChrome();
-
         // Wire douse button
         const root = this._rootElement;
         if (!root?.querySelector) return;
+
+        // Wire debug dropdown (GM only)
+        const debugSelect = root.querySelector(".plt-debug-select");
+        if (debugSelect) {
+            debugSelect.addEventListener("change", (event) => {
+                this._viewedActorId = event.target.value;
+                this._prevStateKey = null;
+                this._lastStateKey = null;
+                this._unregisterHooks();
+                this._hookIds = [];
+                this.render({ force: true });
+            });
+        }
 
         const douseBtn = root.querySelector(".plt-douse-btn");
         if (douseBtn) {
@@ -267,9 +356,21 @@ class PlayerLightTrackerApp extends foundry.applications.api.ApplicationV2 {
         const videos = PLT_VIDEOS[lightType];
         const isLit = (s) => s !== STATES.DARKNESS;
 
-        // Transition: lit → darkness (play extinguish first)
+        // Transition: lit → darkness (play extinguish, then go black)
         if (isLit(prevState) && !isLit(currentState)) {
-            this._playTransitionThenLoop(video, videos.extinguish, videos.darkness);
+            // Need to create a video element since darkness renders none
+            if (!video) {
+                const animation = root.querySelector(".plt-animation");
+                const v = document.createElement("video");
+                v.className = "plt-video";
+                v.autoplay = true;
+                v.muted = true;
+                v.playsInline = true;
+                animation.appendChild(v);
+                this._playTransitionThenRemove(v, videos.extinguish);
+            } else {
+                this._playTransitionThenRemove(video, videos.extinguish);
+            }
         }
         // Transition: darkness → lit (play ignite first)
         else if (!isLit(prevState) && isLit(currentState)) {
@@ -282,13 +383,26 @@ class PlayerLightTrackerApp extends foundry.applications.api.ApplicationV2 {
 
     _playTransitionThenLoop(video, transitionFile, loopFile) {
         video.loop = false;
+        video.playbackRate = PLT_TRANSITION_SPEED;
         video.src = getVideoPath(transitionFile);
         video.play().catch(() => {});
 
         video.addEventListener("ended", () => {
             video.src = getVideoPath(loopFile);
             video.loop = true;
+            video.playbackRate = 1.0;
             video.play().catch(() => {});
+        }, { once: true });
+    }
+
+    _playTransitionThenRemove(video, transitionFile) {
+        video.loop = false;
+        video.playbackRate = PLT_TRANSITION_SPEED;
+        video.src = getVideoPath(transitionFile);
+        video.play().catch(() => {});
+
+        video.addEventListener("ended", () => {
+            video.remove();
         }, { once: true });
     }
 
@@ -300,28 +414,6 @@ class PlayerLightTrackerApp extends foundry.applications.api.ApplicationV2 {
         this._prevStateKey = null;
     }
 
-    _stripWindowChrome() {
-        const el = this._rootElement;
-        if (!el) return;
-
-        // Keep header as drag handle but strip visual chrome
-        const header = el.querySelector(".window-header");
-        if (header) {
-            header.style.background = "transparent";
-            header.style.border = "none";
-            header.style.padding = "2px 4px";
-            header.style.minHeight = "0";
-            // Hide title text but keep close button
-            const title = header.querySelector(".window-title");
-            if (title) title.style.display = "none";
-        }
-
-        // Style the window itself
-        el.style.background = "#0a0a0a";
-        el.style.border = "1px solid #333";
-        el.style.borderRadius = "4px";
-        el.style.boxShadow = "0 0 20px rgba(0, 0, 0, 0.8)";
-    }
 
     async _getLightData() {
         const actor = this.actor;
@@ -385,7 +477,7 @@ class PlayerLightTrackerApp extends foundry.applications.api.ApplicationV2 {
             if (stateKey === this._lastStateKey) return;
             this._lastStateKey = stateKey;
             this.render({ force: false });
-        }, 250);
+        }, PLT_DEBOUNCE_MS);
 
         const actorId = this.actor?._id;
         if (!actorId) return;
