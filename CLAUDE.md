@@ -13,6 +13,11 @@ TODOs are always written with `[ ]` syntax so it is clear what is done.
 
 Related tasks are always recorded in todo/tasks/ with name syntax: task-xxx-theme-name-xxxxx.
 
+## CSS
+
+Avoid using in-line CSS in the JavaScript. This causes bugs. Create a class in the CSS on top of the macro,
+then use that class to style the element.
+
 ## Committing
 
 If you commit at the user's request, or if you deem this necessary, always record if the commit is part of a task. This should be in the title ("task-051: something something summary").
