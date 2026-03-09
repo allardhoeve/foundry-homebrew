@@ -50,7 +50,16 @@ const PLT_STYLES = `
         border: none;
         padding: 2px 4px;
         min-height: 0;
+        display: flex;
+        justify-content: space-between;
     }
+
+    /* Move close button to the left */
+    #player-light-tracker .window-header [data-action="close"] {
+        order: -1;
+    }
+
+
 
     #player-light-tracker .window-title {
         display: none;
@@ -209,6 +218,61 @@ const PLT_STYLES = `
         opacity: 0.4;
         cursor: not-allowed;
     }
+
+    /* Header toolbar buttons */
+    #player-light-tracker .window-header .plt-header-btn {
+        background: none;
+        border: none;
+        cursor: pointer;
+        color: #999;
+        font-size: 12px;
+        padding: 2px 4px;
+        transition: color 0.3s;
+    }
+
+    #player-light-tracker .window-header .plt-header-btn:hover {
+        color: #e8dcc8;
+    }
+
+    #player-light-tracker .window-header .plt-header-btn.plt-active {
+        color: #e8dcc8;
+    }
+
+    .plt-header-right {
+        display: flex;
+        gap: 4px;
+    }
+
+    /* Compact mode: shrink the animation */
+    .plt-compact .plt-animation {
+        aspect-ratio: auto;
+        height: 0;
+        overflow: hidden;
+        transition: height 0.4s ease;
+    }
+
+    .plt-compact .plt-window {
+        min-height: 0;
+        padding: 12px 12px;
+        gap: 8px;
+    }
+
+    .plt-compact .plt-status-text {
+        font-size: 18px;
+    }
+
+    .plt-compact .plt-header-title {
+        font-size: 18px;
+    }
+
+    /* B&W filter */
+    .plt-bw .plt-video {
+        filter: grayscale(1);
+    }
+
+    .plt-bw .plt-status-text {
+        filter: grayscale(1);
+    }
 `;
 
 const STATES = {
@@ -264,6 +328,8 @@ class PlayerLightTrackerApp extends foundry.applications.api.ApplicationV2 {
         super(options);
         this._hookIds = [];
         this._viewedActorId = null;
+        this._bwMode = false;
+        this._compact = false;
     }
 
     get actor() {
@@ -340,9 +406,15 @@ class PlayerLightTrackerApp extends foundry.applications.api.ApplicationV2 {
     async _onRender(context, options) {
         await super._onRender(context, options);
 
-        // Wire douse button
         const root = this._rootElement;
         if (!root?.querySelector) return;
+
+        // Add header buttons (resize, B&W)
+        this._injectHeaderButtons(root);
+
+        // Apply persisted B&W mode
+        const pltWindow = root.querySelector(".plt-window");
+        if (pltWindow && this._bwMode) pltWindow.classList.add("plt-bw");
 
         // Wire character selector
         for (const btn of root.querySelectorAll(".plt-character-btn")) {
@@ -371,6 +443,43 @@ class PlayerLightTrackerApp extends foundry.applications.api.ApplicationV2 {
         if (this._hookIds.length === 0) {
             this._registerHooks();
         }
+    }
+
+    _injectHeaderButtons(root) {
+        const header = root.closest("#player-light-tracker")?.querySelector(".window-header");
+        if (!header || header.querySelector(".plt-header-right")) return;
+
+        const rightGroup = document.createElement("div");
+        rightGroup.className = "plt-header-right";
+
+        // Resize toggle
+        const resizeBtn = document.createElement("button");
+        resizeBtn.type = "button";
+        resizeBtn.className = `plt-header-btn ${this._compact ? "plt-active" : ""}`;
+        resizeBtn.innerHTML = `<i class="fas fa-expand-alt"></i>`;
+        resizeBtn.title = "Toggle size";
+        resizeBtn.addEventListener("click", () => {
+            this._compact = !this._compact;
+            resizeBtn.classList.toggle("plt-active", this._compact);
+            const appEl = root.closest("#player-light-tracker");
+            if (appEl) appEl.classList.toggle("plt-compact", this._compact);
+        });
+
+        // B&W toggle
+        const bwBtn = document.createElement("button");
+        bwBtn.type = "button";
+        bwBtn.className = `plt-header-btn ${this._bwMode ? "plt-active" : ""}`;
+        bwBtn.innerHTML = `<i class="fas fa-adjust"></i>`;
+        bwBtn.title = "Black & White";
+        bwBtn.addEventListener("click", () => {
+            this._bwMode = !this._bwMode;
+            const pltWindow = root.querySelector(".plt-window");
+            if (pltWindow) pltWindow.classList.toggle("plt-bw", this._bwMode);
+        });
+
+        rightGroup.appendChild(resizeBtn);
+        rightGroup.appendChild(bwBtn);
+        header.appendChild(rightGroup);
     }
 
     _handleVideoTransition(root) {
