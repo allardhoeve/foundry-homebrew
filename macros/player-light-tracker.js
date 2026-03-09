@@ -143,6 +143,43 @@ const PLT_STYLES = `
         50% { opacity: 0.7; }
     }
 
+    /* Spell light: purple-blue gradient */
+    .plt-window[data-light-type="spell"].plt-state-bright .plt-status-text {
+        color: #b4a0f5;
+        text-shadow: 0 0 20px rgba(180, 160, 245, 0.4);
+    }
+
+    .plt-window[data-light-type="spell"].plt-state-good .plt-status-text {
+        color: #9585d4;
+        text-shadow: 0 0 12px rgba(149, 133, 212, 0.25);
+    }
+
+    .plt-window[data-light-type="spell"].plt-state-fading .plt-status-text {
+        color: #7068a0;
+        text-shadow: 0 0 6px rgba(112, 104, 160, 0.2);
+    }
+
+    /* State: party-bright */
+    .plt-state-party-bright .plt-status-text {
+        color: #8a9aaa;
+        font-size: 24px;
+        text-shadow: 0 0 10px rgba(138, 154, 170, 0.2);
+    }
+
+    /* State: party-good */
+    .plt-state-party-good .plt-status-text {
+        color: #7a8a9a;
+        font-size: 24px;
+        text-shadow: 0 0 8px rgba(122, 138, 154, 0.15);
+    }
+
+    /* State: party-fading */
+    .plt-state-party-fading .plt-status-text {
+        color: #6a7a8a;
+        font-size: 24px;
+        text-shadow: 0 0 6px rgba(106, 122, 138, 0.1);
+    }
+
     .plt-header {
         display: flex;
         flex-direction: column;
@@ -280,11 +317,38 @@ const STATES = {
     BRIGHT: "bright",
     GOOD: "good",
     FADING: "fading",
+    PARTY_BRIGHT: "party-bright",
+    PARTY_GOOD: "party-good",
+    PARTY_FADING: "party-fading",
 };
 
 const DARKNESS_DATA = {
     stateKey: STATES.DARKNESS,
     statusText: "The darkness engulfs you",
+    lightName: null,
+    lightItem: null,
+    lightType: "torch",
+};
+
+const PARTY_BRIGHT_DATA = {
+    stateKey: STATES.PARTY_BRIGHT,
+    statusText: "The party has strong light. Don't stray.",
+    lightName: null,
+    lightItem: null,
+    lightType: "torch",
+};
+
+const PARTY_GOOD_DATA = {
+    stateKey: STATES.PARTY_GOOD,
+    statusText: "The party has weak light. Stay close.",
+    lightName: null,
+    lightItem: null,
+    lightType: "torch",
+};
+
+const PARTY_FADING_DATA = {
+    stateKey: STATES.PARTY_FADING,
+    statusText: "The party's light is fading.",
     lightName: null,
     lightItem: null,
     lightType: "torch",
@@ -304,6 +368,7 @@ function getLightType(item) {
     if (!item) return "torch";
     const type = item.type?.toLowerCase();
     if (type === "spell" || type === "effect") return "spell";
+    if (item.name?.toLowerCase().includes("spell")) return "spell";
     return "torch";
 }
 
@@ -422,8 +487,6 @@ class PlayerLightTrackerApp extends foundry.applications.api.ApplicationV2 {
                 this._viewedActorId = btn.dataset.actorId;
                 this._prevStateKey = null;
                 this._lastStateKey = null;
-                this._unregisterHooks();
-                this._hookIds = [];
                 this.render({ force: true });
             });
         }
@@ -500,7 +563,10 @@ class PlayerLightTrackerApp extends foundry.applications.api.ApplicationV2 {
         }
 
         const videos = PLT_VIDEOS[lightType];
-        const isLit = (s) => s !== STATES.DARKNESS;
+        const isLit = (s) => s !== STATES.DARKNESS
+            && s !== STATES.PARTY_BRIGHT
+            && s !== STATES.PARTY_GOOD
+            && s !== STATES.PARTY_FADING;
 
         // Transition: lit → darkness (play extinguish, then go black)
         if (isLit(prevState) && !isLit(currentState)) {
@@ -565,23 +631,53 @@ class PlayerLightTrackerApp extends foundry.applications.api.ApplicationV2 {
         const actor = this.actor;
         if (!actor) return DARKNESS_DATA;
 
+        // 1. Personal light (existing logic)
         const activeLights = await actor.getActiveLightSources();
-        if (!activeLights || activeLights.length === 0) return DARKNESS_DATA;
+        if (activeLights && activeLights.length > 0) {
+            const sorted = [...activeLights].sort(
+                (a, b) => a.system.light.remainingSecs - b.system.light.remainingSecs
+            );
+            const item = sorted[0];
+            const state = getLightState(item);
 
-        // Pick the light with the shortest remaining duration
-        const sorted = [...activeLights].sort(
-            (a, b) => a.system.light.remainingSecs - b.system.light.remainingSecs
+            return {
+                stateKey: state.key,
+                statusText: state.text,
+                lightName: item.name,
+                lightItem: item,
+                lightType: getLightType(item),
+            };
+        }
+
+        // 2. Party light — check other party members
+        const partyActors = game.actors.filter(
+            a => a.type === "Player" && a._id !== actor._id
         );
-        const item = sorted[0];
-        const state = getLightState(item);
 
-        return {
-            stateKey: state.key,
-            statusText: state.text,
-            lightName: item.name,
-            lightItem: item,
-            lightType: getLightType(item),
-        };
+        let bestRemaining = -1;
+        let bestItem = null;
+
+        for (const partyActor of partyActors) {
+            const lights = await partyActor.getActiveLightSources();
+            if (!lights) continue;
+            for (const light of lights) {
+                const remaining = light.system.light.remainingSecs;
+                if (remaining > bestRemaining) {
+                    bestRemaining = remaining;
+                    bestItem = light;
+                }
+            }
+        }
+
+        if (bestItem) {
+            const state = getLightState(bestItem);
+            if (state.key === STATES.BRIGHT) return PARTY_BRIGHT_DATA;
+            if (state.key === STATES.GOOD) return PARTY_GOOD_DATA;
+            return PARTY_FADING_DATA;
+        }
+
+        // 3. No light at all
+        return DARKNESS_DATA;
     }
 
     async _onDouse() {
@@ -625,23 +721,24 @@ class PlayerLightTrackerApp extends foundry.applications.api.ApplicationV2 {
             this.render({ force: false });
         }, PLT_DEBOUNCE_MS);
 
-        const actorId = this.actor?._id;
-        if (!actorId) return;
+        const partyIds = new Set(
+            game.actors.filter(a => a.type === "Player").map(a => a._id)
+        );
+        if (partyIds.size === 0) return;
 
-        // Re-render when items on our actor change
         const register = (name, fn) => {
             const id = Hooks.on(name, fn);
             this._hookIds.push({ name, id });
         };
 
         register("updateItem", (item) => {
-            if (item.parent?._id === actorId) refresh();
+            if (partyIds.has(item.parent?._id)) refresh();
         });
         register("createItem", (item) => {
-            if (item.parent?._id === actorId) refresh();
+            if (partyIds.has(item.parent?._id)) refresh();
         });
         register("deleteItem", (item) => {
-            if (item.parent?._id === actorId) refresh();
+            if (partyIds.has(item.parent?._id)) refresh();
         });
 
         // Also refresh on world time changes (light timers updated by GM)
