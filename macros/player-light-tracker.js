@@ -4,8 +4,6 @@
 
 const PLT_MODULE_PATH = "modules/foundry-homebrew";
 
-// Playback rate for ignite/extinguish transition animations (1.0 = normal speed)
-const PLT_TRANSITION_SPEED = 0.5;
 
 // Light remaining-fraction thresholds for state changes
 const PLT_BRIGHT_THRESHOLD = 0.5;   // above this → bright
@@ -16,6 +14,15 @@ const PLT_DEBOUNCE_MS = 250;
 
 // Default window width in pixels
 const PLT_WINDOW_WIDTH = 320;
+
+// ID for the injected <style> element
+const PLT_STYLES_ID = "plt-styles";
+
+// Show character selector when more than one actor is available
+const PLT_MIN_ACTORS_FOR_SELECTOR = 2;
+
+// Normal video playback rate (used after transitions)
+const PLT_NORMAL_PLAYBACK_RATE = 1.0;
 
 const PLT_VIDEOS = {
     torch: {
@@ -302,6 +309,11 @@ const PLT_STYLES = `
         font-size: 18px;
     }
 
+    .plt-douse-confirm {
+        text-align: center;
+        font-style: italic;
+    }
+
     /* B&W filter */
     .plt-bw .plt-video {
         filter: grayscale(1);
@@ -562,61 +574,9 @@ class PlayerLightTrackerApp extends foundry.applications.api.ApplicationV2 {
             return;
         }
 
-        const videos = PLT_VIDEOS[lightType];
-        const isLit = (s) => s !== STATES.DARKNESS
-            && s !== STATES.PARTY_BRIGHT
-            && s !== STATES.PARTY_GOOD
-            && s !== STATES.PARTY_FADING;
-
-        // Transition: lit → darkness (play extinguish, then go black)
-        if (isLit(prevState) && !isLit(currentState)) {
-            // Need to create a video element since darkness renders none
-            if (!video) {
-                const animation = root.querySelector(".plt-animation");
-                const v = document.createElement("video");
-                v.className = "plt-video";
-                v.autoplay = true;
-                v.muted = true;
-                v.playsInline = true;
-                animation.appendChild(v);
-                this._playTransitionThenRemove(v, videos.extinguish);
-            } else {
-                this._playTransitionThenRemove(video, videos.extinguish);
-            }
-        }
-        // Transition: darkness → lit (play ignite first)
-        else if (!isLit(prevState) && isLit(currentState)) {
-            this._playTransitionThenLoop(video, videos.ignite, videos[currentState]);
-        }
-        // Otherwise the new loop video is already set by _renderHTML
-
         this._prevStateKey = currentState;
     }
 
-    _playTransitionThenLoop(video, transitionFile, loopFile) {
-        video.loop = false;
-        video.playbackRate = PLT_TRANSITION_SPEED;
-        video.src = getVideoPath(transitionFile);
-        video.play().catch(() => {});
-
-        video.addEventListener("ended", () => {
-            video.src = getVideoPath(loopFile);
-            video.loop = true;
-            video.playbackRate = 1.0;
-            video.play().catch(() => {});
-        }, { once: true });
-    }
-
-    _playTransitionThenRemove(video, transitionFile) {
-        video.loop = false;
-        video.playbackRate = PLT_TRANSITION_SPEED;
-        video.src = getVideoPath(transitionFile);
-        video.play().catch(() => {});
-
-        video.addEventListener("ended", () => {
-            video.remove();
-        }, { once: true });
-    }
 
     async _onClose(options) {
         await super._onClose(options);
