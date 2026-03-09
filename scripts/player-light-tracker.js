@@ -23,7 +23,7 @@ const PLT_MIN_ACTORS_FOR_SELECTOR = 2;
 // Normal video playback rate (used after transitions)
 const PLT_NORMAL_PLAYBACK_RATE = 1.0;
 
-const PLT_VIDEOS = {
+const PLT_ASSETS = {
     torch: {
         bright: "yellow.mp4",
         good: "orange.mp4",
@@ -39,6 +39,11 @@ const PLT_VIDEOS = {
         darkness: null,
         ignite: "staffIgnite.mp4",
         extinguish: "staffExtinguish.mp4",
+    },
+    party: {
+        "party-bright": "party_torch.png",
+        "party-good": "party_torch.png",
+        "party-fading": "party_torch.png",
     },
 };
 
@@ -65,7 +70,7 @@ const PARTY_BRIGHT_DATA = {
     statusText: "The party has strong light. Don't stray.",
     lightName: null,
     lightItem: null,
-    lightType: "torch",
+    lightType: "party",
 };
 
 const PARTY_GOOD_DATA = {
@@ -73,7 +78,7 @@ const PARTY_GOOD_DATA = {
     statusText: "The party has weak light. Stay close.",
     lightName: null,
     lightItem: null,
-    lightType: "torch",
+    lightType: "party",
 };
 
 const PARTY_FADING_DATA = {
@@ -81,7 +86,7 @@ const PARTY_FADING_DATA = {
     statusText: "The party's light is fading.",
     lightName: null,
     lightItem: null,
-    lightType: "torch",
+    lightType: "party",
 };
 
 function getLightState(item) {
@@ -102,8 +107,9 @@ function getLightType(item) {
     return "torch";
 }
 
-function getVideoPath(filename) {
-    return `${PLT_MODULE_PATH}/assets/video/${filename}`;
+function getAssetPath(filename) {
+    const folder = filename.endsWith(".mp4") ? "video" : "images";
+    return `${PLT_MODULE_PATH}/assets/${folder}/${filename}`;
 }
 
 class PlayerLightTrackerApp extends foundry.applications.api.ApplicationV2 {
@@ -154,8 +160,7 @@ class PlayerLightTrackerApp extends foundry.applications.api.ApplicationV2 {
         const container = document.createElement("div");
 
         const { stateKey, statusText, lightName, lightItem, lightType } = await this._getLightData();
-        const videos = PLT_VIDEOS[lightType];
-        const videoFile = videos[stateKey];
+        const assetFile = PLT_ASSETS[lightType]?.[stateKey];
 
         // Build character selector: GMs see all PCs, players see only owned PCs
         let characterSelectorHTML = "";
@@ -183,8 +188,12 @@ class PlayerLightTrackerApp extends foundry.applications.api.ApplicationV2 {
                     ${characterSelectorHTML}
                 </div>
                 <div class="plt-animation">
-                    ${videoFile ? `<video class="plt-video" autoplay loop muted playsinline
-                           src="${getVideoPath(videoFile)}"></video>` : ""}
+                    ${assetFile?.endsWith(".mp4")
+                        ? `<video class="plt-video" autoplay loop muted playsinline
+                               src="${getAssetPath(assetFile)}"></video>`
+                        : assetFile
+                            ? `<img class="plt-image" src="${getAssetPath(assetFile)}" alt="">`
+                            : ""}
                 </div>
                 <div class="plt-status-text">${statusText}</div>
                 ${lightName ? `<div class="plt-light-name">${lightName}</div>` : ""}

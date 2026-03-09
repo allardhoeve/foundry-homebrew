@@ -69,6 +69,15 @@
     transition: opacity 0.8s ease;
 }
 
+.plt-image {
+    position: absolute;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    object-fit: contain;
+}
+
 .plt-video-hidden {
     opacity: 0;
 }
@@ -267,7 +276,8 @@
 }
 
 /* B&W filter */
-.plt-bw .plt-video {
+.plt-bw .plt-video,
+.plt-bw .plt-image {
     filter: grayscale(1);
 }
 
