@@ -36,6 +36,8 @@ jobs:
             module.json \
             packs/ \
             macros/ \
+            scripts/ \
+            styles/ \
             assets/ \
             LICENSE
 
