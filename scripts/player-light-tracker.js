@@ -123,8 +123,8 @@ class PlayerLightTrackerApp extends foundry.applications.api.ApplicationV2 {
         super(options);
         this._hookIds = [];
         this._viewedActorId = null;
-        this._bwMode = false;
-        this._compact = false;
+        this._bwMode = game.settings.get(PLT_MODULE_ID, PLT_SETTING_BW_MODE);
+        this._compact = game.settings.get(PLT_MODULE_ID, PLT_SETTING_COMPACT);
     }
 
     toggleInterface() {
@@ -211,6 +211,10 @@ class PlayerLightTrackerApp extends foundry.applications.api.ApplicationV2 {
         const pltWindow = root.querySelector(".plt-window");
         if (pltWindow && this._bwMode) pltWindow.classList.add("plt-bw");
 
+        // Apply persisted compact mode
+        const appEl = root.closest("#player-light-tracker");
+        if (appEl && this._compact) appEl.classList.add("plt-compact");
+
         // Wire character selector
         for (const btn of root.querySelectorAll(".plt-character-btn")) {
             btn.addEventListener("click", () => {
@@ -260,12 +264,14 @@ class PlayerLightTrackerApp extends foundry.applications.api.ApplicationV2 {
             resizeBtn.classList.toggle("plt-active", this._compact);
             const appEl = root.closest("#player-light-tracker");
             if (appEl) appEl.classList.toggle("plt-compact", this._compact);
+            game.settings.set(PLT_MODULE_ID, PLT_SETTING_COMPACT, this._compact);
         });
 
         const bwBtn = this._createHeaderButton("Black & White", "fa-adjust", this._bwMode, () => {
             this._bwMode = !this._bwMode;
             const pltWindow = root.querySelector(".plt-window");
             if (pltWindow) pltWindow.classList.toggle("plt-bw", this._bwMode);
+            game.settings.set(PLT_MODULE_ID, PLT_SETTING_BW_MODE, this._bwMode);
         });
 
         rightGroup.appendChild(resizeBtn);
@@ -429,6 +435,20 @@ class PlayerLightTrackerApp extends foundry.applications.api.ApplicationV2 {
 }
 
 Hooks.once("init", () => {
+    // Register client settings for persisted preferences
+    game.settings.register(PLT_MODULE_ID, PLT_SETTING_BW_MODE, {
+        scope: "client",
+        config: false,
+        type: Boolean,
+        default: false,
+    });
+    game.settings.register(PLT_MODULE_ID, PLT_SETTING_COMPACT, {
+        scope: "client",
+        config: false,
+        type: Boolean,
+        default: false,
+    });
+
     const module = game.modules.get("foundry-homebrew");
     module.api ??= {};
     module.api.lightTracker = new PlayerLightTrackerApp();
