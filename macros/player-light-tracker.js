@@ -134,29 +134,60 @@ const PLT_STYLES = `
         50% { opacity: 0.7; }
     }
 
-    .plt-debug-bar {
-        width: 100%;
+    .plt-header {
         display: flex;
+        flex-direction: column;
         align-items: center;
-        gap: 8px;
-        padding: 4px 8px;
-        background: #000000;
-        border-bottom: 1px solid #333;
+        gap: 2px;
+        padding-bottom: 8px;
+    }
+
+    .plt-header-title {
+        font-family: "JSL Blackletter", serif;
+        font-size: 24px;
+        color: #ffffff;
+        letter-spacing: 1px;
+    }
+
+    .plt-header-character {
         font-size: 11px;
-        color: #888;
+        color: #999;
+        text-transform: uppercase;
+        letter-spacing: 2px;
     }
 
-    .plt-debug-bar label {
-        white-space: nowrap;
+    .plt-character-selector {
+        display: flex;
+        justify-content: center;
+        gap: 6px;
+        padding: 6px 0 2px;
     }
 
-    .plt-debug-bar select {
-        flex: 1;
+    .plt-character-btn {
+        width: 36px;
+        height: 36px;
+        border-radius: 50%;
+        border: 2px solid #444;
+        padding: 0;
+        cursor: pointer;
+        overflow: hidden;
         background: #111;
-        color: #ccc;
-        border: 1px solid #444;
-        padding: 2px 4px;
-        font-size: 11px;
+        transition: border-color 0.3s, box-shadow 0.3s;
+    }
+
+    .plt-character-btn img {
+        width: 100%;
+        height: 100%;
+        object-fit: cover;
+    }
+
+    .plt-character-btn:hover {
+        border-color: #d4a843;
+    }
+
+    .plt-character-btn.plt-character-active {
+        border-color: #f5c542;
+        box-shadow: 0 0 8px rgba(245, 197, 66, 0.4);
     }
 
     .plt-douse-btn {
@@ -236,7 +267,7 @@ class PlayerLightTrackerApp extends foundry.applications.api.ApplicationV2 {
     }
 
     get actor() {
-        // GM override: use the explicitly selected actor from the debug dropdown
+        // Use the explicitly selected actor from the character selector
         if (this._viewedActorId) {
             const viewed = game.actors.get(this._viewedActorId);
             if (viewed) return viewed;
@@ -265,24 +296,31 @@ class PlayerLightTrackerApp extends foundry.applications.api.ApplicationV2 {
         const videos = PLT_VIDEOS[lightType];
         const videoFile = videos[stateKey];
 
-        // Build GM debug bar
-        let debugBarHTML = "";
-        if (game.user.isGM) {
-            const playerActors = game.actors.filter(a => a.type === "Player");
+        // Build character selector: GMs see all PCs, players see only owned PCs
+        let characterSelectorHTML = "";
+        const selectableActors = game.user.isGM
+            ? game.actors.filter(a => a.type === "Player")
+            : game.actors.filter(a => a.isOwner && a.type === "Player");
+        if (selectableActors.length > 1) {
             const currentId = this.actor?._id ?? "";
-            const options = playerActors.map(a =>
-                `<option value="${a._id}" ${a._id === currentId ? "selected" : ""}>${a.name}</option>`
+            const buttons = selectableActors.map(a =>
+                `<button type="button" class="plt-character-btn ${a._id === currentId ? "plt-character-active" : ""}"
+                        data-actor-id="${a._id}" title="${a.name}">
+                    <img src="${a.img}" alt="${a.name}">
+                </button>`
             ).join("");
-            debugBarHTML = `
-                <div class="plt-debug-bar">
-                    <label>Viewing:</label>
-                    <select class="plt-debug-select">${options}</select>
-                </div>`;
+            characterSelectorHTML = `<div class="plt-character-selector">${buttons}</div>`;
         }
+
+        const characterName = this.actor?.name ?? "Unknown";
 
         container.innerHTML = `
             <div class="plt-window plt-state-${stateKey}" data-state="${stateKey}" data-light-type="${lightType}">
-                ${debugBarHTML}
+                <div class="plt-header">
+                    <div class="plt-header-title">Light Tracker</div>
+                    <div class="plt-header-character">${characterName}</div>
+                    ${characterSelectorHTML}
+                </div>
                 <div class="plt-animation">
                     ${videoFile ? `<video class="plt-video" autoplay loop muted playsinline
                            src="${getVideoPath(videoFile)}"></video>` : ""}
@@ -306,11 +344,10 @@ class PlayerLightTrackerApp extends foundry.applications.api.ApplicationV2 {
         const root = this._rootElement;
         if (!root?.querySelector) return;
 
-        // Wire debug dropdown (GM only)
-        const debugSelect = root.querySelector(".plt-debug-select");
-        if (debugSelect) {
-            debugSelect.addEventListener("change", (event) => {
-                this._viewedActorId = event.target.value;
+        // Wire character selector
+        for (const btn of root.querySelectorAll(".plt-character-btn")) {
+            btn.addEventListener("click", () => {
+                this._viewedActorId = btn.dataset.actorId;
                 this._prevStateKey = null;
                 this._lastStateKey = null;
                 this._unregisterHooks();
