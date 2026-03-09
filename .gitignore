@@ -3,3 +3,5 @@
 node_modules/
 packs/
 src/
+.DS_Store
+Screenshot*.png
