@@ -26,7 +26,7 @@ for (const macro of macros) {
     type: "script",
     scope: "global",
     command,
-    img: "modules/foundry-homebrew/assets/minotaur256.png",
+    img: macro.icon ?? "modules/foundry-homebrew/assets/images/minotaur256.png",
     ownership: { default: 3 },
     flags: {},
   };

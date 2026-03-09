@@ -2,16 +2,19 @@
   {
     "id": "NVFsFt4pGz7xOqCm",
     "name": "Random Encounter Check",
-    "file": "macros/random-encounter-check.js"
+    "file": "macros/random-encounter-check.js",
+    "icon": "modules/foundry-homebrew/assets/images/minotaur256.png"
   },
   {
     "id": "KpL9uRjT3vXeHwYi",
     "name": "The Lost Citadel: Random Encounter",
-    "file": "macros/scarlet-minotaur-encounter-check.js"
+    "file": "macros/scarlet-minotaur-encounter-check.js",
+    "icon": "modules/foundry-homebrew/assets/images/minotaur256.png"
   },
   {
     "id": "pLt7RkW2xY9vNmQe",
     "name": "Player Light Tracker",
-    "file": "macros/player-light-tracker.js"
+    "file": "macros/player-light-tracker-macro.js",
+    "icon": "modules/foundry-homebrew/assets/images/torchie256.png"
   }
 ]

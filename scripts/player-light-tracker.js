@@ -3,7 +3,9 @@
 // No exact timers — just vague descriptions of how their light is doing.
 
 const PLT_MODULE_PATH = "modules/foundry-homebrew";
-
+const PLT_MODULE_ID = "foundry-homebrew";
+const PLT_SETTING_BW_MODE = "plt-bw-mode";
+const PLT_SETTING_COMPACT = "plt-compact-mode";
 
 // Light remaining-fraction thresholds for state changes
 const PLT_BRIGHT_THRESHOLD = 0.5;   // above this → bright
@@ -14,9 +16,6 @@ const PLT_DEBOUNCE_MS = 250;
 
 // Default window width in pixels
 const PLT_WINDOW_WIDTH = 320;
-
-// ID for the injected <style> element
-const PLT_STYLES_ID = "plt-styles";
 
 // Show character selector when more than one actor is available
 const PLT_MIN_ACTORS_FOR_SELECTOR = 2;
@@ -42,287 +41,6 @@ const PLT_VIDEOS = {
         extinguish: "staffExtinguish.mp4",
     },
 };
-
-const PLT_STYLES = `
-    /* Override Foundry window chrome */
-    #player-light-tracker {
-        background: #000000;
-        border: 1px solid #333;
-        border-radius: 4px;
-        box-shadow: 0 0 20px rgba(0, 0, 0, 0.8);
-    }
-
-    #player-light-tracker .window-header {
-        background: transparent;
-        border: none;
-        padding: 2px 4px;
-        min-height: 0;
-        display: flex;
-        justify-content: space-between;
-    }
-
-    /* Move close button to the left */
-    #player-light-tracker .window-header [data-action="close"] {
-        order: -1;
-    }
-
-
-
-    #player-light-tracker .window-title {
-        display: none;
-    }
-
-    .plt-window {
-        background: #000000;
-        color: #e8dcc8;
-        text-align: center;
-        padding: 24px 20px;
-        min-width: 280px;
-        min-height: 180px;
-        display: flex;
-        flex-direction: column;
-        align-items: center;
-        justify-content: center;
-        gap: 16px;
-    }
-
-    .plt-status-text {
-        font-family: "JSL Blackletter", serif;
-        font-size: 28px;
-        line-height: 1.3;
-        color: #e8dcc8;
-        transition: color 0.8s ease, text-shadow 0.8s ease;
-    }
-
-    .plt-light-name {
-        font-size: 13px;
-        color: #888;
-        font-style: italic;
-    }
-
-    .plt-animation {
-        width: 100%;
-        aspect-ratio: 750 / 1334;
-        position: relative;
-        overflow: hidden;
-    }
-
-    .plt-video {
-        position: absolute;
-        top: 0;
-        left: 0;
-        width: 100%;
-        height: 100%;
-        object-fit: contain;
-        transition: opacity 0.8s ease;
-    }
-
-    .plt-video-hidden {
-        opacity: 0;
-    }
-
-    /* State: darkness */
-    .plt-state-darkness .plt-status-text {
-        color: #888;
-    }
-
-    /* State: bright */
-    .plt-state-bright .plt-status-text {
-        color: #f5c542;
-        text-shadow: 0 0 20px rgba(245, 197, 66, 0.4);
-    }
-
-    /* State: good */
-    .plt-state-good .plt-status-text {
-        color: #d4a843;
-        text-shadow: 0 0 12px rgba(212, 168, 67, 0.25);
-    }
-
-    /* State: fading */
-    .plt-state-fading .plt-status-text {
-        color: #a07030;
-        text-shadow: 0 0 6px rgba(160, 112, 48, 0.2);
-        animation: plt-flicker 2s ease-in-out infinite;
-    }
-
-    @keyframes plt-flicker {
-        0%, 100% { opacity: 1; }
-        50% { opacity: 0.7; }
-    }
-
-    /* Spell light: purple-blue gradient */
-    .plt-window[data-light-type="spell"].plt-state-bright .plt-status-text {
-        color: #b4a0f5;
-        text-shadow: 0 0 20px rgba(180, 160, 245, 0.4);
-    }
-
-    .plt-window[data-light-type="spell"].plt-state-good .plt-status-text {
-        color: #9585d4;
-        text-shadow: 0 0 12px rgba(149, 133, 212, 0.25);
-    }
-
-    .plt-window[data-light-type="spell"].plt-state-fading .plt-status-text {
-        color: #7068a0;
-        text-shadow: 0 0 6px rgba(112, 104, 160, 0.2);
-    }
-
-    /* State: party-bright */
-    .plt-state-party-bright .plt-status-text {
-        color: #8a9aaa;
-        font-size: 24px;
-        text-shadow: 0 0 10px rgba(138, 154, 170, 0.2);
-    }
-
-    /* State: party-good */
-    .plt-state-party-good .plt-status-text {
-        color: #7a8a9a;
-        font-size: 24px;
-        text-shadow: 0 0 8px rgba(122, 138, 154, 0.15);
-    }
-
-    /* State: party-fading */
-    .plt-state-party-fading .plt-status-text {
-        color: #6a7a8a;
-        font-size: 24px;
-        text-shadow: 0 0 6px rgba(106, 122, 138, 0.1);
-    }
-
-    .plt-header {
-        display: flex;
-        flex-direction: column;
-        align-items: center;
-        gap: 2px;
-        padding-bottom: 8px;
-    }
-
-    .plt-header-title {
-        font-family: "JSL Blackletter", serif;
-        font-size: 24px;
-        color: #ffffff;
-        letter-spacing: 1px;
-    }
-
-    .plt-header-character {
-        font-size: 11px;
-        color: #999;
-        text-transform: uppercase;
-        letter-spacing: 2px;
-    }
-
-    .plt-character-selector {
-        display: flex;
-        justify-content: center;
-        gap: 6px;
-        padding: 6px 0 2px;
-    }
-
-    .plt-character-btn {
-        width: 36px;
-        height: 36px;
-        border-radius: 50%;
-        border: 2px solid #444;
-        padding: 0;
-        cursor: pointer;
-        overflow: hidden;
-        background: #111;
-        transition: border-color 0.3s, box-shadow 0.3s;
-    }
-
-    .plt-character-btn img {
-        width: 100%;
-        height: 100%;
-        object-fit: cover;
-    }
-
-    .plt-character-btn:hover {
-        border-color: #d4a843;
-    }
-
-    .plt-character-btn.plt-character-active {
-        border-color: #f5c542;
-        box-shadow: 0 0 8px rgba(245, 197, 66, 0.4);
-    }
-
-    .plt-douse-btn {
-        background: transparent;
-        border: 1px solid #555;
-        color: #999;
-        padding: 6px 16px;
-        cursor: pointer;
-        font-size: 12px;
-        transition: border-color 0.3s, color 0.3s;
-    }
-
-    .plt-douse-btn:hover {
-        border-color: #a07030;
-        color: #e8dcc8;
-    }
-
-    .plt-douse-btn:disabled {
-        opacity: 0.4;
-        cursor: not-allowed;
-    }
-
-    /* Header toolbar buttons */
-    #player-light-tracker .window-header .plt-header-btn {
-        background: none;
-        border: none;
-        cursor: pointer;
-        color: #999;
-        font-size: 12px;
-        padding: 2px 4px;
-        transition: color 0.3s;
-    }
-
-    #player-light-tracker .window-header .plt-header-btn:hover {
-        color: #e8dcc8;
-    }
-
-    #player-light-tracker .window-header .plt-header-btn.plt-active {
-        color: #e8dcc8;
-    }
-
-    .plt-header-right {
-        display: flex;
-        gap: 4px;
-    }
-
-    /* Compact mode: shrink the animation */
-    .plt-compact .plt-animation {
-        aspect-ratio: auto;
-        height: 0;
-        overflow: hidden;
-        transition: height 0.4s ease;
-    }
-
-    .plt-compact .plt-window {
-        min-height: 0;
-        padding: 12px 12px;
-        gap: 8px;
-    }
-
-    .plt-compact .plt-status-text {
-        font-size: 18px;
-    }
-
-    .plt-compact .plt-header-title {
-        font-size: 18px;
-    }
-
-    .plt-douse-confirm {
-        text-align: center;
-        font-style: italic;
-    }
-
-    /* B&W filter */
-    .plt-bw .plt-video {
-        filter: grayscale(1);
-    }
-
-    .plt-bw .plt-status-text {
-        filter: grayscale(1);
-    }
-`;
 
 const STATES = {
     DARKNESS: "darkness",
@@ -409,6 +127,14 @@ class PlayerLightTrackerApp extends foundry.applications.api.ApplicationV2 {
         this._compact = false;
     }
 
+    toggleInterface() {
+        if (this.rendered) {
+            this.close();
+        } else {
+            this.render({ force: true });
+        }
+    }
+
     get actor() {
         // Use the explicitly selected actor from the character selector
         if (this._viewedActorId) {
@@ -427,14 +153,6 @@ class PlayerLightTrackerApp extends foundry.applications.api.ApplicationV2 {
     async _renderHTML(_context, _options) {
         const container = document.createElement("div");
 
-        // Inject styles once
-        if (!document.getElementById("plt-styles")) {
-            const style = document.createElement("style");
-            style.id = "plt-styles";
-            style.textContent = PLT_STYLES;
-            document.head.appendChild(style);
-        }
-
         const { stateKey, statusText, lightName, lightItem, lightType } = await this._getLightData();
         const videos = PLT_VIDEOS[lightType];
         const videoFile = videos[stateKey];
@@ -444,7 +162,7 @@ class PlayerLightTrackerApp extends foundry.applications.api.ApplicationV2 {
         const selectableActors = game.user.isGM
             ? game.actors.filter(a => a.type === "Player")
             : game.actors.filter(a => a.isOwner && a.type === "Player");
-        if (selectableActors.length > 1) {
+        if (selectableActors.length >= PLT_MIN_ACTORS_FOR_SELECTOR) {
             const currentId = this.actor?._id ?? "";
             const buttons = selectableActors.map(a =>
                 `<button type="button" class="plt-character-btn ${a._id === currentId ? "plt-character-active" : ""}"
@@ -520,6 +238,16 @@ class PlayerLightTrackerApp extends foundry.applications.api.ApplicationV2 {
         }
     }
 
+    _createHeaderButton(title, iconClass, isActive, onClick) {
+        const btn = document.createElement("button");
+        btn.type = "button";
+        btn.className = `plt-header-btn ${isActive ? "plt-active" : ""}`;
+        btn.innerHTML = `<i class="fas ${iconClass}"></i>`;
+        btn.title = title;
+        btn.addEventListener("click", onClick);
+        return btn;
+    }
+
     _injectHeaderButtons(root) {
         const header = root.closest("#player-light-tracker")?.querySelector(".window-header");
         if (!header || header.querySelector(".plt-header-right")) return;
@@ -527,26 +255,14 @@ class PlayerLightTrackerApp extends foundry.applications.api.ApplicationV2 {
         const rightGroup = document.createElement("div");
         rightGroup.className = "plt-header-right";
 
-        // Resize toggle
-        const resizeBtn = document.createElement("button");
-        resizeBtn.type = "button";
-        resizeBtn.className = `plt-header-btn ${this._compact ? "plt-active" : ""}`;
-        resizeBtn.innerHTML = `<i class="fas fa-expand-alt"></i>`;
-        resizeBtn.title = "Toggle size";
-        resizeBtn.addEventListener("click", () => {
+        const resizeBtn = this._createHeaderButton("Toggle size", "fa-expand-alt", this._compact, () => {
             this._compact = !this._compact;
             resizeBtn.classList.toggle("plt-active", this._compact);
             const appEl = root.closest("#player-light-tracker");
             if (appEl) appEl.classList.toggle("plt-compact", this._compact);
         });
 
-        // B&W toggle
-        const bwBtn = document.createElement("button");
-        bwBtn.type = "button";
-        bwBtn.className = `plt-header-btn ${this._bwMode ? "plt-active" : ""}`;
-        bwBtn.innerHTML = `<i class="fas fa-adjust"></i>`;
-        bwBtn.title = "Black & White";
-        bwBtn.addEventListener("click", () => {
+        const bwBtn = this._createHeaderButton("Black & White", "fa-adjust", this._bwMode, () => {
             this._bwMode = !this._bwMode;
             const pltWindow = root.querySelector(".plt-window");
             if (pltWindow) pltWindow.classList.toggle("plt-bw", this._bwMode);
@@ -581,7 +297,6 @@ class PlayerLightTrackerApp extends foundry.applications.api.ApplicationV2 {
     async _onClose(options) {
         await super._onClose(options);
         this._unregisterHooks();
-        document.getElementById("plt-styles")?.remove();
         this._lastStateKey = null;
         this._prevStateKey = null;
     }
@@ -646,7 +361,7 @@ class PlayerLightTrackerApp extends foundry.applications.api.ApplicationV2 {
 
         const confirmed = await foundry.applications.api.DialogV2.confirm({
             window: { title: "Douse Light" },
-            content: `<p style="text-align: center; font-style: italic;">Extinguish your ${lightItem.name}?<br>The darkness waits...</p>`,
+            content: `<p class="plt-douse-confirm">Extinguish your ${lightItem.name}?<br>The darkness waits...</p>`,
             yes: { label: "Douse my flame" },
             no: { label: "Not yet" },
         });
@@ -713,13 +428,8 @@ class PlayerLightTrackerApp extends foundry.applications.api.ApplicationV2 {
     }
 }
 
-// Singleton pattern — toggle on repeated macro execution
-if (!game.playerLightTrackerApp) {
-    game.playerLightTrackerApp = new PlayerLightTrackerApp();
-}
-
-if (game.playerLightTrackerApp.rendered) {
-    game.playerLightTrackerApp.close();
-} else {
-    game.playerLightTrackerApp.render({ force: true });
-}
+Hooks.once("init", () => {
+    const module = game.modules.get("foundry-homebrew");
+    module.api ??= {};
+    module.api.lightTracker = new PlayerLightTrackerApp();
+});

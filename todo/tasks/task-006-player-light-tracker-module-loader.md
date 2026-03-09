@@ -46,7 +46,11 @@ game.modules.get("foundry-homebrew").api.lightTracker.toggleInterface();
 - [ ] Code changes via rsync/deploy take effect on reload without re-pasting
 - [ ] Existing functionality (video transitions, douse, GM debug bar) is preserved
 
+## CSS extraction
+
+When converting to a module, the `PLT_STYLES` block (currently injected as a `<style>` element from JS) should be extracted to a proper CSS file (e.g. `styles/player-light-tracker.css`) and loaded via `module.json`'s `styles` array. This removes the CSS-in-JS pattern and the runtime style injection/cleanup code.
+
 ## Scope boundaries
 
-- **In scope**: module registration, singleton pattern, toggle method
+- **In scope**: module registration, singleton pattern, toggle method, CSS extraction to stylesheet
 - **Out of scope**: changing any visual/functional behavior of the tracker
