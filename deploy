@@ -1,0 +1,32 @@
+#!/usr/bin/env bash
+set -euo pipefail
+
+SECRETS_FILE="$(dirname "$0")/.deploy-secrets"
+
+if [[ ! -f "$SECRETS_FILE" ]]; then
+  echo "Error: secrets file not found: $SECRETS_FILE" >&2
+  echo "Create it with DEPLOY_USER, DEPLOY_HOST, and DEPLOY_BASE." >&2
+  exit 1
+fi
+
+source "$SECRETS_FILE"
+
+if [[ -z "${DEPLOY_USER:-}" || -z "${DEPLOY_HOST:-}" || -z "${DEPLOY_BASE:-}" ]]; then
+  echo "Error: .deploy-secrets must define DEPLOY_USER, DEPLOY_HOST, and DEPLOY_BASE." >&2
+  exit 1
+fi
+
+if [[ $# -eq 0 ]]; then
+  echo "Usage: ./deploy <file> [file ...]" >&2
+  exit 1
+fi
+
+for file in "$@"; do
+  if [[ ! -f "$file" ]]; then
+    echo "Error: file not found: $file" >&2
+    exit 1
+  fi
+  dest="${DEPLOY_USER}@${DEPLOY_HOST}:${DEPLOY_BASE}/${file}"
+  echo "Deploying $file → $dest"
+  scp "$file" "$dest"
+done
