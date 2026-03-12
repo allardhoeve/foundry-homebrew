@@ -13,7 +13,7 @@
       "url": "https://github.com/allardhoeve"
     }
   ],
-  "esmodules": ["scripts/player-light-tracker.js"],
+  "esmodules": ["src/player-light-tracker.js"],
   "styles": ["styles/player-light-tracker.css"],
   "packs": [
     {

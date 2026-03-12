@@ -10,7 +10,7 @@ import { compilePack } from "@foundryvtt/foundryvtt-cli";
 
 const { version } = JSON.parse(readFileSync("package.json", "utf8"));
 const macros = JSON.parse(readFileSync("macros/macros.json", "utf8"));
-const srcDir = resolve("src/packs/macros");
+const srcDir = resolve(".build-tmp/packs/macros");
 const outDir = resolve("packs/macros");
 
 // Write intermediate JSON source files that the CLI expects.
@@ -38,6 +38,6 @@ mkdirSync(outDir, { recursive: true });
 await compilePack(srcDir, outDir, { log: true });
 
 // Remove intermediate files — the .js files are the source of truth.
-rmSync(resolve("src"), { recursive: true, force: true });
+rmSync(resolve(".build-tmp"), { recursive: true, force: true });
 
 console.log("Pack built in packs/macros/");

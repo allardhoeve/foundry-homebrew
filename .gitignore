@@ -2,6 +2,6 @@
 .claude
 node_modules/
 packs/
-src/
+.build-tmp/
 .DS_Store
 Screenshot*.png

@@ -1,10 +1,16 @@
-# foundry-macros
+# Allard's Foundry Homebrew
 
-A personal collection of FoundryVTT macros, written for Foundry v13 (build 351) using the V2 Application framework.
+A personal FoundryVTT module for Shadowdark and The Lost Citadel, written for Foundry v13 (build 351) using the V2 Application framework.
 
-## Macros
+## Features
 
-### `random-encounter-check.js`
+### Player Light Tracker
+
+A module-loaded application that tracks light sources for the party. Registered as an ES module via `module.json`.
+
+### Macros
+
+#### `random-encounter-check.js`
 
 A generic random encounter check for **Shadowdark**. Opens a persistent floating window with quick-roll buttons. Results are whispered to the GM only.
 
@@ -18,9 +24,7 @@ The check die is adjusted so you can roll every round regardless of the dungeon'
 
 An encounter occurs on a roll of 1.
 
----
-
-### `scarlet-minotaur-encounter-check.js`
+#### `scarlet-minotaur-encounter-check.js`
 
 A two-step encounter check for **The Lost Citadel** dungeon module, implementing the Scarlet Minotaur's cumulative penalty rule.
 
@@ -38,7 +42,7 @@ On a roll of 1, the macro automatically proceeds to the encounter table.
 
 Each roll after the first applies a cumulative −2 penalty to the result (clamped to 1). The penalty resets when the Scarlet Minotaur is encountered. The current penalty is stored in `game.settings` (world scope) so it persists across sessions and is shared between GMs.
 
-See `scarlet-minotaur-random-encounter-check.md` for full design notes and the encounter table.
+See `docs/scarlet-minotaur-random-encounter-check.md` for full design notes and the encounter table.
 
 **Chat routing:**
 
@@ -56,7 +60,7 @@ See `scarlet-minotaur-random-encounter-check.md` for full design notes and the e
 Install directly from the Foundry **Add-on Modules** tab using the manifest URL:
 
 ```
-https://raw.githubusercontent.com/allardhoeve/foundry-macros/main/module.json
+https://raw.githubusercontent.com/allardhoeve/foundry-homebrew/main/module.json
 ```
 
 The macros will appear in a **Macros** compendium pack under the module. Import them into your world and run from there.
@@ -70,22 +74,50 @@ The macros will appear in a **Macros** compendium pack under the module. Import 
 
 Each macro registers a singleton application on the `game` object so re-running it reopens the existing window rather than creating a duplicate.
 
+## Module structure
+
+A FoundryVTT module's installed directory mirrors the layout below. The `module.json` manifest at the root declares which scripts, styles, and packs Foundry should load.
+
+```
+module-name/
+├── module.json       # Module manifest (required) — declares metadata,
+│                     #   esmodules, styles, packs, and compatibility
+├── src/              # ES module scripts loaded by Foundry
+│   └── *.js          #   (referenced in module.json "esmodules")
+├── styles/           # CSS stylesheets
+│   └── *.css         #   (referenced in module.json "styles")
+├── assets/           # Static assets served by Foundry
+│   ├── audio/
+│   ├── images/
+│   └── video/
+├── macros/           # Macro source files (compiled into packs/)
+├── packs/            # Compendium packs (LevelDB, built from macros/)
+│   └── macros/
+└── templates/        # Handlebars templates (optional)
+    └── *.hbs
+```
+
 ## Repository structure
+
+This repository adds development and reference files around the module structure:
 
 ```
 .
-├── module.json                             # FoundryVTT module manifest
-├── macros.json                             # Compendium metadata (name, id per macro)
-├── build.mjs                               # Build script: .js → LevelDB pack
-├── random-encounter-check.js               # Generic Shadowdark encounter check
-├── scarlet-minotaur-encounter-check.js     # Lost Citadel encounter check
-├── scarlet-minotaur-random-encounter-check.md  # Design notes for the above
-├── docs/                                   # API notes, module dev notes, sources
-├── examples/                               # Reference macros and tables
-└── third_party/                            # Git submodules (community macros/tables, Shadowdark system)
+├── module.json                # FoundryVTT module manifest
+├── build.mjs                  # Build script: macros/*.js → packs/macros/ (LevelDB)
+├── package.json               # Node dependencies (foundryvtt-cli)
+├── src/                       # Module ES modules
+│   └── player-light-tracker.js
+├── styles/                    # Module CSS
+│   └── player-light-tracker.css
+├── assets/                    # Images, audio, video
+├── macros/                    # Macro source files + macros.json metadata
+├── packs/                     # Compendium packs (build artifact)
+├── docs/                      # API notes, design docs, module dev notes
+├── todo/                      # Task tracking
+├── examples/                  # Reference macros and tables
+└── third_party/               # Git submodules (community macros/tables, Shadowdark system)
 ```
-
-`packs/` is a build artifact and is not committed to the repository.
 
 ## Releasing
 

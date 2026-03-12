@@ -11,12 +11,12 @@ This document summarizes official guidance for modules and packaging.
 
 ## Minimal Module Structure (Typical)
 - `module.json` (manifest)
-- `scripts/` (module JS)
+- `src/` (module JS)
 - `styles/` (optional CSS)
 - `templates/` (optional Handlebars)
 - `packs/` (optional compendium content)
 
 ## Notes
 - Always confirm manifest schema and version requirements in the official docs.
-- Keep module code in `scripts/` and expose a clean API via `game.modules.get(id)` when needed.
+- Keep module code in `src/` and expose a clean API via `game.modules.get(id)` when needed.
 - Use `Hooks` for setup and ready lifecycle phases.
