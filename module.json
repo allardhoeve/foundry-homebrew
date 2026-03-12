@@ -14,7 +14,7 @@
     }
   ],
   "esmodules": ["src/player-light-tracker.js"],
-  "styles": ["styles/player-light-tracker.css"],
+  "styles": ["styles/player-light-tracker.css", "styles/scarlet-minotaur.css"],
   "packs": [
     {
       "name": "macros",

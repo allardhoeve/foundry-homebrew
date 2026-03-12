@@ -1,0 +1,178 @@
+/* Override Foundry window chrome */
+#scarlet-minotaur-encounter {
+    background: #000000;
+    border: 1px solid #333;
+    border-radius: 4px;
+    box-shadow: 0 0 20px rgba(0, 0, 0, 0.8);
+}
+
+#scarlet-minotaur-encounter .window-header {
+    background: transparent;
+    border: none;
+    padding: 2px 4px;
+    min-height: 0;
+    display: flex;
+    justify-content: space-between;
+}
+
+#scarlet-minotaur-encounter .window-header [data-action="close"] {
+    order: -1;
+}
+
+#scarlet-minotaur-encounter .window-title {
+    display: none;
+}
+
+/* Header toolbar buttons */
+#scarlet-minotaur-encounter .window-header .sme-header-btn {
+    background: none;
+    border: none;
+    cursor: pointer;
+    color: #999;
+    font-size: 12px;
+    padding: 2px 4px;
+    transition: color 0.3s;
+}
+
+#scarlet-minotaur-encounter .window-header .sme-header-btn:hover {
+    color: #e8dcc8;
+}
+
+/* Main content container */
+.sme-window {
+    background: #000000;
+    color: #e8dcc8;
+    padding: 20px 16px;
+}
+
+/* Blackletter dialog title */
+.sme-title {
+    font-family: "JSL Blackletter", serif;
+    font-size: 22px;
+    color: #ffffff;
+    letter-spacing: 1px;
+    text-align: center;
+    margin-bottom: 16px;
+}
+
+/* Help panel — hidden by default */
+.sme-help-panel {
+    display: none;
+    font-size: 12px;
+    color: #888;
+    margin-bottom: 12px;
+    padding: 8px 10px;
+    background: rgba(255, 255, 255, 0.04);
+    border: 1px solid rgba(255, 255, 255, 0.1);
+    border-radius: 4px;
+    line-height: 1.5;
+}
+
+.sme-help-visible .sme-help-panel {
+    display: block;
+}
+
+/* Penalty panel */
+.sme-penalty-panel {
+    font-size: 12px;
+    color: #aaa;
+    margin-bottom: 12px;
+    padding: 8px 10px;
+    background: rgba(255, 255, 255, 0.04);
+    border: 1px solid rgba(255, 255, 255, 0.1);
+    border-radius: 4px;
+    display: flex;
+    align-items: baseline;
+    flex-wrap: wrap;
+    gap: 4px 6px;
+}
+
+.sme-penalty-active .sme-penalty-panel {
+    color: #cc6666;
+    background: rgba(139, 0, 0, 0.12);
+    border-color: rgba(139, 0, 0, 0.3);
+}
+
+/* Penalty select dropdown */
+.sme-penalty-select {
+    font-size: 12px;
+    font-weight: bold;
+    color: #aaa;
+    background: rgba(255, 255, 255, 0.04);
+    border: 1px solid rgba(255, 255, 255, 0.1);
+    border-radius: 3px;
+    padding: 2px 2px;
+    width: auto;
+    cursor: pointer;
+}
+
+.sme-penalty-active .sme-penalty-select {
+    color: #cc6666;
+    background: rgba(139, 0, 0, 0.12);
+    border-color: rgba(139, 0, 0, 0.3);
+}
+
+.sme-penalty-hint {
+    font-size: 11px;
+    color: #888;
+    width: 100%;
+}
+
+/* Button grid */
+.sme-button-grid {
+    display: grid;
+    gap: 8px;
+}
+
+/* Primary button: gold/amber */
+.sme-btn-primary {
+    background: rgba(180, 140, 40, 0.12);
+    border: 1px solid rgba(180, 140, 40, 0.5);
+    color: #d4a843;
+    font-size: 14px;
+    font-weight: bold;
+    padding: 8px 12px;
+    cursor: pointer;
+    border-radius: 3px;
+    transition: background 0.2s, border-color 0.2s;
+}
+
+.sme-btn-primary:hover {
+    background: rgba(180, 140, 40, 0.22);
+    border-color: rgba(212, 168, 67, 0.7);
+}
+
+/* Secondary button: muted */
+.sme-btn-secondary {
+    background: rgba(255, 255, 255, 0.04);
+    border: 1px solid rgba(255, 255, 255, 0.15);
+    color: #999;
+    font-size: 13px;
+    padding: 7px 12px;
+    cursor: pointer;
+    border-radius: 3px;
+    transition: background 0.2s, border-color 0.2s;
+}
+
+.sme-btn-secondary:hover {
+    background: rgba(255, 255, 255, 0.08);
+    border-color: rgba(255, 255, 255, 0.3);
+    color: #ccc;
+}
+
+/* Debug/tertiary button: very subtle */
+.sme-btn-debug {
+    background: transparent;
+    border: 1px solid rgba(255, 255, 255, 0.07);
+    color: #555;
+    font-size: 11px;
+    padding: 4px 8px;
+    cursor: pointer;
+    border-radius: 3px;
+    transition: color 0.2s, border-color 0.2s;
+}
+
+.sme-btn-debug:hover {
+    color: #888;
+    border-color: rgba(255, 255, 255, 0.15);
+}

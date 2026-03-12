@@ -118,72 +118,39 @@ class ScarletMinotaurEncounterApp extends foundry.applications.api.ApplicationV2
 
     // Renders fresh each time so the penalty display stays current after rolls.
     async _renderHTML(_context, _options) {
-        const penalty        = game.settings.get(SETTING_NS, SETTING_KEY);
-        const penaltyColor   = penalty > 0 ? "#ff6666" : "#aaa";
-        const penaltyBg      = penalty > 0 ? "rgba(139,0,0,0.15)" : "rgba(255,255,255,0.07)";
-        const penaltyBorder  = penalty > 0 ? "rgba(139,0,0,0.4)" : "rgba(255,255,255,0.15)";
+        const penalty = game.settings.get(SETTING_NS, SETTING_KEY);
 
         const container = document.createElement("div");
+        container.className = `sme-window${penalty > 0 ? " sme-penalty-active" : ""}`;
+        if (this._helpVisible) container.classList.add("sme-help-visible");
         container.innerHTML = `
-            <div style="padding: 10px;">
-                <div style="
-                    font-size: 12px;
-                    color: #999;
-                    margin-bottom: 10px;
-                    padding: 6px 8px;
-                    background: rgba(0,100,0,0.15);
-                    border: 1px solid rgba(0,100,0,0.4);
-                    border-radius: 4px;
-                    line-height: 1.5;
-                ">
-                    Normal encounter roll is 1:6. You should roll this every other round, unless the party made noise.
-                    In that case roll it that round. As convenience you can roll 1:12 every round, so you don't have to
-                    track what round you rolled. An encounter occurs on a 1.
-                </div>
-                <div style="
-                    font-size: 12px;
-                    color: ${penaltyColor};
-                    margin-bottom: 10px;
-                    padding: 6px 8px;
-                    background: ${penaltyBg};
-                    border: 1px solid ${penaltyBorder};
-                    border-radius: 4px;
-                    display: flex;
-                    align-items: baseline;
-                    flex-wrap: wrap;
-                    gap: 4px 6px;
-                ">
-                    <span>Scarlet Minotaur penalty:</span>
-                    <select data-action="set-penalty" style="
-                        font-size: 12px;
-                        font-weight: bold;
-                        color: ${penaltyColor};
-                        background: ${penaltyBg};
-                        border: 1px solid ${penaltyBorder};
-                        border-radius: 3px;
-                        padding: 2px 2px;
-                        width: auto;
-                        cursor: pointer;
-                    ">
-                        <option value="0" ${penalty === 0 ? 'selected' : ''}>0</option>
-                        <option value="2" ${penalty === 2 ? 'selected' : ''}>−2</option>
-                        <option value="4" ${penalty === 4 ? 'selected' : ''}>−4</option>
-                        <option value="6" ${penalty === 6 ? 'selected' : ''}>−6</option>
-                        <option value="8" ${penalty === 8 ? 'selected' : ''}>−8</option>
-                    </select>
-                    ${penalty > 0 ? '<div style="font-size: 11px; color: #999; width: 100%;">The penalty resets when you roll the Minotaur.</div>' : ''}
-                </div>
-                <div style="display: grid; gap: 8px;">
-                    <button type="button" data-roll="1d12" data-label="Normal Check">
-                        1d12 — Normal Check
-                    </button>
-                    <button type="button" data-roll="1d6" data-label="Made Noise">
-                        1d6 — Characters Made Noise
-                    </button>
-                    <button type="button" data-roll="1d1" data-label="Encounter">
-                        1 - Encounter now
-                    </button>
-                </div>
+            <div class="sme-title">Random Encounter</div>
+            <div class="sme-help-panel">
+                Normal encounter roll is 1:6. You should roll this every other round, unless the party made noise.
+                In that case roll it that round. As convenience you can roll 1:12 every round, so you don't have to
+                track what round you rolled. An encounter occurs on a 1.
+            </div>
+            <div class="sme-penalty-panel">
+                <span>Scarlet Minotaur penalty:</span>
+                <select data-action="set-penalty" class="sme-penalty-select">
+                    <option value="0" ${penalty === 0 ? 'selected' : ''}>0</option>
+                    <option value="2" ${penalty === 2 ? 'selected' : ''}>−2</option>
+                    <option value="4" ${penalty === 4 ? 'selected' : ''}>−4</option>
+                    <option value="6" ${penalty === 6 ? 'selected' : ''}>−6</option>
+                    <option value="8" ${penalty === 8 ? 'selected' : ''}>−8</option>
+                </select>
+                ${penalty > 0 ? '<div class="sme-penalty-hint">The penalty resets when you roll the Minotaur.</div>' : ''}
+            </div>
+            <div class="sme-button-grid">
+                <button type="button" class="sme-btn-primary" data-roll="1d12" data-label="Normal Check">
+                    1d12 — Normal Check
+                </button>
+                <button type="button" class="sme-btn-secondary" data-roll="1d6" data-label="Made Noise">
+                    1d6 — Characters Made Noise
+                </button>
+                <button type="button" class="sme-btn-debug" data-roll="1d1" data-label="Encounter">
+                    1 — Encounter now
+                </button>
             </div>
         `;
         return container;
@@ -197,6 +164,21 @@ class ScarletMinotaurEncounterApp extends foundry.applications.api.ApplicationV2
         await super._onRender(context, options);
         const root = this.element instanceof HTMLElement ? this.element : this.element?.[0];
         if (!root?.querySelectorAll) return;
+
+        // Inject help toggle button into the window header.
+        const header = root.querySelector(".window-header");
+        if (header && !header.querySelector(".sme-help-toggle")) {
+            const helpBtn = document.createElement("button");
+            helpBtn.className = "sme-header-btn sme-help-toggle";
+            helpBtn.type = "button";
+            helpBtn.textContent = "?";
+            helpBtn.addEventListener("click", () => {
+                this._helpVisible = !this._helpVisible;
+                const wrapper = root.querySelector(".sme-window");
+                wrapper?.classList.toggle("sme-help-visible", this._helpVisible);
+            });
+            header.appendChild(helpBtn);
+        }
 
         root.querySelectorAll("button[data-roll]").forEach(button => {
             button.addEventListener("click", async (event) => {
