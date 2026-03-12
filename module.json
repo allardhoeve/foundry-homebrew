@@ -13,7 +13,7 @@
       "url": "https://github.com/allardhoeve"
     }
   ],
-  "esmodules": ["src/player-light-tracker.js"],
+  "esmodules": ["src/player-light-tracker.js", "src/scarlet-minotaur-encounter.js"],
   "styles": ["styles/player-light-tracker.css", "styles/scarlet-minotaur.css"],
   "packs": [
     {

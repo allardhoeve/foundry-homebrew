@@ -123,7 +123,7 @@ class PlayerLightTrackerApp extends foundry.applications.api.ApplicationV2 {
         position: {
             width: PLT_WINDOW_WIDTH,
         },
-    });
+    }, { inplace: false });
 
     constructor(options = {}) {
         super(options);
