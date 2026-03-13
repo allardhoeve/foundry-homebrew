@@ -67,7 +67,7 @@ const DARKNESS_DATA = {
 
 const PARTY_BRIGHT_DATA = {
     stateKey: STATES.PARTY_BRIGHT,
-    statusText: "The party has strong light. Don't stray.",
+    statusText: "The party has strong light<br/>Don't stray",
     lightName: null,
     lightItem: null,
     lightType: "party",
@@ -75,7 +75,7 @@ const PARTY_BRIGHT_DATA = {
 
 const PARTY_GOOD_DATA = {
     stateKey: STATES.PARTY_GOOD,
-    statusText: "The party has weak light. Stay close.",
+    statusText: "The party has weak light<br/>Stay close",
     lightName: null,
     lightItem: null,
     lightType: "party",
@@ -83,7 +83,7 @@ const PARTY_GOOD_DATA = {
 
 const PARTY_FADING_DATA = {
     stateKey: STATES.PARTY_FADING,
-    statusText: "The party's light is fading.",
+    statusText: "The party's light is fading",
     lightName: null,
     lightItem: null,
     lightType: "party",
@@ -116,7 +116,7 @@ class PlayerLightTrackerApp extends foundry.applications.api.ApplicationV2 {
     static DEFAULT_OPTIONS = foundry.utils.mergeObject(super.DEFAULT_OPTIONS, {
         id: "player-light-tracker",
         window: {
-            title: "Light",
+            title: "Player Light Tracker",
             resizable: false,
             minimizable: false,
         },
