@@ -18,25 +18,37 @@ See `docs/player-light-tracker-design.md` for the full design philosophy.
 - `styles/player-light-tracker.css` — all Light Tracker styles, including `.plt-douse-btn`, `.plt-light-name`, `.plt-douse-confirm`
 - `docs/player-light-tracker-design.md` — design philosophy document for this tracker
 
+## Design decisions
+
+- **Compact layout**: Option C — 24px portrait on left edge, status text centered in remaining space (title-card feel)
+- **Character selector**: Overlay popup, triggered by hover AND click (supports tablet). Appears above the portrait, no layout shift.
+- **Title bar hiding**: Pure CSS (`display: none` on `.window-title`), no ApplicationV2 API for this. Collapse still works because `.window-header` stays in DOM.
+- **Douse removal**: Full removal — button, click handler, confirmation dialog, and all CSS. The logic is simple to re-add if ever needed.
+- **Mockup**: `docs/mockups/compact-light-tracker-options.html`
+
 ## Changes
 
 ### Modified: `src/player-light-tracker.js`
 
 **Both modes (full & compact):**
-- [ ] Remove the "Douse my flame" button rendering
+- [ ] Remove the "Douse my flame" button rendering and click handler
+- [ ] Remove the douse confirmation dialog logic
 - [ ] Remove the light source name text (e.g., "Oil, flask")
 
 **Compact mode only:**
-- [ ] Remove the "Light Tracker" title (redundant with window header)
 - [ ] Remove the "AMRIEL" character name label
-- [ ] Replace the portrait row with a single active-character portrait next to the status text (horizontal layout)
-- [ ] On hover/click of the portrait, expand to show all character portraits for switching
+- [ ] Render only active-character portrait (24px, circular) on the left
+- [ ] Render status text centered in the remaining space
+- [ ] Add hover+click popup overlay with all character portraits for switching
+- [ ] Close popup on selection or clicking outside
 
 ### Modified: `styles/player-light-tracker.css`
 
 - [ ] Remove `.plt-douse-btn`, `.plt-light-name`, `.plt-douse-confirm` styles
-- [ ] Add compact horizontal layout styles (portrait + status text in one line)
-- [ ] Add portrait hover/expand interaction for character selector
+- [ ] Hide `.window-title` via CSS (visible only when collapsed)
+- [ ] Add compact horizontal layout: portrait left, status text centered (Option C)
+- [ ] Add popup overlay styles for character selector (absolute positioned above portrait)
+- [ ] Add hover+click trigger for popup (`:hover` + `.popup-open` class toggle)
 
 ## Verification
 
@@ -49,13 +61,14 @@ See `docs/player-light-tracker-design.md` for the full design philosophy.
 
 ## Acceptance criteria
 
-- [ ] "Douse my flame" button is removed from both modes
+- [ ] "Douse my flame" button, handler, and confirmation dialog fully removed
 - [ ] Light source name text is removed from both modes
-- [ ] Compact mode has no title or character name label
-- [ ] Compact mode displays active portrait + status text in a single horizontal line
-- [ ] Compact portrait hover/click reveals character selector for switching
+- [ ] Window title hidden via CSS (visible only when collapsed)
+- [ ] Compact mode has no character name label
+- [ ] Compact mode: 24px portrait left, status text centered (Option C layout)
+- [ ] Compact portrait hover+click opens overlay popup with all character portraits
+- [ ] Popup closes on selection or outside click
 - [ ] Torch animation remains the dominant visual in full mode
-- [ ] All light tracking mechanics are unchanged
 - [ ] No behavioral regressions
 
 ## Scope boundaries

@@ -60,32 +60,27 @@ const STATES = {
 const DARKNESS_DATA = {
     stateKey: STATES.DARKNESS,
     statusText: "The darkness engulfs you",
-    lightName: null,
-    lightItem: null,
     lightType: "torch",
 };
 
 const PARTY_BRIGHT_DATA = {
     stateKey: STATES.PARTY_BRIGHT,
-    statusText: "The party has strong light<br/>Don't stray",
-    lightName: null,
-    lightItem: null,
+    statusText: "Your party has strong light<br/>Don't stray",
+    compactText: "Your party has strong light",
     lightType: "party",
 };
 
 const PARTY_GOOD_DATA = {
     stateKey: STATES.PARTY_GOOD,
     statusText: "The party has weak light<br/>Stay close",
-    lightName: null,
-    lightItem: null,
+    compactText: "Your party has weak light",
     lightType: "party",
 };
 
 const PARTY_FADING_DATA = {
     stateKey: STATES.PARTY_FADING,
     statusText: "The party's light is fading",
-    lightName: null,
-    lightItem: null,
+    compactText: "Your light is fading",
     lightType: "party",
 };
 
@@ -159,16 +154,21 @@ class PlayerLightTrackerApp extends foundry.applications.api.ApplicationV2 {
     async _renderHTML(_context, _options) {
         const container = document.createElement("div");
 
-        const { stateKey, statusText, lightName, lightItem, lightType } = await this._getLightData();
+        const lightData = await this._getLightData();
+        const { stateKey, lightType } = lightData;
+        const statusText = this._compact && lightData.compactText ? lightData.compactText : lightData.statusText;
         const assetFile = PLT_ASSETS[lightType]?.[stateKey];
 
         // Build character selector: GMs see all PCs, players see only owned PCs
-        let characterSelectorHTML = "";
         const selectableActors = game.user.isGM
             ? game.actors.filter(a => a.type === "Player")
             : game.actors.filter(a => a.isOwner && a.type === "Player");
-        if (selectableActors.length >= PLT_MIN_ACTORS_FOR_SELECTOR) {
-            const currentId = this.actor?._id ?? "";
+        const currentId = this.actor?._id ?? "";
+        const showSelector = selectableActors.length >= PLT_MIN_ACTORS_FOR_SELECTOR;
+
+        // Full mode: character selector in header
+        let characterSelectorHTML = "";
+        if (showSelector) {
             const buttons = selectableActors.map(a =>
                 `<button type="button" class="plt-character-btn ${a._id === currentId ? "plt-character-active" : ""}"
                         data-actor-id="${a._id}" title="${a.name}">
@@ -178,15 +178,35 @@ class PlayerLightTrackerApp extends foundry.applications.api.ApplicationV2 {
             characterSelectorHTML = `<div class="plt-character-selector">${buttons}</div>`;
         }
 
-        const characterName = this.actor?.name ?? "Unknown";
+        // Compact mode: active portrait with popup overlay
+        const activeActor = this.actor;
+        let compactPortraitHTML = "";
+        if (activeActor) {
+            let popupHTML = "";
+            if (showSelector) {
+                const popupButtons = selectableActors.map(a =>
+                    `<button type="button" class="plt-popup-btn ${a._id === currentId ? "plt-popup-btn-active" : ""}"
+                            data-actor-id="${a._id}" title="${a.name}">
+                        <img src="${a.img}" alt="${a.name}">
+                    </button>`
+                ).join("");
+                popupHTML = `<div class="plt-popup">${popupButtons}</div>`;
+            }
+            compactPortraitHTML = `
+                <div class="plt-compact-portrait-wrap">
+                    <img class="plt-compact-portrait" src="${activeActor.img}" alt="${activeActor.name}">
+                    ${popupHTML}
+                </div>`;
+        }
 
         container.innerHTML = `
             <div class="plt-window plt-state-${stateKey}" data-state="${stateKey}" data-light-type="${lightType}">
                 <div class="plt-header">
                     <div class="plt-header-title">Light Tracker</div>
-                    <div class="plt-header-character">${characterName}</div>
                     ${characterSelectorHTML}
                 </div>
+                ${compactPortraitHTML}
+                <div class="plt-status-text">${statusText}</div>
                 <div class="plt-animation">
                     ${assetFile?.endsWith(".mp4")
                         ? `<video class="plt-video" autoplay loop muted playsinline
@@ -195,9 +215,6 @@ class PlayerLightTrackerApp extends foundry.applications.api.ApplicationV2 {
                             ? `<img class="plt-image" src="${getAssetPath(assetFile)}" alt="">`
                             : ""}
                 </div>
-                <div class="plt-status-text">${statusText}</div>
-                ${lightName ? `<div class="plt-light-name">${lightName}</div>` : ""}
-                ${lightItem ? `<button type="button" class="plt-douse-btn">Douse my flame</button>` : ""}
             </div>
         `;
         return container;
@@ -224,7 +241,7 @@ class PlayerLightTrackerApp extends foundry.applications.api.ApplicationV2 {
         const appEl = root.closest("#player-light-tracker");
         if (appEl && this._compact) appEl.classList.add("plt-compact");
 
-        // Wire character selector
+        // Wire character selector (full mode)
         for (const btn of root.querySelectorAll(".plt-character-btn")) {
             btn.addEventListener("click", () => {
                 this._viewedActorId = btn.dataset.actorId;
@@ -234,12 +251,32 @@ class PlayerLightTrackerApp extends foundry.applications.api.ApplicationV2 {
             });
         }
 
-        const douseBtn = root.querySelector(".plt-douse-btn");
-        if (douseBtn) {
-            douseBtn.addEventListener("click", async (event) => {
-                event.preventDefault();
-                await this._onDouse();
+        // Wire compact portrait popup (hover + click for tablet support)
+        const portraitWrap = root.querySelector(".plt-compact-portrait-wrap");
+        if (portraitWrap) {
+            portraitWrap.addEventListener("click", (e) => {
+                // Don't toggle if clicking a popup button
+                if (e.target.closest(".plt-popup-btn")) return;
+                portraitWrap.classList.toggle("plt-popup-open");
             });
+
+            for (const btn of portraitWrap.querySelectorAll(".plt-popup-btn")) {
+                btn.addEventListener("click", () => {
+                    this._viewedActorId = btn.dataset.actorId;
+                    this._prevStateKey = null;
+                    this._lastStateKey = null;
+                    portraitWrap.classList.remove("plt-popup-open");
+                    this.render({ force: true });
+                });
+            }
+
+            // Close popup when clicking outside
+            this._closePopupHandler = (e) => {
+                if (!portraitWrap.contains(e.target)) {
+                    portraitWrap.classList.remove("plt-popup-open");
+                }
+            };
+            document.addEventListener("click", this._closePopupHandler);
         }
 
         // Handle video transitions
@@ -271,9 +308,10 @@ class PlayerLightTrackerApp extends foundry.applications.api.ApplicationV2 {
         const resizeBtn = this._createHeaderButton("Toggle size", "fa-expand-alt", this._compact, () => {
             this._compact = !this._compact;
             resizeBtn.classList.toggle("plt-active", this._compact);
-            const appEl = root.closest("#player-light-tracker");
+            const appEl = document.getElementById("player-light-tracker");
             if (appEl) appEl.classList.toggle("plt-compact", this._compact);
             game.settings.set(PLT_MODULE_ID, PLT_SETTING_COMPACT, this._compact);
+            this.setPosition({ height: "auto" });
         });
 
         const bwBtn = this._createHeaderButton("Black & White", "fa-adjust", this._bwMode, () => {
@@ -314,8 +352,11 @@ class PlayerLightTrackerApp extends foundry.applications.api.ApplicationV2 {
         this._unregisterHooks();
         this._lastStateKey = null;
         this._prevStateKey = null;
+        if (this._closePopupHandler) {
+            document.removeEventListener("click", this._closePopupHandler);
+            this._closePopupHandler = null;
+        }
     }
-
 
     async _getLightData() {
         const actor = this.actor;
@@ -333,8 +374,6 @@ class PlayerLightTrackerApp extends foundry.applications.api.ApplicationV2 {
             return {
                 stateKey: state.key,
                 statusText: state.text,
-                lightName: item.name,
-                lightItem: item,
                 lightType: getLightType(item),
             };
         }
@@ -368,38 +407,6 @@ class PlayerLightTrackerApp extends foundry.applications.api.ApplicationV2 {
 
         // 3. No light at all
         return DARKNESS_DATA;
-    }
-
-    async _onDouse() {
-        const { lightItem } = await this._getLightData();
-        if (!lightItem) return;
-
-        const confirmed = await foundry.applications.api.DialogV2.confirm({
-            window: { title: "Douse Light" },
-            content: `<p class="plt-douse-confirm">Extinguish your ${lightItem.name}?<br>The darkness waits...</p>`,
-            yes: { label: "Douse my flame" },
-            no: { label: "Not yet" },
-        });
-
-        if (!confirmed) return;
-
-        // Re-check that the light still exists (it may have expired)
-        const { lightItem: currentLight } = await this._getLightData();
-        if (!currentLight) {
-            ui.notifications.warn("Your light has already gone out.");
-            return;
-        }
-
-        const actor = this.actor;
-        await actor.yourLightWentOut(currentLight._id);
-        if (currentLight.type === "Effect") {
-            await actor.deleteEmbeddedDocuments("Item", [currentLight._id]);
-        } else {
-            await actor.updateEmbeddedDocuments("Item", [{
-                "_id": currentLight._id,
-                "system.light.active": false,
-            }]);
-        }
     }
 
     _registerHooks() {

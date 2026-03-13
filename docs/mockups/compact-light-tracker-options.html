@@ -1,0 +1,673 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Compact Light Tracker — Design Options</title>
+<style>
+  @import url('https://fonts.googleapis.com/css2?family=UnifrakturMaguntia&display=swap');
+
+  *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+  body {
+    background: #111114;
+    color: #e8dcc8;
+    font-family: 'Segoe UI', system-ui, sans-serif;
+    padding: 40px 60px;
+    min-height: 100vh;
+  }
+
+  h1 {
+    font-family: 'UnifrakturMaguntia', serif;
+    font-size: 32px;
+    color: #f5c542;
+    text-shadow: 0 0 30px rgba(245, 197, 66, 0.25);
+    margin-bottom: 8px;
+    font-weight: normal;
+  }
+
+  .page-subtitle {
+    color: #666;
+    font-size: 13px;
+    margin-bottom: 48px;
+    letter-spacing: 0.5px;
+  }
+
+  /* --- Option sections --- */
+
+  .option {
+    margin-bottom: 56px;
+  }
+
+  .option-label {
+    font-size: 11px;
+    text-transform: uppercase;
+    letter-spacing: 3px;
+    color: #555;
+    margin-bottom: 16px;
+  }
+
+  .option-desc {
+    font-size: 13px;
+    color: #777;
+    margin-bottom: 20px;
+    max-width: 520px;
+    line-height: 1.5;
+  }
+
+  .states {
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+  }
+
+  /* --- The compact bar itself --- */
+
+  .bar {
+    background: #1a1a1e;
+    border: 1px solid #2a2a2e;
+    border-radius: 4px;
+    display: flex;
+    align-items: center;
+    position: relative;
+    width: 320px;
+  }
+
+  .bar--padded {
+    padding: 6px 14px;
+    gap: 10px;
+  }
+
+  .bar--padded-lg {
+    padding: 6px 14px;
+    gap: 12px;
+  }
+
+  /* --- Portraits --- */
+
+  .portrait-wrap {
+    position: relative;
+    flex-shrink: 0;
+  }
+
+  .portrait {
+    border-radius: 50%;
+    border: 1.5px solid #444;
+    cursor: pointer;
+    transition: border-color 0.25s, box-shadow 0.25s;
+    display: block;
+  }
+
+  .portrait:hover {
+    border-color: #d4a843;
+  }
+
+  .portrait--sm { width: 24px; height: 24px; }
+  .portrait--md { width: 32px; height: 32px; }
+
+  /* --- Status text --- */
+
+  .status {
+    font-family: 'UnifrakturMaguntia', serif;
+    font-size: 18px;
+    line-height: 1.2;
+    white-space: nowrap;
+    transition: color 0.6s, text-shadow 0.6s;
+  }
+
+  .status--center {
+    flex: 1;
+    text-align: center;
+    padding-right: 24px; /* balance portrait width so text centers in visual space */
+  }
+
+  .status--left {
+    flex: 1;
+  }
+
+  /* State colors */
+  .state-bright    { color: #f5c542; text-shadow: 0 0 20px rgba(245, 197, 66, 0.35); }
+  .state-good      { color: #d4a843; text-shadow: 0 0 10px rgba(212, 168, 67, 0.2); }
+  .state-fading    { color: #a07030; text-shadow: 0 0 6px rgba(160, 112, 48, 0.15); }
+  .state-darkness  { color: #888; }
+  .state-party     { color: #8a9aaa; text-shadow: 0 0 8px rgba(138, 154, 170, 0.15); }
+  .state-spell     { color: #b4a0f5; text-shadow: 0 0 16px rgba(180, 160, 245, 0.3); }
+
+  .state-fading .status {
+    animation: flicker 2.5s ease-in-out infinite;
+  }
+
+  @keyframes flicker {
+    0%, 100% { opacity: 1; }
+    50% { opacity: 0.65; }
+  }
+
+  /* --- State label (for mockup only) --- */
+
+  .state-tag {
+    font-size: 10px;
+    color: #444;
+    font-family: 'Segoe UI', system-ui, sans-serif;
+    letter-spacing: 0.5px;
+    position: absolute;
+    right: -110px;
+    top: 50%;
+    transform: translateY(-50%);
+    white-space: nowrap;
+  }
+
+  .bar-row {
+    position: relative;
+    width: fit-content;
+  }
+
+  /* --- Popup overlay --- */
+
+  .popup {
+    position: absolute;
+    bottom: calc(100% + 8px);
+    left: 0;
+    background: #1a1a1e;
+    border: 1px solid #333;
+    border-radius: 6px;
+    padding: 8px 10px;
+    display: flex;
+    gap: 8px;
+    align-items: center;
+    box-shadow: 0 -4px 20px rgba(0, 0, 0, 0.6);
+    opacity: 0;
+    pointer-events: none;
+    transform: translateY(4px);
+    transition: opacity 0.2s, transform 0.2s;
+    z-index: 10;
+  }
+
+  .popup::after {
+    content: '';
+    position: absolute;
+    top: 100%;
+    left: 14px;
+    border: 6px solid transparent;
+    border-top-color: #333;
+  }
+
+  .portrait-wrap:hover .popup,
+  .portrait-wrap.popup-open .popup,
+  .trigger-area:hover .popup,
+  .trigger-area.popup-open .popup {
+    opacity: 1;
+    pointer-events: auto;
+    transform: translateY(0);
+  }
+
+  .popup-portrait {
+    width: 34px;
+    height: 34px;
+    border-radius: 50%;
+    border: 2px solid #444;
+    cursor: pointer;
+    transition: border-color 0.2s, box-shadow 0.2s;
+  }
+
+  .popup-portrait:hover {
+    border-color: #d4a843;
+  }
+
+  .popup-portrait--active {
+    border-color: #f5c542;
+    box-shadow: 0 0 10px rgba(245, 197, 66, 0.4);
+  }
+
+  /* --- Option D: icon trigger area --- */
+
+  .trigger-area {
+    position: relative;
+    flex-shrink: 0;
+    width: 20px;
+    height: 100%;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    cursor: pointer;
+  }
+
+  .trigger-icon {
+    width: 14px;
+    height: 14px;
+    border-radius: 50%;
+    border: 1.5px solid #333;
+    transition: border-color 0.25s;
+    position: relative;
+  }
+
+  .trigger-icon::after {
+    content: '';
+    position: absolute;
+    top: 50%;
+    left: 50%;
+    transform: translate(-50%, -50%);
+    width: 6px;
+    height: 6px;
+    border-radius: 50%;
+    background: #555;
+    transition: background 0.25s;
+  }
+
+  .trigger-area:hover .trigger-icon {
+    border-color: #d4a843;
+  }
+
+  .trigger-area:hover .trigger-icon::after {
+    background: #d4a843;
+  }
+
+  /* --- Divider --- */
+
+  .divider {
+    width: 520px;
+    height: 1px;
+    background: #222;
+    margin: 0 0 56px 0;
+  }
+
+  /* Portrait placeholder colors */
+  .ph-1 { background: #6b4423; }
+  .ph-2 { background: #2a4a3a; }
+  .ph-3 { background: #3a2a4a; }
+  .ph-4 { background: #4a3a2a; }
+</style>
+</head>
+<body>
+
+<h1>Compact Light Tracker</h1>
+<p class="page-subtitle">Design options — hover portraits to see the character selector popup</p>
+
+<!-- ════════════════════════════════════════ OPTION A ════════════════════════════════════════ -->
+
+<div class="option">
+  <div class="option-label">Option A — Portrait left, 24px</div>
+  <div class="option-desc">
+    Tiny portrait anchors the left edge. Status text is the dominant element, left-aligned beside it.
+    The portrait is functional (character switcher) but visually subordinate.
+  </div>
+  <div class="states">
+
+    <div class="bar-row">
+      <div class="bar bar--padded state-bright">
+        <div class="portrait-wrap" onclick="this.classList.toggle('popup-open')">
+          <div class="portrait portrait--sm ph-1"></div>
+          <div class="popup">
+            <div class="popup-portrait ph-1 popup-portrait--active"></div>
+            <div class="popup-portrait ph-2"></div>
+            <div class="popup-portrait ph-3"></div>
+            <div class="popup-portrait ph-4"></div>
+          </div>
+        </div>
+        <div class="status status--left state-bright">Your light shines brightly</div>
+      </div>
+      <span class="state-tag">torch — bright</span>
+    </div>
+
+    <div class="bar-row">
+      <div class="bar bar--padded state-fading">
+        <div class="portrait-wrap" onclick="this.classList.toggle('popup-open')">
+          <div class="portrait portrait--sm ph-1"></div>
+          <div class="popup">
+            <div class="popup-portrait ph-1 popup-portrait--active"></div>
+            <div class="popup-portrait ph-2"></div>
+            <div class="popup-portrait ph-3"></div>
+            <div class="popup-portrait ph-4"></div>
+          </div>
+        </div>
+        <div class="status status--left state-fading">Your light starts to fade</div>
+      </div>
+      <span class="state-tag">torch — fading</span>
+    </div>
+
+    <div class="bar-row">
+      <div class="bar bar--padded">
+        <div class="portrait-wrap" onclick="this.classList.toggle('popup-open')">
+          <div class="portrait portrait--sm ph-1"></div>
+          <div class="popup">
+            <div class="popup-portrait ph-1 popup-portrait--active"></div>
+            <div class="popup-portrait ph-2"></div>
+            <div class="popup-portrait ph-3"></div>
+            <div class="popup-portrait ph-4"></div>
+          </div>
+        </div>
+        <div class="status status--left state-darkness">The darkness engulfs you</div>
+      </div>
+      <span class="state-tag">darkness</span>
+    </div>
+
+    <div class="bar-row">
+      <div class="bar bar--padded">
+        <div class="portrait-wrap" onclick="this.classList.toggle('popup-open')">
+          <div class="portrait portrait--sm ph-1"></div>
+          <div class="popup">
+            <div class="popup-portrait ph-1 popup-portrait--active"></div>
+            <div class="popup-portrait ph-2"></div>
+            <div class="popup-portrait ph-3"></div>
+            <div class="popup-portrait ph-4"></div>
+          </div>
+        </div>
+        <div class="status status--left state-party">The party has strong light</div>
+      </div>
+      <span class="state-tag">party light</span>
+    </div>
+
+    <div class="bar-row">
+      <div class="bar bar--padded">
+        <div class="portrait-wrap" onclick="this.classList.toggle('popup-open')">
+          <div class="portrait portrait--sm ph-1"></div>
+          <div class="popup">
+            <div class="popup-portrait ph-1 popup-portrait--active"></div>
+            <div class="popup-portrait ph-2"></div>
+            <div class="popup-portrait ph-3"></div>
+            <div class="popup-portrait ph-4"></div>
+          </div>
+        </div>
+        <div class="status status--left state-spell">Your light shines brightly</div>
+      </div>
+      <span class="state-tag">spell — bright</span>
+    </div>
+
+  </div>
+</div>
+
+<div class="divider"></div>
+
+<!-- ════════════════════════════════════════ OPTION B ════════════════════════════════════════ -->
+
+<div class="option">
+  <div class="option-label">Option B — Portrait left, 32px</div>
+  <div class="option-desc">
+    Larger portrait gives the character more presence. The portrait and text feel more balanced —
+    but the portrait draws more attention away from the status message.
+  </div>
+  <div class="states">
+
+    <div class="bar-row">
+      <div class="bar bar--padded-lg state-bright">
+        <div class="portrait-wrap" onclick="this.classList.toggle('popup-open')">
+          <div class="portrait portrait--md ph-2"></div>
+          <div class="popup">
+            <div class="popup-portrait ph-1"></div>
+            <div class="popup-portrait ph-2 popup-portrait--active"></div>
+            <div class="popup-portrait ph-3"></div>
+            <div class="popup-portrait ph-4"></div>
+          </div>
+        </div>
+        <div class="status status--left state-bright">Your light shines brightly</div>
+      </div>
+      <span class="state-tag">torch — bright</span>
+    </div>
+
+    <div class="bar-row">
+      <div class="bar bar--padded-lg state-fading">
+        <div class="portrait-wrap" onclick="this.classList.toggle('popup-open')">
+          <div class="portrait portrait--md ph-2"></div>
+          <div class="popup">
+            <div class="popup-portrait ph-1"></div>
+            <div class="popup-portrait ph-2 popup-portrait--active"></div>
+            <div class="popup-portrait ph-3"></div>
+            <div class="popup-portrait ph-4"></div>
+          </div>
+        </div>
+        <div class="status status--left state-fading">Your light starts to fade</div>
+      </div>
+      <span class="state-tag">torch — fading</span>
+    </div>
+
+    <div class="bar-row">
+      <div class="bar bar--padded-lg">
+        <div class="portrait-wrap" onclick="this.classList.toggle('popup-open')">
+          <div class="portrait portrait--md ph-2"></div>
+          <div class="popup">
+            <div class="popup-portrait ph-1"></div>
+            <div class="popup-portrait ph-2 popup-portrait--active"></div>
+            <div class="popup-portrait ph-3"></div>
+            <div class="popup-portrait ph-4"></div>
+          </div>
+        </div>
+        <div class="status status--left state-darkness">The darkness engulfs you</div>
+      </div>
+      <span class="state-tag">darkness</span>
+    </div>
+
+    <div class="bar-row">
+      <div class="bar bar--padded-lg">
+        <div class="portrait-wrap" onclick="this.classList.toggle('popup-open')">
+          <div class="portrait portrait--md ph-2"></div>
+          <div class="popup">
+            <div class="popup-portrait ph-1"></div>
+            <div class="popup-portrait ph-2 popup-portrait--active"></div>
+            <div class="popup-portrait ph-3"></div>
+            <div class="popup-portrait ph-4"></div>
+          </div>
+        </div>
+        <div class="status status--left state-party">The party has strong light</div>
+      </div>
+      <span class="state-tag">party light</span>
+    </div>
+
+    <div class="bar-row">
+      <div class="bar bar--padded-lg">
+        <div class="portrait-wrap" onclick="this.classList.toggle('popup-open')">
+          <div class="portrait portrait--md ph-2"></div>
+          <div class="popup">
+            <div class="popup-portrait ph-1"></div>
+            <div class="popup-portrait ph-2 popup-portrait--active"></div>
+            <div class="popup-portrait ph-3"></div>
+            <div class="popup-portrait ph-4"></div>
+          </div>
+        </div>
+        <div class="status status--left state-spell">Your light shines brightly</div>
+      </div>
+      <span class="state-tag">spell — bright</span>
+    </div>
+
+  </div>
+</div>
+
+<div class="divider"></div>
+
+<!-- ════════════════════════════════════════ OPTION C ════════════════════════════════════════ -->
+
+<div class="option">
+  <div class="option-label">Option C — Portrait left, centered text</div>
+  <div class="option-desc">
+    Portrait anchors the left edge, but the status text centers in the remaining space.
+    More atmospheric — the text floats rather than clings to the portrait. Feels like a title card.
+  </div>
+  <div class="states">
+
+    <div class="bar-row">
+      <div class="bar bar--padded state-bright">
+        <div class="portrait-wrap" onclick="this.classList.toggle('popup-open')">
+          <div class="portrait portrait--sm ph-3"></div>
+          <div class="popup">
+            <div class="popup-portrait ph-1"></div>
+            <div class="popup-portrait ph-2"></div>
+            <div class="popup-portrait ph-3 popup-portrait--active"></div>
+            <div class="popup-portrait ph-4"></div>
+          </div>
+        </div>
+        <div class="status status--center state-bright">Your light shines brightly</div>
+      </div>
+      <span class="state-tag">torch — bright</span>
+    </div>
+
+    <div class="bar-row">
+      <div class="bar bar--padded state-fading">
+        <div class="portrait-wrap" onclick="this.classList.toggle('popup-open')">
+          <div class="portrait portrait--sm ph-3"></div>
+          <div class="popup">
+            <div class="popup-portrait ph-1"></div>
+            <div class="popup-portrait ph-2"></div>
+            <div class="popup-portrait ph-3 popup-portrait--active"></div>
+            <div class="popup-portrait ph-4"></div>
+          </div>
+        </div>
+        <div class="status status--center state-fading">Your light starts to fade</div>
+      </div>
+      <span class="state-tag">torch — fading</span>
+    </div>
+
+    <div class="bar-row">
+      <div class="bar bar--padded">
+        <div class="portrait-wrap" onclick="this.classList.toggle('popup-open')">
+          <div class="portrait portrait--sm ph-3"></div>
+          <div class="popup">
+            <div class="popup-portrait ph-1"></div>
+            <div class="popup-portrait ph-2"></div>
+            <div class="popup-portrait ph-3 popup-portrait--active"></div>
+            <div class="popup-portrait ph-4"></div>
+          </div>
+        </div>
+        <div class="status status--center state-darkness">The darkness engulfs you</div>
+      </div>
+      <span class="state-tag">darkness</span>
+    </div>
+
+    <div class="bar-row">
+      <div class="bar bar--padded">
+        <div class="portrait-wrap" onclick="this.classList.toggle('popup-open')">
+          <div class="portrait portrait--sm ph-3"></div>
+          <div class="popup">
+            <div class="popup-portrait ph-1"></div>
+            <div class="popup-portrait ph-2"></div>
+            <div class="popup-portrait ph-3 popup-portrait--active"></div>
+            <div class="popup-portrait ph-4"></div>
+          </div>
+        </div>
+        <div class="status status--center state-party">The party has strong light</div>
+      </div>
+      <span class="state-tag">party light</span>
+    </div>
+
+    <div class="bar-row">
+      <div class="bar bar--padded">
+        <div class="portrait-wrap" onclick="this.classList.toggle('popup-open')">
+          <div class="portrait portrait--sm ph-3"></div>
+          <div class="popup">
+            <div class="popup-portrait ph-1"></div>
+            <div class="popup-portrait ph-2"></div>
+            <div class="popup-portrait ph-3 popup-portrait--active"></div>
+            <div class="popup-portrait ph-4"></div>
+          </div>
+        </div>
+        <div class="status status--center state-spell">Your light shines brightly</div>
+      </div>
+      <span class="state-tag">spell — bright</span>
+    </div>
+
+  </div>
+</div>
+
+<div class="divider"></div>
+
+<!-- ════════════════════════════════════════ OPTION D ════════════════════════════════════════ -->
+
+<div class="option">
+  <div class="option-label">Option D — No portrait, maximum minimalism</div>
+  <div class="option-desc">
+    Just the status text. A subtle dot on the left edge hints at interactivity — hover or click
+    reveals the character selector. The bar is pure atmosphere, nothing competes with the message.
+  </div>
+  <div class="states">
+
+    <div class="bar-row">
+      <div class="bar bar--padded state-bright">
+        <div class="trigger-area" onclick="this.classList.toggle('popup-open')">
+          <div class="trigger-icon"></div>
+          <div class="popup">
+            <div class="popup-portrait ph-1"></div>
+            <div class="popup-portrait ph-2"></div>
+            <div class="popup-portrait ph-3"></div>
+            <div class="popup-portrait ph-4 popup-portrait--active"></div>
+          </div>
+        </div>
+        <div class="status status--left state-bright">Your light shines brightly</div>
+      </div>
+      <span class="state-tag">torch — bright</span>
+    </div>
+
+    <div class="bar-row">
+      <div class="bar bar--padded state-fading">
+        <div class="trigger-area" onclick="this.classList.toggle('popup-open')">
+          <div class="trigger-icon"></div>
+          <div class="popup">
+            <div class="popup-portrait ph-1"></div>
+            <div class="popup-portrait ph-2"></div>
+            <div class="popup-portrait ph-3"></div>
+            <div class="popup-portrait ph-4 popup-portrait--active"></div>
+          </div>
+        </div>
+        <div class="status status--left state-fading">Your light starts to fade</div>
+      </div>
+      <span class="state-tag">torch — fading</span>
+    </div>
+
+    <div class="bar-row">
+      <div class="bar bar--padded">
+        <div class="trigger-area" onclick="this.classList.toggle('popup-open')">
+          <div class="trigger-icon"></div>
+          <div class="popup">
+            <div class="popup-portrait ph-1"></div>
+            <div class="popup-portrait ph-2"></div>
+            <div class="popup-portrait ph-3"></div>
+            <div class="popup-portrait ph-4 popup-portrait--active"></div>
+          </div>
+        </div>
+        <div class="status status--left state-darkness">The darkness engulfs you</div>
+      </div>
+      <span class="state-tag">darkness</span>
+    </div>
+
+    <div class="bar-row">
+      <div class="bar bar--padded">
+        <div class="trigger-area" onclick="this.classList.toggle('popup-open')">
+          <div class="trigger-icon"></div>
+          <div class="popup">
+            <div class="popup-portrait ph-1"></div>
+            <div class="popup-portrait ph-2"></div>
+            <div class="popup-portrait ph-3"></div>
+            <div class="popup-portrait ph-4 popup-portrait--active"></div>
+          </div>
+        </div>
+        <div class="status status--left state-party">The party has strong light</div>
+      </div>
+      <span class="state-tag">party light</span>
+    </div>
+
+    <div class="bar-row">
+      <div class="bar bar--padded">
+        <div class="trigger-area" onclick="this.classList.toggle('popup-open')">
+          <div class="trigger-icon"></div>
+          <div class="popup">
+            <div class="popup-portrait ph-1"></div>
+            <div class="popup-portrait ph-2"></div>
+            <div class="popup-portrait ph-3"></div>
+            <div class="popup-portrait ph-4 popup-portrait--active"></div>
+          </div>
+        </div>
+        <div class="status status--left state-spell">Your light shines brightly</div>
+      </div>
+      <span class="state-tag">spell — bright</span>
+    </div>
+
+  </div>
+</div>
+
+<script>
+  // Close popups when clicking outside
+  document.addEventListener('click', (e) => {
+    if (!e.target.closest('.portrait-wrap') && !e.target.closest('.trigger-area')) {
+      document.querySelectorAll('.popup-open').forEach(el => el.classList.remove('popup-open'));
+    }
+  });
+</script>
+
+</body>
+</html>
