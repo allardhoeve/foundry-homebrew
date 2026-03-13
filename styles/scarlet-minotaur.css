@@ -1,7 +1,7 @@
 /* Override Foundry window chrome */
 #scarlet-minotaur-encounter {
-    background: #000000;
-    border: 1px solid #333;
+    background: #1a1a1e;
+    border: 1px solid #3a3a3e;
     border-radius: 4px;
     box-shadow: 0 0 20px rgba(0, 0, 0, 0.8);
 }
@@ -41,7 +41,7 @@
 
 /* Main content container */
 .sme-window {
-    background: #000000;
+    background: #1a1a1e;
     color: #e8dcc8;
     padding: 4px 16px 20px;
 }
