@@ -19,9 +19,18 @@ fi
 
 cd "$SCRIPT_DIR"
 
+# Stamp module.json with version from latest git tag
+TAG=$(git describe --tags --abbrev=0 2>/dev/null || echo "v0.0.0")
+VERSION="${TAG#v}"
+sed -i '' "s/\"version\": \"[^\"]*\"/\"version\": \"$VERSION\"/" module.json
+echo "Stamped module.json with version $VERSION"
+
 DEST="${DEPLOY_USER}@${DEPLOY_HOST}:${DEPLOY_BASE}"
 
 echo "Deploying to $DEST"
 rsync -aizR \
   module.json src/ styles/ macros/ assets/ \
   "$DEST"
+
+# Restore module.json to avoid dirty working tree
+git checkout -- module.json
