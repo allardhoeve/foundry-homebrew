@@ -20,25 +20,18 @@ const PLT_WINDOW_WIDTH = 320;
 // Show character selector when more than one actor is available
 const PLT_MIN_ACTORS_FOR_SELECTOR = 2;
 
-// Normal video playback rate (used after transitions)
-const PLT_NORMAL_PLAYBACK_RATE = 1.0;
-
 const PLT_ASSETS = {
     torch: {
         bright: "yellow.mp4",
         good: "orange.mp4",
         fading: "red.mp4",
         darkness: null,
-        ignite: "ignite.mp4",
-        extinguish: "extinguish.mp4",
     },
     spell: {
         bright: "staff.mp4",
         good: "staff.mp4",
         fading: "staff.mp4",
         darkness: null,
-        ignite: "staffIgnite.mp4",
-        extinguish: "staffExtinguish.mp4",
     },
     party: {
         "party-bright": "party_torch.png",
@@ -200,7 +193,7 @@ class PlayerLightTrackerApp extends foundry.applications.api.ApplicationV2 {
         }
 
         container.innerHTML = `
-            <div class="plt-window plt-state-${stateKey}" data-state="${stateKey}" data-light-type="${lightType}">
+            <div class="plt-window plt-state-${stateKey}" data-light-type="${lightType}">
                 <div class="plt-header">
                     <div class="plt-header-title">Light Tracker</div>
                     ${characterSelectorHTML}
@@ -245,13 +238,12 @@ class PlayerLightTrackerApp extends foundry.applications.api.ApplicationV2 {
         for (const btn of root.querySelectorAll(".plt-character-btn")) {
             btn.addEventListener("click", () => {
                 this._viewedActorId = btn.dataset.actorId;
-                this._prevStateKey = null;
                 this._lastStateKey = null;
                 this.render({ force: true });
             });
         }
 
-        // Wire compact portrait popup (hover + click for tablet support)
+        // Wire compact portrait popup (click to open, click outside to close)
         const portraitWrap = root.querySelector(".plt-compact-portrait-wrap");
         if (portraitWrap) {
             portraitWrap.addEventListener("click", (e) => {
@@ -263,7 +255,6 @@ class PlayerLightTrackerApp extends foundry.applications.api.ApplicationV2 {
             for (const btn of portraitWrap.querySelectorAll(".plt-popup-btn")) {
                 btn.addEventListener("click", () => {
                     this._viewedActorId = btn.dataset.actorId;
-                    this._prevStateKey = null;
                     this._lastStateKey = null;
                     portraitWrap.classList.remove("plt-popup-open");
                     this.render({ force: true });
@@ -278,9 +269,6 @@ class PlayerLightTrackerApp extends foundry.applications.api.ApplicationV2 {
             };
             document.addEventListener("click", this._closePopupHandler);
         }
-
-        // Handle video transitions
-        this._handleVideoTransition(root);
 
         // Register hooks (only on first render)
         if (this._hookIds.length === 0) {
@@ -326,32 +314,10 @@ class PlayerLightTrackerApp extends foundry.applications.api.ApplicationV2 {
         header.appendChild(rightGroup);
     }
 
-    _handleVideoTransition(root) {
-        const pltWindow = root.querySelector(".plt-window");
-        if (!pltWindow) return;
-
-        const currentState = pltWindow.dataset.state;
-        const lightType = pltWindow.dataset.lightType;
-        const prevState = this._prevStateKey;
-        const video = root.querySelector(".plt-video");
-
-        if (!video) return;
-
-        // First render or no state change — just play the loop
-        if (!prevState) {
-            this._prevStateKey = currentState;
-            return;
-        }
-
-        this._prevStateKey = currentState;
-    }
-
-
     async _onClose(options) {
         await super._onClose(options);
         this._unregisterHooks();
         this._lastStateKey = null;
-        this._prevStateKey = null;
         if (this._closePopupHandler) {
             document.removeEventListener("click", this._closePopupHandler);
             this._closePopupHandler = null;
