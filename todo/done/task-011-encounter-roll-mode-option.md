@@ -63,13 +63,13 @@ The standard Shadowdark random encounter check is 1d6 every other round: encount
 
 ## Acceptance criteria
 
-- [ ] First open with no stored setting shows the style picker
-- [ ] Choosing a mode stores the setting and renders the normal roller
-- [ ] Cog button in header re-opens the style picker
-- [ ] In `"both"` mode, dialog shows 1d12 (primary) + 1d6 (secondary) + debug
-- [ ] In `"d6-only"` mode, dialog shows 1d6 (primary) + debug, no 1d12
-- [ ] All roll mechanics unchanged
-- [ ] Setting persists across refreshes
+- [x] First open with no stored setting shows the style picker
+- [x] Choosing a mode stores the setting and renders the normal roller
+- [x] Cog button in header re-opens the style picker
+- [x] In `"both"` mode, dialog shows 1d12 (primary) + 1d6 (secondary) + debug
+- [x] In `"d6-only"` mode, dialog shows 1d6 (primary) + debug, no 1d12
+- [x] All roll mechanics unchanged
+- [x] Setting persists across refreshes
 
 ## Scope boundaries
 

@@ -38,6 +38,7 @@
     color: #e8dcc8;
 }
 
+
 /* Main content container */
 .sme-window {
     background: #1a1a1e;
@@ -48,58 +49,33 @@
 /* Blackletter dialog title */
 .sme-title {
     font-family: "JSL Blackletter", serif;
-    font-size: 22px;
+    font-size: 28px;
     color: #ffffff;
     letter-spacing: 1px;
     text-align: center;
     margin-bottom: 16px;
 }
 
-/* Help panel — hidden by default */
-.sme-help-panel {
-    display: none;
-    font-size: 12px;
-    color: #888;
-    margin-bottom: 12px;
-    padding: 8px 10px;
-    background: rgba(255, 255, 255, 0.04);
-    border: 1px solid rgba(255, 255, 255, 0.1);
-    border-radius: 4px;
-    line-height: 1.5;
-}
-
-.sme-help-visible .sme-help-panel {
-    display: block;
-}
-
-/* Penalty panel */
+/* Penalty panel — status footer below buttons */
 .sme-penalty-panel {
     font-size: 12px;
-    color: #aaa;
-    margin-bottom: 12px;
-    padding: 8px 10px;
-    background: rgba(255, 255, 255, 0.04);
-    border: 1px solid rgba(255, 255, 255, 0.1);
-    border-radius: 4px;
-    display: flex;
-    align-items: baseline;
-    flex-wrap: wrap;
-    gap: 4px 6px;
+    color: #888;
+    margin-top: 14px;
+    padding: 6px 10px;
+    text-align: center;
 }
 
 .sme-penalty-active .sme-penalty-panel {
-    color: #cc6666;
-    background: rgba(139, 0, 0, 0.12);
-    border-color: rgba(139, 0, 0, 0.3);
+    color: #aa5555;
 }
 
 /* Penalty select dropdown */
 .sme-penalty-select {
     font-size: 12px;
     font-weight: bold;
-    color: #aaa;
-    background: rgba(255, 255, 255, 0.04);
-    border: 1px solid rgba(255, 255, 255, 0.1);
+    color: #888;
+    background: transparent;
+    border: none;
     border-radius: 3px;
     padding: 2px 2px;
     width: auto;
@@ -108,15 +84,8 @@
 
 .sme-penalty-active .sme-penalty-select {
     color: #cc6666;
-    background: rgba(139, 0, 0, 0.12);
-    border-color: rgba(139, 0, 0, 0.3);
 }
 
-.sme-penalty-hint {
-    font-size: 11px;
-    color: #888;
-    width: 100%;
-}
 
 /* Button grid */
 .sme-button-grid {
@@ -124,11 +93,11 @@
     gap: 8px;
 }
 
-/* Primary button: gold/amber */
+/* Primary button: warm amber — stands out without clashing with crimson */
 .sme-btn-primary {
-    background: rgba(180, 140, 40, 0.12);
-    border: 1px solid rgba(180, 140, 40, 0.5);
-    color: #d4a843;
+    background: rgba(160, 120, 50, 0.18);
+    border: 1px solid rgba(160, 120, 50, 0.45);
+    color: #c9a54a;
     font-size: 14px;
     font-weight: bold;
     padding: 8px 12px;
@@ -138,15 +107,15 @@
 }
 
 .sme-btn-primary:hover {
-    background: rgba(180, 140, 40, 0.22);
-    border-color: rgba(212, 168, 67, 0.7);
+    background: rgba(160, 120, 50, 0.28);
+    border-color: rgba(180, 140, 60, 0.65);
 }
 
-/* Secondary button: muted */
+/* Secondary button: visible but clearly subordinate */
 .sme-btn-secondary {
-    background: rgba(255, 255, 255, 0.04);
-    border: 1px solid rgba(255, 255, 255, 0.15);
-    color: #999;
+    background: rgba(255, 255, 255, 0.05);
+    border: 1px solid rgba(255, 255, 255, 0.18);
+    color: #b0a898;
     font-size: 13px;
     padding: 7px 12px;
     cursor: pointer;
@@ -155,16 +124,16 @@
 }
 
 .sme-btn-secondary:hover {
-    background: rgba(255, 255, 255, 0.08);
-    border-color: rgba(255, 255, 255, 0.3);
-    color: #ccc;
+    background: rgba(255, 255, 255, 0.09);
+    border-color: rgba(255, 255, 255, 0.32);
+    color: #d4cdc4;
 }
 
-/* Debug/tertiary button: very subtle */
+/* Debug/tertiary button: subtle but legible */
 .sme-btn-debug {
     background: transparent;
-    border: 1px solid rgba(255, 255, 255, 0.07);
-    color: #555;
+    border: 1px solid rgba(255, 255, 255, 0.08);
+    color: #6a6a6a;
     font-size: 11px;
     padding: 4px 8px;
     cursor: pointer;
@@ -173,6 +142,39 @@
 }
 
 .sme-btn-debug:hover {
-    color: #888;
-    border-color: rgba(255, 255, 255, 0.15);
+    color: #999;
+    border-color: rgba(255, 255, 255, 0.18);
+}
+
+/* Style picker screen */
+.sme-picker {
+    display: grid;
+    gap: 10px;
+}
+
+.sme-picker-option {
+    background: rgba(255, 255, 255, 0.04);
+    border: 1px solid rgba(255, 255, 255, 0.15);
+    border-radius: 4px;
+    padding: 12px 14px;
+    cursor: pointer;
+    color: #e8dcc8;
+    transition: background 0.2s, border-color 0.2s;
+}
+
+.sme-picker-option:hover {
+    background: rgba(180, 140, 40, 0.12);
+    border-color: rgba(180, 140, 40, 0.5);
+}
+
+.sme-picker-label {
+    font-size: 15px;
+    font-weight: bold;
+    margin-bottom: 6px;
+}
+
+.sme-picker-desc {
+    font-size: 12px;
+    color: #999;
+    line-height: 1.4;
 }

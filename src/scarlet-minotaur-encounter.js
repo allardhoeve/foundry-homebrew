@@ -17,6 +17,7 @@
 const SME_MODULE_ID = "foundry-homebrew";
 const SME_SETTING_NS  = "lost-citadel-macros";
 const SME_SETTING_KEY = "minotaurPenalty";
+const SME_ROLLMODE_KEY = "rollMode";
 
 // --- Encounter Table -----------------------------------------------------------
 
@@ -115,20 +116,64 @@ class ScarletMinotaurEncounterApp extends foundry.applications.api.ApplicationV2
 
     // Renders fresh each time so the penalty display stays current after rolls.
     async _renderHTML(_context, _options) {
+        const rollMode = game.settings.get(SME_SETTING_NS, SME_ROLLMODE_KEY);
+        const showPicker = rollMode === "unset" || this._showPicker;
+
+        if (showPicker) {
+            return this._renderPicker();
+        }
+        return this._renderRoller(rollMode);
+    }
+
+    _renderPicker() {
+        const container = document.createElement("div");
+        container.className = "sme-window";
+        container.innerHTML = `
+            <div class="sme-title">Choose Roll Mode</div>
+            <div class="sme-picker">
+                <div class="sme-picker-option" data-mode="d6-only">
+                    <div class="sme-picker-label">Classic style: 1d6 only</div>
+                    <div class="sme-picker-desc">
+                        Roll 1d6 every other round. An encounter occurs on a 1. Roll on noise rounds too.
+                    </div>
+                </div>
+                <div class="sme-picker-option" data-mode="both">
+                    <div class="sme-picker-label">Lazy style: 1d12 and 1d6</div>
+                    <div class="sme-picker-desc">
+                        Roll 1d12 every round. No need to track which rounds to roll on. An encounter occurs on a 1. Use 1d6 when the party made noise.
+                    </div>
+                </div>
+            </div>
+        `;
+        return container;
+    }
+
+    _renderRoller(rollMode) {
         const penalty = game.settings.get(SME_SETTING_NS, SME_SETTING_KEY);
+        const d6Only = rollMode === "d6-only";
 
         const container = document.createElement("div");
         container.className = `sme-window${penalty > 0 ? " sme-penalty-active" : ""}`;
-        if (this._helpVisible) container.classList.add("sme-help-visible");
+
+        const d6BtnClass = d6Only ? "sme-btn-primary" : "sme-btn-secondary";
+        const d6Label = d6Only ? "Roll Encounter Check" : "1d6 — Characters Made Noise";
+
         container.innerHTML = `
             <div class="sme-title">Random Encounter</div>
-            <div class="sme-help-panel">
-                Normal encounter roll is 1:6. You should roll this every other round, unless the party made noise.
-                In that case roll it that round. As convenience you can roll 1:12 every round, so you don't have to
-                track what round you rolled. An encounter occurs on a 1.
+            <div class="sme-button-grid">
+                ${d6Only ? "" : `
+                <button type="button" class="sme-btn-primary" data-roll="1d12" data-label="Normal Check">
+                    1d12 — Normal Check
+                </button>`}
+                <button type="button" class="${d6BtnClass}" data-roll="1d6" data-label="${d6Only ? "Encounter Check" : "Made Noise"}">
+                    ${d6Label}
+                </button>
+                <button type="button" class="sme-btn-debug" data-roll="1d1" data-label="Encounter">
+                    1 — Roll an encounter now
+                </button>
             </div>
             <div class="sme-penalty-panel">
-                <span>Scarlet Minotaur penalty:</span>
+                Encounter table modifier:
                 <select data-action="set-penalty" class="sme-penalty-select">
                     <option value="0" ${penalty === 0 ? 'selected' : ''}>0</option>
                     <option value="2" ${penalty === 2 ? 'selected' : ''}>−2</option>
@@ -136,18 +181,6 @@ class ScarletMinotaurEncounterApp extends foundry.applications.api.ApplicationV2
                     <option value="6" ${penalty === 6 ? 'selected' : ''}>−6</option>
                     <option value="8" ${penalty === 8 ? 'selected' : ''}>−8</option>
                 </select>
-                ${penalty > 0 ? '<div class="sme-penalty-hint">The penalty resets when you roll the Minotaur.</div>' : ''}
-            </div>
-            <div class="sme-button-grid">
-                <button type="button" class="sme-btn-primary" data-roll="1d12" data-label="Normal Check">
-                    1d12 — Normal Check
-                </button>
-                <button type="button" class="sme-btn-secondary" data-roll="1d6" data-label="Made Noise">
-                    1d6 — Characters Made Noise
-                </button>
-                <button type="button" class="sme-btn-debug" data-roll="1d1" data-label="Encounter">
-                    1 — Encounter now
-                </button>
             </div>
         `;
         return container;
@@ -162,28 +195,27 @@ class ScarletMinotaurEncounterApp extends foundry.applications.api.ApplicationV2
         const root = this.element instanceof HTMLElement ? this.element : this.element?.[0];
         if (!root?.querySelectorAll) return;
 
-        // Inject help toggle button into the window header.
-        const header = root.querySelector(".window-header");
-        if (header && !header.querySelector(".sme-help-toggle")) {
-            const helpBtn = document.createElement("button");
-            helpBtn.className = "sme-header-btn sme-help-toggle";
-            helpBtn.type = "button";
-            helpBtn.innerHTML = '<i class="fas fa-question"></i>';
-            helpBtn.addEventListener("click", (event) => {
-                event.preventDefault();
-                event.stopPropagation();
-                this._helpVisible = !this._helpVisible;
-                const wrapper = root.querySelector(".sme-window");
-                wrapper?.classList.toggle("sme-help-visible", this._helpVisible);
-                this.setPosition({ height: "auto" });
+        const rollMode = game.settings.get(SME_SETTING_NS, SME_ROLLMODE_KEY);
+        const showPicker = rollMode === "unset" || this._showPicker;
+
+        // Inject header buttons (help + cog) — only when showing the roller.
+        this._injectHeaderButtons(root, showPicker);
+
+        // --- Picker mode ---
+        if (showPicker) {
+            root.querySelectorAll(".sme-picker-option").forEach(btn => {
+                btn.addEventListener("click", async (event) => {
+                    event.preventDefault();
+                    const mode = btn.dataset.mode;
+                    await game.settings.set(SME_SETTING_NS, SME_ROLLMODE_KEY, mode);
+                    this._showPicker = false;
+                    this.render({ force: true });
+                });
             });
-            helpBtn.addEventListener("dblclick", (event) => {
-                event.preventDefault();
-                event.stopPropagation();
-            });
-            header.appendChild(helpBtn);
+            return;
         }
 
+        // --- Roller mode ---
         root.querySelectorAll("button[data-roll]").forEach(button => {
             button.addEventListener("click", async (event) => {
                 event.preventDefault();
@@ -195,6 +227,35 @@ class ScarletMinotaurEncounterApp extends foundry.applications.api.ApplicationV2
             await game.settings.set(SME_SETTING_NS, SME_SETTING_KEY, Number(event.target.value));
             this.render();
         });
+    }
+
+    _injectHeaderButtons(root, showPicker) {
+        const header = root.querySelector(".window-header");
+        if (!header) return;
+
+        // Remove old button so we can rebuild fresh each render.
+        header.querySelector(".sme-header-btn")?.remove();
+
+        if (showPicker) return;
+
+        // Cog button — re-opens the style picker (which doubles as help).
+        const cogBtn = document.createElement("button");
+        cogBtn.type = "button";
+        cogBtn.className = "sme-header-btn";
+        cogBtn.title = "Change roll mode";
+        cogBtn.innerHTML = '<i class="fas fa-cog"></i>';
+        cogBtn.addEventListener("click", (event) => {
+            event.preventDefault();
+            event.stopPropagation();
+            this._showPicker = true;
+            this.render({ force: true });
+        });
+        cogBtn.addEventListener("dblclick", (event) => {
+            event.preventDefault();
+            event.stopPropagation();
+        });
+
+        header.appendChild(cogBtn);
     }
 
     // --- Check Roll ------------------------------------------------------------
@@ -381,6 +442,16 @@ Hooks.once("init", () => {
         config: false,
         type:   Number,
         default: 0
+    });
+
+    // Register the roll mode setting. "unset" triggers the first-run picker.
+    game.settings.register(SME_SETTING_NS, SME_ROLLMODE_KEY, {
+        name:    "Encounter Roll Mode",
+        hint:    "Whether to show both 1d12+1d6 buttons or 1d6 only.",
+        scope:   "world",
+        config:  false,
+        type:    String,
+        default: "unset"
     });
 
     const module = game.modules.get(SME_MODULE_ID);
