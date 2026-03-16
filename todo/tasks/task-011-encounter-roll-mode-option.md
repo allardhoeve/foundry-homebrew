@@ -46,7 +46,7 @@ The standard Shadowdark random encounter check is 1d6 every other round: encount
 
 ## Verification
 
-1. Clear the `rollMode` setting (or use a fresh world) — open the macro
+1. Clear the `rollMode` setting via the browser JS console: `game.settings.set("lost-citadel-macros", "rollMode", "unset")` — then open the macro
 2. Verify the style picker appears with two clear options and descriptions
 3. Pick "1d6 only" — verify the dialog re-renders with just 1d6 + debug buttons
 4. Close and reopen — verify it remembers the choice (no picker)
