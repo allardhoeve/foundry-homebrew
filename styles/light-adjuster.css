@@ -1,0 +1,80 @@
+/* Override Foundry window chrome */
+#light-adjuster {
+    background: #1a1a1e;
+    border: 1px solid #3a3a3e;
+    border-radius: 4px;
+    box-shadow: 0 0 20px rgba(0, 0, 0, 0.8);
+}
+
+#light-adjuster .window-header {
+    background: transparent;
+    border: none;
+    padding: 2px 4px;
+    min-height: 0;
+    display: flex;
+    justify-content: space-between;
+}
+
+#light-adjuster .window-header [data-action="close"] {
+    order: -1;
+}
+
+/* Main content container */
+.la-window {
+    background: #1a1a1e;
+    color: #e8dcc8;
+    padding: 4px 16px 20px;
+}
+
+/* Blackletter dialog title */
+.la-title {
+    font-family: "JSL Blackletter", serif;
+    font-size: 28px;
+    color: #ffffff;
+    letter-spacing: 1px;
+    text-align: center;
+    margin-bottom: 16px;
+}
+
+/* 2×2 button grid */
+.la-button-grid {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 8px;
+}
+
+/* Primary amber button */
+.la-btn-primary {
+    background: rgba(160, 120, 50, 0.18);
+    border: 1px solid rgba(160, 120, 50, 0.45);
+    color: #c9a54a;
+    font-size: 14px;
+    font-weight: bold;
+    padding: 8px 12px;
+    cursor: pointer;
+    border-radius: 3px;
+    transition: background 0.2s, border-color 0.2s;
+}
+
+.la-btn-primary:hover {
+    background: rgba(160, 120, 50, 0.28);
+    border-color: rgba(180, 140, 60, 0.65);
+}
+
+/* Status footer */
+.la-status {
+    font-size: 12px;
+    color: #888;
+    margin-top: 14px;
+    padding: 6px 10px;
+    text-align: center;
+    min-height: 1.4em;
+}
+
+/* Timer summary line */
+.la-timers {
+    font-size: 11px;
+    color: #888;
+    text-align: center;
+    padding: 4px 10px 0;
+}

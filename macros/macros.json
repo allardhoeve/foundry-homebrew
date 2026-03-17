@@ -16,5 +16,11 @@
     "name": "Player Light Tracker",
     "file": "macros/player-light-tracker-macro.js",
     "icon": "modules/foundry-homebrew/assets/images/torchie256.png"
+  },
+  {
+    "id": "xR4tMnK8wJ2vLpYq",
+    "name": "Light Adjuster",
+    "file": "macros/light-adjuster-macro.js",
+    "icon": "modules/foundry-homebrew/assets/images/torchie256.png"
   }
 ]
