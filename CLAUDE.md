@@ -18,6 +18,8 @@ Related tasks are always recorded in todo/tasks/ with name syntax: task-xxx-them
 Avoid using in-line CSS in the JavaScript. This causes bugs. Create a class in the CSS on top of the macro,
 then use that class to style the element.
 
+When building UIs, follow the shared conventions in `docs/ui-design-guide.md`.
+
 ## Committing
 
 If you commit at the user's request, or if you deem this necessary, always record if the commit is part of a task. This should be in the title ("task-051: something something summary").

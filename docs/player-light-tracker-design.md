@@ -1,5 +1,7 @@
 # Player Light Tracker — Design Philosophy
 
+> For shared visual conventions (button tiers, dark aesthetic, blackletter titles), see [`ui-design-guide.md`](ui-design-guide.md).
+
 ## Personas
 
 ### Player

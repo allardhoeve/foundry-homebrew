@@ -66,8 +66,8 @@ This creates a tension arc: the Minotaur becomes increasingly inevitable. Player
 
 ## UI Design Principles
 
-- **Unified with the Light Tracker:** Dark aesthetic, Blackletter title, same visual family. These are sibling tools for the same dungeon.
-- **Button hierarchy communicates frequency:** The primary check is prominent (gold), the noise check is secondary (muted), the "encounter now" button is tertiary (subtle/debug).
+> Shared visual conventions (button tiers, dark aesthetic, blackletter titles) live in [`ui-design-guide.md`](ui-design-guide.md).
+
 - **Penalty is always visible** — it's the key state the DM needs to track. Visually escalates (neutral → crimson) as it grows.
 - **Manual penalty adjustment:** The DM may need to correct the penalty (e.g., narrative override, session continuity). This should be easy but not prominent.
 - **Help text:** Available but hidden by default. The UI should be self-explanatory after first use.
