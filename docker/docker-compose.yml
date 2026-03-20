@@ -14,3 +14,4 @@ services:
       - 30000:30000
     volumes:
       - ./data:/data/
+      - ../:/data/Data/modules/foundry-homebrew:ro

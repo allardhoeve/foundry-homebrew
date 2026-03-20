@@ -8,3 +8,8 @@ packs/
 Screenshot*.png
 docker/secrets.json
 docker/data
+tests/.features-gen/
+tests/.auth/
+test-results/
+playwright-report/
+.playwright-mcp/

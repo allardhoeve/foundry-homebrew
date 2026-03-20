@@ -56,7 +56,7 @@ Foundry's routing changes based on server state:
 - **World loading**: `GET /join` → **302** redirect to `/setup`
 - **World ready**: `GET /join` → **200** (join page HTML)
 
-Use `maxRedirects: 0` to catch the 302 without following it.
+Use native `fetch()` with `redirect: "manual"` to see the 302 without following it (Playwright's `APIRequestContext` does not support `maxRedirects`).
 
 **Polling with exponential backoff:**
 
@@ -121,7 +121,7 @@ export default async function globalSetup() {
   });
 
   // 3. Poll GET /join until 200 (with backoff and failure detection)
-  await pollUntilReady(ctx);
+  await pollUntilReady();
 
   // 4. Join as Gamemaster
   await ctx.post("/join", {
@@ -137,7 +137,7 @@ export default async function globalSetup() {
   await ctx.dispose();
 }
 
-async function pollUntilReady(ctx) {
+async function pollUntilReady() {
   const deadline = Date.now() + POLL_TIMEOUT_MS;
   let interval = POLL_INITIAL_MS;
   let firstNetworkError = null;
@@ -145,20 +145,20 @@ async function pollUntilReady(ctx) {
 
   while (Date.now() < deadline) {
     try {
-      const res = await ctx.get("/join", { maxRedirects: 0 });
+      const res = await fetch(`${BASE_URL}/join`, { redirect: "manual" });
       everGotHttpResponse = true;
       firstNetworkError = null; // reset — server is responding
 
-      if (res.status() === 200) return; // world ready
+      if (res.status === 200) return; // world ready
 
-      if (res.status() >= 500) {
+      if (res.status >= 500) {
         throw new Error(
-          `Foundry returned ${res.status()} — world launch failed. Check: docker compose logs foundry`
+          `Foundry returned ${res.status} — world launch failed. Check: docker compose logs foundry`
         );
       }
       // 302 — still loading, keep polling
     } catch (err) {
-      if (err.message.includes("Foundry returned")) throw err; // re-throw our own aborts
+      if (err.message.includes("world launch failed")) throw err; // re-throw our own aborts
 
       // Network error (ECONNREFUSED, etc.)
       if (!firstNetworkError) firstNetworkError = Date.now();
@@ -210,7 +210,7 @@ Manual check: `npm run test:headed` should show Chromium opening, landing direct
 ## Pitfalls
 
 - **Two-step setup auth** — must call `POST /api/setup` with `adminAuth` first to get a session cookie, then `launchWorld` second. Skipping the auth step will fail.
-- **`maxRedirects: 0` may not exist in Playwright's request API** — Playwright's `APIRequestContext` may not support a `maxRedirects` option directly. Verify against Playwright docs. If it auto-follows redirects, an alternative approach is needed for the polling loop (e.g., check response URL to detect redirects, or use Node's `fetch` directly for polling).
+- **Playwright auto-follows redirects** — Playwright's `APIRequestContext` does not support `maxRedirects` and always follows redirects. The polling loop uses Node's native `fetch()` with `redirect: "manual"` instead, which returns the 302 response directly without following or throwing.
 - **Global setup timeout** — world launch can take 30s+ (migrations, package loading). Use a 60s timeout.
 - **World already active** — if Docker was left running between test runs, `launchWorld` may error. Wrap the `launchWorld` call in a try/catch that falls through to polling — if the world is already up, `GET /join` will return 200 immediately.
 - **storageState staleness** — if the Docker container restarts between runs, the saved session may be invalid. Global setup should always re-authenticate rather than reusing stale state.
@@ -218,13 +218,13 @@ Manual check: `npm run test:headed` should show Chromium opening, landing direct
 
 ## Acceptance criteria
 
-- [ ] `tests/support/global-setup.js` successfully authenticates as admin and launches the world
-- [ ] Global setup polls `GET /join` for world readiness and proceeds only when 200
-- [ ] Global setup authenticates as Gamemaster via `POST /join` and saves storageState
-- [ ] `npm test` runs the smoke test end-to-end and passes
-- [ ] `npm run test:headed` shows the browser with no login UI interaction
-- [ ] No console errors reported by the smoke test
-- [ ] API request shapes are documented in code comments within `global-setup.js`
+- [x] `tests/support/global-setup.js` successfully authenticates as admin and launches the world
+- [x] Global setup polls `GET /join` for world readiness and proceeds only when 200
+- [x] Global setup authenticates as Gamemaster via `POST /join` and saves storageState
+- [x] `npm test` runs the smoke test end-to-end and passes
+- [x] `npm run test:headed` shows the browser with no login UI interaction
+- [x] No console errors reported by the smoke test
+- [x] API request shapes are documented in code comments within `global-setup.js`
 
 ## Scope boundaries
 

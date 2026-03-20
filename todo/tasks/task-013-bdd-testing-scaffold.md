@@ -147,16 +147,16 @@ Full end-to-end verification (Docker + running tests) is deferred to task 014.
 
 ## Acceptance criteria
 
-- [ ] `npm install` adds `@playwright/test` and `playwright-bdd` as devDependencies
-- [ ] `docker/docker-compose.yml` includes the module bind-mount with relative paths
-- [ ] `docker/secrets.json.tmpl` documents the required credentials fields
-- [ ] `tests/features/smoke.feature` exists with a valid Gherkin scenario
-- [ ] `tests/steps/common.steps.js` defines shared Given steps
-- [ ] `tests/steps/smoke.steps.js` defines Then steps for module-active and console-error checks
-- [ ] `tests/support/global-setup.js` exists as a stub with TODO markers for task 014
-- [ ] `tests/support/fixtures.js` exports `foundryPage` and `consoleErrors` fixtures
-- [ ] `npx bddgen` generates spec files in `tests/.features-gen/`
-- [ ] `.features-gen/` and `.auth/` directories are gitignored
+- [x] `npm install` adds `@playwright/test` and `playwright-bdd` as devDependencies
+- [x] `docker/docker-compose.yml` includes the module bind-mount with relative paths
+- [x] `docker/secrets.json.tmpl` documents the required credentials fields
+- [x] `tests/features/smoke.feature` exists with a valid Gherkin scenario
+- [x] `tests/steps/common.steps.js` defines shared Given steps
+- [x] `tests/steps/smoke.steps.js` defines Then steps for module-active and console-error checks
+- [x] `tests/support/global-setup.js` exists as a stub with TODO markers for task 014
+- [x] `tests/support/fixtures.js` exports `foundryPage` and `consoleErrors` fixtures
+- [x] `npx bddgen` generates spec files in `tests/.features-gen/`
+- [x] `.features-gen/` and `.auth/` directories are gitignored
 
 ## Scope boundaries
 

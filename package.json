@@ -7,10 +7,17 @@
   "scripts": {
     "build": "node build.mjs",
     "clean": "rimraf packs",
-    "rebuild": "npm run clean && npm run build"
+    "rebuild": "npm run clean && npm run build",
+    "test": "npx bddgen --config tests/playwright.config.js && npx playwright test --config tests/playwright.config.js",
+    "test:headed": "npx bddgen --config tests/playwright.config.js && npx playwright test --config tests/playwright.config.js --headed",
+    "test:debug": "npx bddgen --config tests/playwright.config.js && npx playwright test --config tests/playwright.config.js --debug",
+    "test:generate": "npx bddgen --config tests/playwright.config.js",
+    "test:install": "npx playwright install chromium"
   },
   "devDependencies": {
     "@foundryvtt/foundryvtt-cli": "^1.0.0",
+    "@playwright/test": "^1.52.0",
+    "playwright-bdd": "^8.4.0",
     "rimraf": "^5.0.0"
   }
 }

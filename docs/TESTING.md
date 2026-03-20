@@ -12,7 +12,7 @@ We use **Playwright Test** with **playwright-bdd** to run BDD-style end-to-end t
 | Runner | Playwright Test | First-class browser automation; Foundry needs a real browser |
 | BDD layer | playwright-bdd | Gherkin feature files + reusable step definitions, idempotent by design |
 | Session management | storageState | Login once via API in global setup, reuse for all tests — no UI login per test |
-| API shortcuts | `POST /api/setup`, `POST /join` | Launch world and authenticate without browser UI |
+| API shortcuts | `POST /setup`, `POST /join` | Launch world and authenticate without browser UI |
 | Docker bind-mount | Project root mounted read-only | Live code changes without copying files |
 
 ## Architecture
@@ -38,10 +38,11 @@ tests/
 `global-setup.js` runs once before all tests:
 
 1. Read credentials from `docker/secrets.json`
-2. `POST /api/setup` — launch the world (if not already active)
-3. Wait for world to be ready (Foundry can take 10–30s to initialize)
-4. `POST /join` — authenticate as Gamemaster
-5. Save `storageState` to a JSON file — cookies + localStorage captured
+2. Check if world is already active (GET `/join`, check for "no active game session")
+3. If not active: `POST /setup` with `adminAuth`, then `POST /setup` with `launchWorld`
+4. Poll `GET /join` until the join form page appears (not the error page)
+5. `POST /join` — authenticate as Gamemaster (uses internal user ID, not display name)
+6. Save `storageState` to a JSON file — cookies captured
 
 Every test reuses the saved storageState, so browser contexts start already authenticated.
 
@@ -49,8 +50,10 @@ Every test reuses the saved storageState, so browser contexts start already auth
 
 Custom fixtures extend Playwright's `test` object via `createBdd(test)`:
 
-- **`foundryPage`** — a `Page` with storageState already applied, navigated to `/game`, canvas ready (`#board` visible)
 - **`consoleErrors`** — array collecting `console.error` during test
+- **`foundryPage`** — a `Page` with storageState already applied, navigated to `/game`, game ready (`#sidebar` visible). Depends on `consoleErrors`.
+
+**Observers before actors.** Playwright sets up independent fixtures in undefined order. Any fixture that listens for page events (an observer) must be declared as a dependency of any fixture that triggers those events (an actor). This guarantees the listener exists before the first navigation. Example: `foundryPage` declares `consoleErrors` as a parameter even though it doesn't use the value — this forces Playwright to attach the console listener before `foundryPage` navigates to `/game`.
 
 ### Step Reuse
 
@@ -116,7 +119,12 @@ npm run build            # ensure packs/macros/ exists
 
 ## Pitfalls
 
-- **World launch timing** — after `POST /api/setup`, Foundry may take 10–30s to initialize. Global setup must poll or wait with a generous timeout.
+- **World launch timing** — after `POST /setup` with `launchWorld`, Foundry may take 10–30s to initialize. Global setup polls with exponential backoff (60s timeout).
+- **Headless WebGL** — Foundry requires WebGL for its rendering pipeline. Headless Chromium doesn't enable it by default. The config passes `--use-gl=angle --use-angle=swiftshader` to enable software-rendered WebGL.
+- **Viewport size** — Foundry requires at least 1366×768. The config sets 1920×1080. Below minimum, Foundry logs a console error and may not render properly.
+- **`#board` vs `#sidebar`** — `#board` is a `<template>` element that stays hidden when no scene is active. Use `#sidebar` as the readiness signal — it's always visible when the game is loaded.
+- **`POST /join` userid** — the `userid` field requires the internal user ID (e.g., `CSuZNwbNkDdfUfWD`), not the display name. Find it via `game.users` in the browser console.
+- **`POST /setup` endpoint** — the route is `/setup`, not `/api/setup`. The `/api/setup` route returns 404 when a world is active.
 - **Module not enabled** — the world must have `foundry-homebrew` activated in Module Management. The smoke test catches this.
 - **Packs directory** — run `npm run build` so `packs/macros/` exists before Foundry loads the compendium.
-- **storageState staleness** — if the Docker container restarts between runs, the saved session may be invalid. Global setup should handle re-authentication.
+- **storageState staleness** — if the Docker container restarts between runs, the saved session may be invalid. Global setup always re-authenticates.
