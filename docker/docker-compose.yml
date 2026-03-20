@@ -1,0 +1,16 @@
+secrets:
+  foundry_config_json:
+    file: secrets.json
+
+services:
+  foundry:
+    container_name: foundry
+    hostname: foundry
+    image: felddy/foundryvtt:release
+    secrets:
+      - source: foundry_config_json
+        target: config.json
+    ports:
+      - 30000:30000
+    volumes:
+      - ./data:/data/

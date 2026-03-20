@@ -6,3 +6,5 @@ packs/
 .DS_Store
 .deploy-secrets
 Screenshot*.png
+docker/secrets.json
+docker/data
