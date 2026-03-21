@@ -27,7 +27,7 @@ tests/
 │   ├── common.steps.js    # Shared Given/When/Then (login, navigation)
 │   └── smoke.steps.js     # Smoke-test-specific steps
 ├── support/
-│   ├── fixtures.js        # Custom Playwright fixtures (foundryPage, consoleErrors)
+│   ├── fixtures.js        # Custom Playwright fixtures (session, storageStatePaths)
 │   └── global-setup.js    # API login + storageState capture
 ├── .features-gen/         # Generated spec files (playwright-bdd output, gitignored)
 └── playwright.config.js
@@ -44,16 +44,18 @@ tests/
 5. `POST /join` — authenticate as Gamemaster (uses internal user ID, not display name)
 6. Save `storageState` to a JSON file — cookies captured
 
+Steps 4–6 repeat for each user (Gamemaster, Player1, Player2), saving separate storageState files: `storageState-gamemaster.json`, `storageState-player1.json`, `storageState-player2.json`. The default `storageState.json` is a copy of the gamemaster file for backward compatibility.
+
 Every test reuses the saved storageState, so browser contexts start already authenticated.
 
 ### Fixture Design
 
 Custom fixtures extend Playwright's `test` object via `createBdd(test)`:
 
-- **`consoleErrors`** — array collecting `console.error` during test
-- **`foundryPage`** — a `Page` with storageState already applied, navigated to `/game`, game ready (`#sidebar` visible). Depends on `consoleErrors`.
+- **`session`** — mutable holder `{ page, context, consoleErrors }`, created eagerly but empty. The `Given I am logged in as {string}` step fills it in: looks up the user's storageState file, creates a new browser context, attaches the console error listener, navigates to `/game`, waits for `#sidebar`, and runs guard checks. Teardown closes the context.
+- **`storageStatePaths`** — exported map of lowercase user names to their storageState file paths (e.g., `gamemaster`, `player1`, `player2`). Used by the login step to resolve the correct storageState file.
 
-**Observers before actors.** Playwright sets up independent fixtures in undefined order. Any fixture that listens for page events (an observer) must be declared as a dependency of any fixture that triggers those events (an actor). This guarantees the listener exists before the first navigation. Example: `foundryPage` declares `consoleErrors` as a parameter even though it doesn't use the value — this forces Playwright to attach the console listener before `foundryPage` navigates to `/game`.
+Every scenario starts with `Given I am logged in as SomeUser`. This single step creates the browser context with the correct storageState, attaches listeners, navigates, and stores everything on `session`. All other steps use `session.page`.
 
 ### Step Reuse
 
@@ -73,10 +75,40 @@ Feature: Encounter Roller
 // common.steps.js
 const { Given } = createBdd(test);
 
-Given('I am logged in as Gamemaster', async ({ foundryPage }) => {
-  // storageState already applied — just verify we're in-game
+Given(/^I am logged in as (.+)$/, async ({ browser, session }, userName) => {
+  // Creates a browser context with the user's storageState,
+  // navigates to /game, and stores everything on session
 });
 ```
+
+## Test World Setup
+
+The test world must be configured manually in the Foundry admin before running tests. The fixture guards verify this setup is present.
+
+### Users
+
+| User | Role | Password | Assigned Character |
+|------|------|----------|--------------------|
+| Gamemaster | GM | *(empty)* | Creeg Greythorn (GM) |
+| Player1 | Player | player1 | Iraga Draguul (1) |
+| Player2 | Player | player2 | Martin Rast (2) |
+
+### Actors (all type: Player)
+
+| Actor | Owned by |
+|-------|----------|
+| Creeg Greythorn (GM) | Gamemaster |
+| Elbin Grizzlegut (GM) | Gamemaster |
+| Iraga Draguul (1) | Gamemaster, Player1 |
+| Jorbin Ironhelm (1) | Gamemaster, Player1 |
+| Martin Rast (2) | Gamemaster, Player2 |
+| Ralina Biggins (2) | Gamemaster, Player2 |
+
+Each user has two owned actors: one assigned as their default character, one unassigned. This covers:
+- **Character selector** — multiple actors per user
+- **Party light awareness** — actors with and without light
+- **Ownership visibility** — GM sees all actors, players see only their own
+- **Darkness** — state when nobody has light
 
 ## Prerequisites
 

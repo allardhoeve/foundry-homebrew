@@ -6,6 +6,7 @@ packs/
 .DS_Store
 .deploy-secrets
 Screenshot*.png
+*.har
 docker/secrets.json
 docker/data
 tests/.features-gen/

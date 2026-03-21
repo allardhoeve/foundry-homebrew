@@ -12,7 +12,6 @@ export default defineConfig({
   timeout: 60_000,
   use: {
     baseURL: 'http://localhost:30000',
-    storageState: 'tests/.auth/storageState.json',
     viewport: { width: 1920, height: 1080 },
     screenshot: 'only-on-failure',
     trace: 'on-first-retry',

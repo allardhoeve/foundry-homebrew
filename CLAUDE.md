@@ -43,12 +43,16 @@ Assertion tests catch regressions. Eye tests let Claude inspect work without bur
 
 ### When to write tests
 
-- **Building a new UI feature**: Write BDD assertion tests that describe what the UI should look like and how it should behave. Write eye tests for each distinct mode/state so you can inspect your own work. Do this alongside the implementation, not after.
+- **Building a new UI feature**: Write BDD assertion tests that describe what the UI should look like and how it should behave. Write eye tests for each distinct mode/state so you can inspect your own work. Write unit tests for any internal logic the feature introduces (state decisions, calculations, data transformations). Do this alongside the implementation, not after.
 - **Adding or changing internal logic** (thresholds, calculations, state machines, dice mechanics): Write unit tests with controlled inputs covering the key branches. Do this before or alongside the change.
 - **Fixing a bug**: Write the test that would have caught it (unit or BDD, whichever fits), then fix the bug.
 - **Refactoring**: Run existing tests before and after. Only write new tests if the refactor changes observable behaviour.
 
 When in doubt, ask: "Could this break silently?" If yes, write a test.
+
+### Tests as a planning tool
+
+When planning a new feature, draft BDD scenarios early — before writing code. Distill them from what the user has already described (conversation, design docs, task descriptions), then fill in gaps by asking targeted questions. If you can't describe what the user should see or experience as a result of a behaviour, you don't understand the requirement yet. Share the draft scenarios with the user for feedback; they double as a readable spec that both sides can agree on before implementation starts.
 
 See `docs/TESTING.md` for BDD infrastructure details.
 

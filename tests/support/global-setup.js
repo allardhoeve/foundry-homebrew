@@ -27,20 +27,18 @@ export default async function globalSetup() {
   const secretsPath = resolve(__dirname, '../../docker/secrets.json');
   const secrets = JSON.parse(readFileSync(secretsPath, 'utf-8'));
 
-  const ctx = await request.newContext({ baseURL: BASE_URL });
+  const authDir = resolve(__dirname, '../.auth');
+  mkdirSync(authDir, { recursive: true });
 
-  try {
-    // Check if the world is already active (container left running between test runs).
-    // When active, GET /game returns the game page (body class includes "game").
-    // When not active, GET /game returns the error page ("no active game session").
-    const worldAlreadyReady = await isWorldReady();
+  // Check if the world is already active (container left running between test runs).
+  const worldAlreadyReady = await isWorldReady();
 
-    if (worldAlreadyReady) {
-      console.log('[global-setup] World already active — skipping setup');
-    } else {
+  if (worldAlreadyReady) {
+    console.log('[global-setup] World already active — skipping setup');
+  } else {
+    const ctx = await request.newContext({ baseURL: BASE_URL });
+    try {
       // Step 1: Authenticate as server admin
-      // POST /setup { action: "adminAuth", adminPassword: "<key>" }
-      // Sets session cookie required for subsequent setup calls
       const authRes = await ctx.post('/setup', {
         data: { action: 'adminAuth', adminPassword: secrets.foundry_admin_key },
       });
@@ -50,8 +48,6 @@ export default async function globalSetup() {
       console.log('[global-setup] Admin authenticated');
 
       // Step 2: Launch the world (async — returns before world is ready)
-      // POST /setup { action: "launchWorld", world: "<world_name>" }
-      // If the world is already active, this may error — fall through to polling
       try {
         const launchRes = await ctx.post('/setup', {
           data: { action: 'launchWorld', world: secrets.foundry_world },
@@ -66,37 +62,66 @@ export default async function globalSetup() {
       }
 
       // Step 3: Poll GET /join until the world is ready
-      // When no world is active, /join returns the error page or redirects to /setup.
-      // When the world is ready, /join returns the join form page.
       await pollUntilReady();
       console.log('[global-setup] World is ready');
+    } finally {
+      await ctx.dispose();
     }
-
-    // Step 4: Authenticate as Gamemaster
-    // POST /join { action: "join", userid: "<name>", password: "<pw>" }
-    const joinRes = await ctx.post('/join', {
-      data: {
-        action: 'join',
-        userid: secrets.foundry_gamemaster_userid,
-        password: secrets.foundry_game_password || '',
-      },
-    });
-    if (!joinRes.ok()) {
-      throw new Error(
-        `Join as "${secrets.foundry_gamemaster_user}" failed (${joinRes.status()}). ` +
-        'Check foundry_gamemaster_userid/foundry_game_password in docker/secrets.json',
-      );
-    }
-    console.log(`[global-setup] Joined as "${secrets.foundry_gamemaster_user}"`);
-
-    // Step 5: Save storageState (cookies + localStorage) for test reuse
-    const authDir = resolve(__dirname, '../.auth');
-    mkdirSync(authDir, { recursive: true });
-    await ctx.storageState({ path: resolve(authDir, 'storageState.json') });
-    console.log('[global-setup] storageState saved');
-  } finally {
-    await ctx.dispose();
   }
+
+  // Authenticate each user and save their storageState
+  const users = [
+    {
+      name: 'Gamemaster',
+      userid: secrets.foundry_gamemaster_userid,
+      password: secrets.foundry_game_password || '',
+      stateFile: 'storageState-gamemaster.json',
+    },
+    {
+      name: 'Player1',
+      userid: secrets.foundry_player1_userid,
+      password: secrets.foundry_player1_password || '',
+      stateFile: 'storageState-player1.json',
+    },
+    {
+      name: 'Player2',
+      userid: secrets.foundry_player2_userid,
+      password: secrets.foundry_player2_password || '',
+      stateFile: 'storageState-player2.json',
+    },
+  ];
+
+  for (const user of users) {
+    const ctx = await request.newContext({ baseURL: BASE_URL });
+    try {
+      const joinRes = await ctx.post('/join', {
+        data: {
+          action: 'join',
+          userid: user.userid,
+          password: user.password,
+        },
+      });
+      if (!joinRes.ok()) {
+        throw new Error(
+          `Join as "${user.name}" failed (${joinRes.status()}). ` +
+          `Check foundry_${user.name.toLowerCase()}_userid/password in docker/secrets.json`,
+        );
+      }
+      console.log(`[global-setup] Joined as "${user.name}"`);
+
+      await ctx.storageState({ path: resolve(authDir, user.stateFile) });
+    } finally {
+      await ctx.dispose();
+    }
+  }
+
+  // Backward compat: storageState.json is an alias for gamemaster
+  const { copyFileSync } = await import('node:fs');
+  copyFileSync(
+    resolve(authDir, 'storageState-gamemaster.json'),
+    resolve(authDir, 'storageState.json'),
+  );
+  console.log('[global-setup] All storageState files saved');
 }
 
 /**
