@@ -9,14 +9,14 @@ import { resolve } from "path";
 import { compilePack } from "@foundryvtt/foundryvtt-cli";
 
 const { version } = JSON.parse(readFileSync("package.json", "utf8"));
-const macros = JSON.parse(readFileSync("macros/macros.json", "utf8"));
+const macros = JSON.parse(readFileSync("module/macros/macros.json", "utf8"));
 const srcDir = resolve(".build-tmp/packs/macros");
-const outDir = resolve("packs/macros");
+const outDir = resolve("module/packs/macros");
 
 // Write intermediate JSON source files that the CLI expects.
 mkdirSync(srcDir, { recursive: true });
 for (const macro of macros) {
-  const source = readFileSync(macro.file, "utf8");
+  const source = readFileSync(`module/${macro.file}`, "utf8");
   const command = `// v${version}\n${source}`;
   const safeName = macro.name.replace(/[^a-zA-Z0-9]/g, "_");
   const doc = {
@@ -40,4 +40,4 @@ await compilePack(srcDir, outDir, { log: true });
 // Remove intermediate files — the .js files are the source of truth.
 rmSync(resolve(".build-tmp"), { recursive: true, force: true });
 
-console.log("Pack built in packs/macros/");
+console.log("Pack built in module/packs/macros/");

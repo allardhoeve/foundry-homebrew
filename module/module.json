@@ -31,6 +31,6 @@
     }
   ],
   "url": "https://github.com/allardhoeve/foundry-homebrew",
-  "manifest": "https://raw.githubusercontent.com/allardhoeve/foundry-homebrew/main/module.json",
+  "manifest": "https://raw.githubusercontent.com/allardhoeve/foundry-homebrew/main/module/module.json",
   "download": "https://github.com/allardhoeve/foundry-homebrew/releases/latest/download/module.zip"
 }

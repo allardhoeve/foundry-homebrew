@@ -60,7 +60,7 @@ See `docs/scarlet-minotaur-random-encounter-check.md` for full design notes and 
 Install directly from the Foundry **Add-on Modules** tab using the manifest URL:
 
 ```
-https://raw.githubusercontent.com/allardhoeve/foundry-homebrew/main/module.json
+https://raw.githubusercontent.com/allardhoeve/foundry-homebrew/main/module/module.json
 ```
 
 The macros will appear in a **Macros** compendium pack under the module. Import them into your world and run from there.
@@ -103,16 +103,15 @@ This repository adds development and reference files around the module structure
 
 ```
 .
-├── module.json                # FoundryVTT module manifest
+├── module/                    # Foundry module files (what gets deployed)
+│   ├── module.json            #   FoundryVTT module manifest
+│   ├── src/                   #   Module ES modules
+│   ├── styles/                #   Module CSS
+│   ├── assets/                #   Images, audio, video
+│   ├── macros/                #   Macro source files + macros.json metadata
+│   └── packs/                 #   Compendium packs (build artifact)
 ├── build.mjs                  # Build script: macros/*.js → packs/macros/ (LevelDB)
 ├── package.json               # Node dependencies (foundryvtt-cli)
-├── src/                       # Module ES modules
-│   └── player-light-tracker.js
-├── styles/                    # Module CSS
-│   └── player-light-tracker.css
-├── assets/                    # Images, audio, video
-├── macros/                    # Macro source files + macros.json metadata
-├── packs/                     # Compendium packs (build artifact)
 ├── docs/                      # API notes, design docs, module dev notes
 ├── todo/                      # Task tracking
 ├── examples/                  # Reference macros and tables

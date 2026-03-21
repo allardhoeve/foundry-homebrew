@@ -124,11 +124,11 @@ Each user has two owned actors: one assigned as their default character, one una
 ```yaml
 volumes:
   - ./data:/data/
-  - ../:/data/Data/modules/foundry-homebrew:ro
+  - ../module:/data/Data/modules/foundry-homebrew:ro
 ```
 
 - **`./data:/data/`** — Foundry's own persistence (worlds, settings, etc.)
-- **`../:/data/Data/modules/foundry-homebrew:ro`** — Mounts the project root as the module directory. The repo layout matches `module.json` declarations (`src/`, `styles/`, `packs/`), so code changes are reflected immediately.
+- **`../module:/data/Data/modules/foundry-homebrew:ro`** — Mounts the `module/` directory as the module directory. The layout matches `module.json` declarations (`src/`, `styles/`, `packs/`), so code changes are reflected immediately.
 
 The `:ro` flag prevents Foundry from writing into the repo. Compendium edits through the Foundry UI will fail silently — drop `:ro` or mount `packs/` separately as read-write if needed.
 
@@ -146,7 +146,7 @@ Before first run:
 npm install
 npx playwright install chromium
 cd docker && docker compose up -d
-npm run build            # ensure packs/macros/ exists
+npm run build            # ensure module/packs/macros/ exists
 ```
 
 ## Pitfalls
@@ -158,5 +158,5 @@ npm run build            # ensure packs/macros/ exists
 - **`POST /join` userid** — the `userid` field requires the internal user ID (e.g., `CSuZNwbNkDdfUfWD`), not the display name. Find it via `game.users` in the browser console.
 - **`POST /setup` endpoint** — the route is `/setup`, not `/api/setup`. The `/api/setup` route returns 404 when a world is active.
 - **Module not enabled** — the world must have `foundry-homebrew` activated in Module Management. The smoke test catches this.
-- **Packs directory** — run `npm run build` so `packs/macros/` exists before Foundry loads the compendium.
+- **Packs directory** — run `npm run build` so `module/packs/macros/` exists before Foundry loads the compendium.
 - **storageState staleness** — if the Docker container restarts between runs, the saved session may be invalid. Global setup always re-authenticates.

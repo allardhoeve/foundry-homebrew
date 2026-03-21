@@ -1,7 +1,7 @@
 .idea
 .claude
 node_modules/
-packs/
+module/packs/
 .build-tmp/
 .DS_Store
 .deploy-secrets

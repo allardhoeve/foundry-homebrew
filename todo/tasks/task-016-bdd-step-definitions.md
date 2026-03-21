@@ -12,9 +12,9 @@ Task 013 scaffolds the test infrastructure with a smoke test. This task adds the
 
 ## Context
 
-- `src/player-light-tracker.js` — ApplicationV2; reads `item.system.light.{remainingSecs, longevityMins, active, isSource}`; states: bright (>50%), good (>25%), fading; also party light; registered at `module.api.lightTracker`
-- `src/scarlet-minotaur-encounter.js` — ApplicationV2; roll mode picker, encounter check, penalty tracking via `game.settings`; registered at `module.api.scarletMinotaurEncounter`
-- `src/light-adjuster.js` — ApplicationV2; GM-only; adjusts `remainingSecs` on all active lights; registered at `module.api.lightAdjuster`
+- `module/src/player-light-tracker.js` — ApplicationV2; reads `item.system.light.{remainingSecs, longevityMins, active, isSource}`; states: bright (>50%), good (>25%), fading; also party light; registered at `module.api.lightTracker`
+- `module/src/scarlet-minotaur-encounter.js` — ApplicationV2; roll mode picker, encounter check, penalty tracking via `game.settings`; registered at `module.api.scarletMinotaurEncounter`
+- `module/src/light-adjuster.js` — ApplicationV2; GM-only; adjusts `remainingSecs` on all active lights; registered at `module.api.lightAdjuster`
 - `tests/steps/common.steps.js` — from task 013, has `Given I am logged in as Gamemaster`
 - `tests/support/fixtures.js` — from task 013, has `foundryPage` and `consoleErrors`
 
@@ -281,4 +281,4 @@ npm run test:headed
 
 - **In scope**: step definitions for all three macros, example feature files, cleanup hooks, contributor guide
 - **Out of scope**: exhaustive scenario coverage (add more features later), CI/CD, player-login steps (defer until needed), pre-baked test actors in Docker world
-- **Do not** modify existing module source code (`src/`, `styles/`)
+- **Do not** modify existing module source code (`module/src/`, `module/styles/`)

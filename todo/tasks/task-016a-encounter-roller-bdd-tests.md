@@ -13,7 +13,7 @@ Task 016 delivered the light tracker steps and features. The encounter roller is
 
 ## Context
 
-- `src/scarlet-minotaur-encounter.js` — ApplicationV2; roll mode picker, encounter check, penalty tracking via `game.settings`; registered at `module.api.scarletMinotaurEncounter`
+- `module/src/scarlet-minotaur-encounter.js` — ApplicationV2; roll mode picker, encounter check, penalty tracking via `game.settings`; registered at `module.api.scarletMinotaurEncounter`
 - `tests/steps/common.steps.js` — shared steps (login, actor light state)
 - `tests/support/fixtures.js` — `session`, `storageStatePaths` fixtures
 - `tests/steps/light-tracker.steps.js` — reference for step definition patterns
@@ -75,4 +75,4 @@ npm run test:headed
 
 - **In scope**: encounter roller step definitions, feature file, settings steps
 - **Out of scope**: whisper assertions, exhaustive scenario coverage, CI/CD
-- **Do not** modify existing module source code (`src/`, `styles/`)
+- **Do not** modify existing module source code (`module/src/`, `module/styles/`)

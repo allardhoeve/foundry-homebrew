@@ -25,21 +25,23 @@ jobs:
         run: |
           TAG=${GITHUB_REF_NAME#v}
           npm version "$TAG" --no-git-tag-version
-          sed -i "s/\"version\": \"[^\"]*\"/\"version\": \"$TAG\"/" module.json
+          sed -i "s/\"version\": \"[^\"]*\"/\"version\": \"$TAG\"/" module/module.json
 
       - name: Build compendium pack
         run: npm run build
 
       - name: Create release zip
         run: |
-          zip -r module.zip \
+          cd module
+          zip -r ../module.zip \
             module.json \
             packs/ \
             macros/ \
             src/ \
             styles/ \
-            assets/ \
-            LICENSE
+            assets/
+          cd ..
+          zip module.zip LICENSE
 
       - name: Publish GitHub release
         uses: softprops/action-gh-release@v2

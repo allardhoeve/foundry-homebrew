@@ -17,7 +17,7 @@ if [[ -z "${DEPLOY_USER:-}" || -z "${DEPLOY_HOST:-}" || -z "${DEPLOY_BASE:-}" ]]
   exit 1
 fi
 
-cd "$SCRIPT_DIR"
+cd "$SCRIPT_DIR/module"
 
 # Stamp module.json with version from latest git tag
 TAG=$(git describe --tags --abbrev=0 2>/dev/null || echo "v0.0.0")
@@ -33,4 +33,5 @@ rsync -aizR \
   "$DEST"
 
 # Restore module.json to avoid dirty working tree
-git checkout -- module.json
+cd "$SCRIPT_DIR"
+git checkout -- module/module.json

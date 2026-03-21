@@ -13,7 +13,7 @@ Task 016 delivered the light tracker steps and features. The light adjuster is i
 
 ## Context
 
-- `src/light-adjuster.js` — ApplicationV2; GM-only; adjusts `remainingSecs` on all active lights; registered at `module.api.lightAdjuster`
+- `module/src/light-adjuster.js` — ApplicationV2; GM-only; adjusts `remainingSecs` on all active lights; registered at `module.api.lightAdjuster`
 - `tests/steps/common.steps.js` — shared steps (login, actor light state)
 - `tests/steps/light-sources.steps.js` — light source manipulation steps
 - `tests/support/fixtures.js` — `session`, `storageStatePaths` fixtures
@@ -64,4 +64,4 @@ npm run test:headed
 
 - **In scope**: light adjuster step definitions, feature file
 - **Out of scope**: exhaustive scenario coverage, CI/CD
-- **Do not** modify existing module source code (`src/`, `styles/`)
+- **Do not** modify existing module source code (`module/src/`, `module/styles/`)
