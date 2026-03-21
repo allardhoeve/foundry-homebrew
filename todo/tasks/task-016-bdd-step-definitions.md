@@ -18,15 +18,17 @@ Task 013 scaffolds the test infrastructure with a smoke test. This task adds the
 - `tests/steps/common.steps.js` — from task 013, has `Given I am logged in as Gamemaster`
 - `tests/support/fixtures.js` — from task 013, has `foundryPage` and `consoleErrors`
 
-## Design decisions (resolved)
+## Design decisions (resolved — updated to reflect implementation)
 
 | Question | Decision |
 |----------|----------|
-| Step file organization | One file per scope: `common.steps.js` (shared game-state), `light-tracker.steps.js`, `encounter-roller.steps.js`, `light-adjuster.steps.js` |
-| Game state manipulation | Via `page.evaluate()` calling Foundry's document API (`Actor.create()`, `item.update()`, `game.settings.set()`) |
+| Step file organization | One file per scope: `common.steps.js` (shared), `light-tracker.steps.js`, `light-sources.steps.js` (split from common), plus future per-macro files |
+| Fixture pattern | `session` (mutable holder) and `storageStatePaths` — replaces originally planned `foundryPage`/`consoleErrors` |
+| Actor approach | Fixed pre-existing actors in the test world, modified via item updates — no actor creation/deletion lifecycle |
+| Game state manipulation | Via `page.evaluate()` calling Foundry's document API (`item.update()`, `game.settings.set()`) |
 | App interaction | Open via `page.evaluate()` calling `module.api.<app>.toggleInterface()`; interact via DOM selectors |
-| Cleanup | `After` hook resets game state created during scenario (delete temp actors, reset settings) |
-| Canvas ready | Baked into `foundryPage` fixture — no step needed. Note: task 013 created a redundant `Given the canvas is ready` step in `common.steps.js` and uses it in `smoke.feature`. Consider removing both during this task since the fixture already handles it. |
+| Cleanup | Cross-scenario contamination fixed via state reset in Before hooks (commit f11fdf2) — no After cleanup hook needed |
+| Multi-user auth | Global setup authenticates Gamemaster, Player1, Player2 with per-user storageState files |
 | Login implies infra | `Given I am logged in as Gamemaster` is the highest-level precondition; implies Docker, world, canvas |
 
 ## Changes
@@ -259,16 +261,21 @@ npm run test:headed
 
 ## Acceptance criteria
 
-- [ ] `tests/steps/common.steps.js` defines all shared game-state steps (actor light, settings)
-- [ ] `tests/steps/light-tracker.steps.js` defines all Player Light Tracker steps
-- [ ] `tests/steps/encounter-roller.steps.js` defines all Encounter Roller steps
-- [ ] `tests/steps/light-adjuster.steps.js` defines all Light Adjuster steps
-- [ ] `tests/features/light-tracker.feature` has at least 3 scenarios covering bright/fading/darkness
-- [ ] `tests/features/encounter-roller.feature` has at least 2 scenarios
-- [ ] `tests/features/light-adjuster.feature` has at least 1 scenario
-- [ ] Cleanup hook resets game state after each scenario
-- [ ] `docs/WRITING-TESTS.md` exists with contributor guidance
-- [ ] All feature files pass with `npm test`
+- [x] `tests/steps/common.steps.js` defines all shared game-state steps (actor light, settings)
+- [x] `tests/steps/light-tracker.steps.js` defines all Player Light Tracker steps (30+ steps)
+- [ ] ~~`tests/steps/encounter-roller.steps.js` defines all Encounter Roller steps~~ → moved to task-016a
+- [ ] ~~`tests/steps/light-adjuster.steps.js` defines all Light Adjuster steps~~ → moved to task-016b
+- [x] `tests/features/light-tracker.feature` has at least 3 scenarios covering bright/fading/darkness (33 scenarios)
+- [ ] ~~`tests/features/encounter-roller.feature` has at least 2 scenarios~~ → moved to task-016a
+- [ ] ~~`tests/features/light-adjuster.feature` has at least 1 scenario~~ → moved to task-016b
+- ~~[ ] Cleanup hook resets game state after each scenario~~ — **Dropped**: fixed pre-existing actors approach avoids needing this
+- [ ] ~~`docs/WRITING-TESTS.md` exists with contributor guidance~~ → moved to task-016c
+- [x] All light tracker feature files pass with `npm test`
+
+**Note:** Remaining work has been split into independent tasks:
+- task-016a: Encounter Roller BDD Tests
+- task-016b: Light Adjuster BDD Tests
+- task-016c: BDD Contributor Guide
 
 ## Scope boundaries
 
