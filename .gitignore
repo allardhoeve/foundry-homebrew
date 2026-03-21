@@ -14,3 +14,4 @@ tests/.auth/
 test-results/
 playwright-report/
 .playwright-mcp/
+backups/
