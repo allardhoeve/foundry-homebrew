@@ -30,3 +30,13 @@ A compact utility panel — not a dashboard, not atmospheric. This is a knob the
 **Transparent feedback.** A status line confirms what changed — e.g. *"Advanced 3 lights by 10 min"*. Silent mutations erode trust; the GM needs to know the tool did what they expected.
 
 **Companion, not replacement.** The Light Adjuster works alongside the Light Tracker. It doesn't duplicate the tracker's display or atmosphere — it adjusts the underlying timers and gets out of the way.
+
+## Integration with the Shadowdark Light Source Tracker
+
+The adjuster updates `system.light.remainingSecs` directly on each item. It does **not** handle light expiration itself — that responsibility belongs to the system's `LightSourceTrackerSD`.
+
+**How expiration works:** The system tracker polls on a configurable interval (default 30 seconds). On each tick it re-reads all light items, and when it finds `remainingSecs <= 0` it runs the full expiration chain: `actor.yourLightExpired()` → `actor.turnLightOff()` → item deletion → chat message.
+
+**Consequence:** When the adjuster reduces a light to 0, there can be up to a 30-second delay before the system tracker picks it up and douses the light. This is a design tradeoff of the system's polling architecture — the tracker exposes no public method to force an immediate tick. The `dirty` flag (set automatically by item update hooks) ensures the next tick processes the change; it just can't make the tick come sooner.
+
+**Why we don't douse lights ourselves:** The system's `turnLightOff()` zeroes the actor's *entire* token light (`dim: 0, bright: 0`), which would extinguish all lights on that actor — not just the depleted one. Letting the tracker handle expiration through its normal flow correctly handles actors with multiple light sources.
