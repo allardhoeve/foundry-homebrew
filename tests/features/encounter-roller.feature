@@ -51,3 +51,9 @@ Feature: Encounter Roller
     And the Minotaur penalty is 2
     When I open the Encounter Roller
     Then describe the Encounter Roller window
+
+  Scenario: Describe the roller state in 1d12 mode
+    Given the encounter roll mode is "both"
+    And the Minotaur penalty is 4
+    When I open the Encounter Roller
+    Then describe the Encounter Roller window
