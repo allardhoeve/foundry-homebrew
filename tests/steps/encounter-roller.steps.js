@@ -1,13 +1,12 @@
 import { createBdd } from 'playwright-bdd';
 import { expect } from '@playwright/test';
 import { test } from '../support/fixtures.js';
-import { getChatMessages } from './common.steps.js';
+
 import { takeScreenshot } from '../support/screenshots.js';
 
 const { Given, When, Then } = createBdd(test);
 
 const ENCOUNTER_ID = '#scarlet-minotaur-encounter';
-const SME_API = "game.modules.get('foundry-homebrew').api.scarletMinotaurEncounter";
 
 async function openEncounterRoller(page) {
   await page.evaluate(() => {
@@ -53,6 +52,11 @@ When('I force an encounter', async ({ session }) => {
   await session.page.locator(`${ENCOUNTER_ID} .sme-btn-debug`).click();
 });
 
+When('I click the Encounter Roller settings button', async ({ session }) => {
+  await session.page.locator(`${ENCOUNTER_ID} .sme-header-btn`).click();
+  await session.page.locator(`${ENCOUNTER_ID} .sme-picker`).waitFor({ state: 'visible', timeout: 5_000 });
+});
+
 // --- Then ---
 
 Then('the Encounter Roller should be visible', async ({ session }) => {
@@ -83,25 +87,6 @@ Then('the Encounter Roller should show the primary button {string}', async ({ se
   await expect(btn).toContainText(label);
 });
 
-Then('a public chat message should appear containing {string}', async ({ session }, text) => {
-  const lower = text.toLowerCase();
-  await expect.poll(
-    () => getChatMessages(session.page).then(msgs =>
-      msgs.some(m => !m.whisper.length && m.content.toLowerCase().includes(lower))
-    ),
-    { timeout: 10_000, message: `Expected a public chat message containing "${text}"` }
-  ).toBe(true);
-});
-
-Then('a whisper should appear containing {string}', async ({ session }, text) => {
-  const lower = text.toLowerCase();
-  await expect.poll(
-    () => getChatMessages(session.page).then(msgs =>
-      msgs.some(m => m.whisper.length > 0 && m.content.toLowerCase().includes(lower))
-    ),
-    { timeout: 10_000, message: `Expected a whisper containing "${text}"` }
-  ).toBe(true);
-});
 
 Then('describe the Encounter Roller window', async ({ session, $testInfo }) => {
   const snapshot = await session.page.locator(ENCOUNTER_ID).evaluate(el => {

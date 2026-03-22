@@ -12,26 +12,14 @@
 //   - Encounter result   → public chat (dramatic for Minotaur, standard otherwise)
 //   - Debug breakdown    → GM whisper (raw roll, penalty, adjusted result, new penalty)
 
+import { ENCOUNTERS, resolveEncounter } from "./encounter-math.js";
+
 // --- Settings ------------------------------------------------------------------
 
 const SME_MODULE_ID = "foundry-homebrew";
 const SME_SETTING_NS  = "lost-citadel-macros";
 const SME_SETTING_KEY = "minotaurPenalty";
 const SME_ROLLMODE_KEY = "rollMode";
-
-// --- Encounter Table -----------------------------------------------------------
-
-// Array is 0-indexed; ENCOUNTERS[0] is the result for an adjusted roll of 1.
-const ENCOUNTERS = [
-    "The Scarlet Minotaur (Area 18) stalks into sight, bellowing challenges and pawing the stone.",
-    "1d4 ettercaps and 1d8 beastmen clash in a bloody melee.",
-    "A dry gust of wind extinguishes all torches and lamps.",
-    "1d6 ettercaps creep along, searching for gold and gems.",
-    "The skeletons of 1d6 dead adventurers or warrior-mages stagger into sight.",
-    "2d4 beastmen argue in hushed whispers over who gets to eat the centipedes they just trapped in a bag.",
-    "1d4 darkmantles swoop out, bobbing and spinning in a territorial warning dance.",
-    "A cave creeper rushes along the ceiling toward light."
-];
 
 // --- Flavor Text ---------------------------------------------------------------
 
@@ -304,10 +292,7 @@ class ScarletMinotaurEncounterApp extends foundry.applications.api.ApplicationV2
         const penalty        = game.settings.get(SME_SETTING_NS, SME_SETTING_KEY);
         const tableRoll      = await new Roll("1d8").evaluate();
         const rawResult      = tableRoll.total;
-        // Clamp to 1: results below 1 are treated as 1 per the module rules.
-        const adjustedResult = Math.max(1, rawResult - penalty);
-        const encounter      = ENCOUNTERS[adjustedResult - 1];
-        const isMinotaur     = adjustedResult === 1;
+        const { adjustedResult, encounter, isMinotaur } = resolveEncounter(rawResult, penalty);
 
         // Penalty update: reset on Minotaur, otherwise increment for next roll.
         // First roll uses stored 0 (no penalty), subsequent rolls accumulate.

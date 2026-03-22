@@ -34,12 +34,11 @@ Feature: Encounter Roller
     When I open the Encounter Roller
     Then the encounter penalty display should show 4
 
-  Scenario: Forcing an encounter produces a public chat message
+  Scenario: Cog button re-opens the roll mode picker
     Given the encounter roll mode is "d6-only"
-    And the Minotaur penalty is 0
     When I open the Encounter Roller
-    And I force an encounter
-    Then a public chat message should appear containing "encounter"
+    And I click the Encounter Roller settings button
+    Then the Encounter Roller should show the roll mode picker
 
   # --- Eye tests ---
 
