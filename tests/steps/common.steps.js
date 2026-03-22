@@ -48,6 +48,18 @@ Given(/^I am logged in as (.+)$/, async ({ browser, session }, userName) => {
     return module?.ready === true;
   }, { timeout: 30_000 });
 
+  // Close the Shadowdark Light Tracker if it auto-opened (world-scoped setting).
+  await page.evaluate(() => {
+    const tracker = game?.shadowdark?.lightSourceTracker;
+    if (tracker?.rendered) tracker.close();
+  });
+
+  // Dismiss all Foundry notification banners (warnings, errors, info) so they
+  // don't pollute screenshots.
+  await page.evaluate(() => {
+    document.querySelectorAll('#notifications .notification').forEach(n => n.remove());
+  });
+
   // Secondary wait: ensure the DOM is interactive for Playwright.
   await page.locator('#sidebar').waitFor({ state: 'visible', timeout: 30_000 });
 
