@@ -1,3 +1,4 @@
+@mode:serial
 Feature: Player Light Tracker
 
   The Player Light Tracker shows the player's light source using atmospheric

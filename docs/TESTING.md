@@ -154,7 +154,7 @@ npm run build            # ensure module/packs/macros/ exists
 The login step (`Given I am logged in as ...`) guarantees clean state for every scenario:
 
 - **Client-scoped settings** (e.g., `plt-compact-mode`, `plt-bw-mode`) — reset automatically via `localStorage.clear()` in `addInitScript`, which runs before Foundry reads settings during `init`. Do not add manual reset steps for client settings in Background sections.
-- **World-scoped settings** (e.g., `minotaurPenalty`, `rollMode`) — stored server-side, not in localStorage. Reset these explicitly in Background steps when your feature depends on specific values. Features that modify world-scoped settings must be tagged `@mode:serial` to prevent parallel workers from interfering with each other's state.
+- **World-scoped state** (e.g., `minotaurPenalty`, `rollMode`, actor items) — stored server-side, not in localStorage. Reset these explicitly in Background steps when your feature depends on specific values. Features that modify world-scoped state **must** be tagged `@mode:serial`. The Playwright config uses two projects: `parallel` runs untagged features with multiple workers, `serial` runs `@mode:serial` features in a single worker after `parallel` completes. This prevents cross-feature races on shared server state.
 - **Module readiness** — the login step waits for the `foundry-homebrew.ready` hook before proceeding. See `docs/foundry-api.md`.
 
 ## Pitfalls
