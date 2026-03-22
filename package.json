@@ -12,7 +12,8 @@
     "test:headed": "npx bddgen --config tests/playwright.config.js && npx playwright test --config tests/playwright.config.js --headed",
     "test:debug": "npx bddgen --config tests/playwright.config.js && npx playwright test --config tests/playwright.config.js --debug",
     "test:generate": "npx bddgen --config tests/playwright.config.js",
-    "test:install": "npx playwright install chromium"
+    "test:install": "npx playwright install chromium",
+    "test:storybook": "open tests/visual-storybook/index.html"
   },
   "devDependencies": {
     "@foundryvtt/foundryvtt-cli": "^1.0.0",

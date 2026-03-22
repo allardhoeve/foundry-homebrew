@@ -1,8 +1,13 @@
 import { createBdd } from 'playwright-bdd';
 import { test } from '../support/fixtures.js';
 import { storageStatePaths } from '../support/fixtures.js';
+import { takeScreenshot } from '../support/screenshots.js';
 
-const { Given } = createBdd(test);
+const { Given, When } = createBdd(test);
+
+When('I take a screenshot called {string}', async ({ session, $testInfo }, label) => {
+  await takeScreenshot(session.page, $testInfo, label);
+});
 
 /** Read chat messages collected by the per-scenario Foundry hook. */
 export async function getChatMessages(page) {

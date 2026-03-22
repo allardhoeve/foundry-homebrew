@@ -1,6 +1,7 @@
 import { createBdd } from 'playwright-bdd';
 import { test } from '../support/fixtures.js';
 import { expect } from '@playwright/test';
+import { takeScreenshot } from '../support/screenshots.js';
 
 const { Given, When, Then } = createBdd(test);
 
@@ -157,7 +158,7 @@ Then('the character selector should include {string}', async ({ session }, actor
 
 // --- Then: Eye tests (structured inspection) ---
 
-Then('describe the tracker window', async ({ session }) => {
+Then('describe the tracker window', async ({ session, $testInfo }) => {
   const snapshot = await session.page.locator(TRACKER_ID).evaluate(el => {
     const result = {};
 
@@ -204,4 +205,6 @@ Then('describe the tracker window', async ({ session }) => {
   console.log('--- TRACKER SNAPSHOT ---');
   console.log(JSON.stringify(snapshot, null, 2));
   console.log('--- END SNAPSHOT ---');
+
+  await takeScreenshot(session.page, $testInfo, 'tracker-window');
 });

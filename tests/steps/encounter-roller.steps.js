@@ -2,6 +2,7 @@ import { createBdd } from 'playwright-bdd';
 import { expect } from '@playwright/test';
 import { test } from '../support/fixtures.js';
 import { getChatMessages } from './common.steps.js';
+import { takeScreenshot } from '../support/screenshots.js';
 
 const { Given, When, Then } = createBdd(test);
 
@@ -102,7 +103,7 @@ Then('a whisper should appear containing {string}', async ({ session }, text) =>
   ).toBe(true);
 });
 
-Then('describe the Encounter Roller window', async ({ session }) => {
+Then('describe the Encounter Roller window', async ({ session, $testInfo }) => {
   const snapshot = await session.page.locator(ENCOUNTER_ID).evaluate(el => {
     const result = {};
     const smeWindow = el.querySelector('.sme-window');
@@ -142,4 +143,6 @@ Then('describe the Encounter Roller window', async ({ session }) => {
   console.log('--- ENCOUNTER ROLLER SNAPSHOT ---');
   console.log(JSON.stringify(snapshot, null, 2));
   console.log('--- END SNAPSHOT ---');
+
+  await takeScreenshot(session.page, $testInfo, 'encounter-roller-window');
 });

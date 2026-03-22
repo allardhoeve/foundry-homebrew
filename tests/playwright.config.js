@@ -20,5 +20,8 @@ export default defineConfig({
     },
   },
   globalSetup: './support/global-setup.js',
-  reporter: [['html', { open: 'never' }]],
+  reporter: [
+    ['html', { open: 'never' }],
+    ['./support/visual-storybook-reporter.js'],
+  ],
 });

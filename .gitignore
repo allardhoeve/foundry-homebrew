@@ -13,5 +13,6 @@ tests/.features-gen/
 tests/.auth/
 test-results/
 playwright-report/
+tests/visual-storybook/
 .playwright-mcp/
 backups/
