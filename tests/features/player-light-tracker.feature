@@ -7,7 +7,6 @@ Feature: Player Light Tracker
 
   Background:
     Given I am logged in as Gamemaster
-    And the tracker preferences are reset
     And no actors have light sources
 
   # --- Assertion tests ---
@@ -19,12 +18,16 @@ Feature: Player Light Tracker
     And the tracker should show a status message
     And the tracker should show an animation area
 
-  Scenario: Compact mode shows a portrait instead of an animation
+  Scenario: Compact mode replaces the animation with the active portrait
     Given the Player Light Tracker is open
     When I click the compact toggle
-    Then the tracker should show a character portrait
-    And the tracker should show a status message
-    And the animation area should be hidden
+    Then the animation area should be hidden
+    And only the active character portrait should be visible
+
+  Scenario: Clicking the compact portrait opens the character selector
+    Given the Player Light Tracker is open in compact mode
+    When I click the character portrait
+    Then the character selector popup should be visible
 
   Scenario: Toggling compact mode back restores the animation
     Given the Player Light Tracker is open in compact mode
@@ -41,8 +44,8 @@ Feature: Player Light Tracker
     Given the Player Light Tracker is open in compact mode
     When I close the Player Light Tracker
     And I open the Player Light Tracker
-    Then the tracker should show a character portrait
-    And the animation area should be hidden
+    Then the animation area should be hidden
+    And only the active character portrait should be visible
 
   # --- Light source states ---
 

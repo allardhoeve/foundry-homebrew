@@ -52,7 +52,7 @@ Every test reuses the saved storageState, so browser contexts start already auth
 
 Custom fixtures extend Playwright's `test` object via `createBdd(test)`:
 
-- **`session`** — mutable holder `{ page, context, consoleErrors }`, created eagerly but empty. The `Given I am logged in as {string}` step fills it in: looks up the user's storageState file, creates a new browser context, attaches the console error listener, navigates to `/game`, waits for `#sidebar`, and runs guard checks. Teardown closes the context.
+- **`session`** — mutable holder `{ page, context, consoleErrors }`, created eagerly but empty. The `Given I am logged in as {string}` step fills it in: looks up the user's storageState file, creates a new browser context, clears localStorage (resetting all client-scoped settings to defaults), navigates to `/game`, waits for `foundry-homebrew.ready`, and runs guard checks. Teardown closes the context.
 - **`storageStatePaths`** — exported map of lowercase user names to their storageState file paths (e.g., `gamemaster`, `player1`, `player2`). Used by the login step to resolve the correct storageState file.
 
 Every scenario starts with `Given I am logged in as SomeUser`. This single step creates the browser context with the correct storageState, attaches listeners, navigates, and stores everything on `session`. All other steps use `session.page`.
@@ -149,12 +149,21 @@ cd docker && docker compose up -d
 npm run build            # ensure module/packs/macros/ exists
 ```
 
+## Test Isolation
+
+The login step (`Given I am logged in as ...`) guarantees clean state for every scenario:
+
+- **Client-scoped settings** (e.g., `plt-compact-mode`, `plt-bw-mode`) — reset automatically via `localStorage.clear()` in `addInitScript`, which runs before Foundry reads settings during `init`. Do not add manual reset steps for client settings in Background sections.
+- **World-scoped settings** (e.g., `minotaurPenalty`, `rollMode`) — stored server-side, not in localStorage. Reset these explicitly in Background steps when your feature depends on specific values. Features that modify world-scoped settings must be tagged `@mode:serial` to prevent parallel workers from interfering with each other's state.
+- **Module readiness** — the login step waits for the `foundry-homebrew.ready` hook before proceeding. See `docs/foundry-api.md`.
+
 ## Pitfalls
 
 - **World launch timing** — after `POST /setup` with `launchWorld`, Foundry may take 10–30s to initialize. Global setup polls with exponential backoff (60s timeout).
 - **Headless WebGL** — Foundry requires WebGL for its rendering pipeline. Headless Chromium doesn't enable it by default. The config passes `--use-gl=angle --use-angle=swiftshader` to enable software-rendered WebGL.
 - **Viewport size** — Foundry requires at least 1366×768. The config sets 1920×1080. Below minimum, Foundry logs a console error and may not render properly.
-- **`#board` vs `#sidebar`** — `#board` is a `<template>` element that stays hidden when no scene is active. Use `#sidebar` as the readiness signal — it's always visible when the game is loaded.
+- **`#board` vs `#sidebar`** — `#board` is a `<template>` element that stays hidden when no scene is active. `#sidebar` is always visible when the game is loaded, but it is **not** a reliable readiness signal — see below.
+- **Readiness signal** — do not use `#sidebar` visibility as the primary readiness signal. DOM readiness and Foundry readiness are independent: the sidebar can appear before Foundry's `init`/`ready` hooks have fired, making module APIs unavailable. The login step waits for the explicit `foundry-homebrew.ready` hook, which fires after all module APIs are registered. The `#sidebar` wait is kept only as a secondary check that the DOM is interactive for Playwright. See `docs/foundry-api.md` for the full initialization lifecycle.
 - **`POST /join` userid** — the `userid` field requires the internal user ID (e.g., `CSuZNwbNkDdfUfWD`), not the display name. Find it via `game.users` in the browser console.
 - **`POST /setup` endpoint** — the route is `/setup`, not `/api/setup`. The `/api/setup` route returns 404 when a world is active.
 - **Module not enabled** — the world must have `foundry-homebrew` activated in Module Management. The smoke test catches this.

@@ -25,13 +25,6 @@ async function closeTracker(page) {
 
 // --- Given ---
 
-Given('the tracker preferences are reset', async ({ session }) => {
-  await session.page.evaluate(async () => {
-    await game.settings.set('foundry-homebrew', 'plt-compact-mode', false);
-    await game.settings.set('foundry-homebrew', 'plt-bw-mode', false);
-  });
-});
-
 Given('the Player Light Tracker is open', async ({ session }) => {
   await openTracker(session.page);
 });
@@ -62,6 +55,10 @@ When('I click the compact toggle', async ({ session }) => {
   await session.page.locator(`${TRACKER_ID} .plt-header-btn[title="Toggle size"]`).click();
 });
 
+When('I click the character portrait', async ({ session }) => {
+  await session.page.locator(`${TRACKER_ID} .plt-compact-portrait`).click();
+});
+
 When('I click the black and white toggle', async ({ session }) => {
   await session.page.locator(`${TRACKER_ID} .plt-header-btn[title="Black & White"]`).click();
 });
@@ -89,9 +86,10 @@ Then('the tracker should show an animation area', async ({ session }) => {
   await expect(animation).toBeVisible();
 });
 
-Then('the tracker should show a character portrait', async ({ session }) => {
+Then('only the active character portrait should be visible', async ({ session }) => {
   const portrait = session.page.locator(`${TRACKER_ID} .plt-compact-portrait`);
   await expect(portrait).toBeVisible();
+  await expect(portrait).toHaveCount(1);
 });
 
 Then('the character portrait should not be visible', async ({ session }) => {
@@ -102,6 +100,11 @@ Then('the character portrait should not be visible', async ({ session }) => {
 Then('the animation area should be hidden', async ({ session }) => {
   const animation = session.page.locator(`${TRACKER_ID} .plt-animation`);
   await expect(animation).not.toBeVisible();
+});
+
+Then('the character selector popup should be visible', async ({ session }) => {
+  const popup = session.page.locator(`${TRACKER_ID} .plt-popup`);
+  await expect(popup).toHaveCSS('opacity', '1');
 });
 
 Then('the tracker should have the desaturated style applied', async ({ session }) => {
@@ -148,7 +151,7 @@ Then('the character selector should show {int} actors', async ({ session }, coun
 });
 
 Then('the character selector should include {string}', async ({ session }, actorName) => {
-  const button = session.page.locator(TRACKER_ID).getByTitle(actorName, { exact: true });
+  const button = session.page.locator(`${TRACKER_ID} .plt-character-selector`).getByTitle(actorName, { exact: true });
   await expect(button).toBeVisible();
 });
 

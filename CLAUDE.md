@@ -54,6 +54,10 @@ When in doubt, ask: "Could this break silently?" If yes, write a test.
 
 When planning a new feature, draft BDD scenarios early — before writing code. Distill them from what the user has already described (conversation, design docs, task descriptions), then fill in gaps by asking targeted questions. If you can't describe what the user should see or experience as a result of a behaviour, you don't understand the requirement yet. Share the draft scenarios with the user for feedback; they double as a readable spec that both sides can agree on before implementation starts.
 
+### Test isolation
+
+Client-scoped Foundry settings are reset automatically by the login step (`localStorage.clear()` via `addInitScript`). Do not add manual reset steps for client settings in Background sections — it's handled generically. World-scoped settings must still be reset explicitly in Background steps when needed. Features that modify world-scoped settings must be tagged `@mode:serial` to prevent parallel test workers from interfering with shared server state.
+
 See `docs/TESTING.md` for BDD infrastructure details.
 
 ## Committing
