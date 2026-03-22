@@ -178,3 +178,162 @@
     color: #999;
     line-height: 1.4;
 }
+
+/* ── Chat Messages ──────────────────────────────────────────────────────────── */
+
+/* No-encounter whisper (safe result) */
+.sme-chat-safe {
+    text-align: center;
+    padding: 10px;
+}
+
+.sme-chat-safe__title {
+    font-size: 14px;
+    font-weight: bold;
+    color: #666;
+    margin-bottom: 5px;
+}
+
+.sme-chat-safe__die {
+    font-size: 12px;
+    color: #777;
+    margin-bottom: 6px;
+}
+
+.sme-chat-safe__result {
+    font-size: 48px;
+    font-weight: bold;
+    color: #4a5568;
+}
+
+.sme-chat-safe__verdict {
+    font-size: 16px;
+    font-weight: bold;
+    color: #2d3748;
+    margin-top: 10px;
+}
+
+.sme-chat-safe__flavor {
+    font-size: 13px;
+    color: #4a5568;
+    margin-top: 8px;
+    font-style: italic;
+}
+
+/* Minotaur encounter (dramatic public card) */
+.sme-chat-minotaur {
+    text-align: center;
+    padding: 20px 16px;
+    background: linear-gradient(180deg, #0d0000 0%, #2a0000 60%, #1a0000 100%);
+    border: 2px solid #660000;
+    border-radius: 4px;
+}
+
+.sme-chat-minotaur__subtitle {
+    font-size: 10px;
+    font-weight: bold;
+    color: #993333;
+    letter-spacing: 4px;
+    text-transform: uppercase;
+    margin-bottom: 12px;
+}
+
+.sme-chat-minotaur__name {
+    font-size: 32px;
+    font-weight: bold;
+    color: #cc0000;
+    text-shadow: 0 0 16px #ff0000, 0 0 32px #660000;
+    letter-spacing: 3px;
+    line-height: 1.15;
+    margin-bottom: 6px;
+}
+
+.sme-chat-minotaur__art {
+    font-family: 'Courier New', monospace;
+    font-size: 7px;
+    line-height: 1.2;
+    color: #cc4444;
+    margin: 10px auto;
+    padding: 0;
+    background: transparent;
+    border: none;
+    white-space: pre;
+    display: inline-block;
+    text-align: left;
+}
+
+.sme-chat-minotaur__divider {
+    width: 60px;
+    height: 2px;
+    background: #660000;
+    margin: 10px auto;
+}
+
+.sme-chat-minotaur__desc {
+    font-size: 13px;
+    color: #ffaaaa;
+    font-style: italic;
+    line-height: 1.5;
+    margin: 10px 0;
+}
+
+.sme-chat-minotaur__quote {
+    font-size: 12px;
+    color: #cc6666;
+    margin-top: 10px;
+    padding: 8px;
+    background: rgba(100, 0, 0, 0.35);
+    border-radius: 3px;
+    font-style: italic;
+}
+
+/* Standard encounter (public card) */
+.sme-chat-encounter {
+    text-align: center;
+    padding: 10px;
+}
+
+.sme-chat-encounter__title {
+    font-size: 14px;
+    font-weight: bold;
+    color: #666;
+    margin-bottom: 5px;
+}
+
+.sme-chat-encounter__alert {
+    font-size: 16px;
+    font-weight: bold;
+    color: #8B0000;
+    margin: 10px 0;
+    font-style: italic;
+}
+
+.sme-chat-encounter__text {
+    font-size: 14px;
+    color: #2d1a1a;
+    margin-top: 8px;
+    line-height: 1.5;
+    text-align: left;
+    padding: 8px 10px;
+    background: #fff5f5;
+    border-radius: 3px;
+    border-left: 3px solid #8B0000;
+}
+
+.sme-chat-encounter__flavor {
+    font-size: 13px;
+    color: #aa0000;
+    margin-top: 10px;
+    font-style: italic;
+}
+
+/* Debug whisper (GM-only roll breakdown) */
+.sme-chat-debug {
+    font-size: 11px;
+    color: #555;
+    padding: 8px;
+    background: #f5f5f5;
+    border: 1px solid #ccc;
+    border-radius: 3px;
+    line-height: 1.7;
+}

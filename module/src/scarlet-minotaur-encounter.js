@@ -260,20 +260,20 @@ class ScarletMinotaurEncounterApp extends foundry.applications.api.ApplicationV2
             ChatMessage.create({
                 user:    game.user.id,
                 content: `
-                    <div style="text-align: center; padding: 10px;">
-                        <div style="font-size: 14px; font-weight: bold; color: #666; margin-bottom: 5px;">
+                    <div class="sme-chat-safe">
+                        <div class="sme-chat-safe__title">
                             RANDOM ENCOUNTER CHECK
                         </div>
-                        <div style="font-size: 12px; color: #777; margin-bottom: 6px;">
+                        <div class="sme-chat-safe__die">
                             ${die} — ${label}
                         </div>
-                        <div style="font-size: 48px; font-weight: bold; color: #4a5568;">
+                        <div class="sme-chat-safe__result">
                             ${result}
                         </div>
-                        <div style="font-size: 16px; font-weight: bold; color: #2d3748; margin-top: 10px;">
+                        <div class="sme-chat-safe__verdict">
                             No Encounter
                         </div>
-                        <div style="font-size: 13px; color: #4a5568; margin-top: 8px; font-style: italic;">
+                        <div class="sme-chat-safe__flavor">
                             "${pick(safeMessages)}"
                         </div>
                     </div>
@@ -320,37 +320,19 @@ class ScarletMinotaurEncounterApp extends foundry.applications.api.ApplicationV2
         ChatMessage.create({
             user:    game.user.id,
             content: `
-                <div style="
-                    text-align: center;
-                    padding: 20px 16px;
-                    background: linear-gradient(180deg, #0d0000 0%, #2a0000 60%, #1a0000 100%);
-                    border: 2px solid #660000;
-                    border-radius: 4px;
-                ">
-                    <div style="font-size: 10px; font-weight: bold; color: #993333; letter-spacing: 4px; text-transform: uppercase; margin-bottom: 12px;">
+                <div class="sme-chat-minotaur">
+                    <div class="sme-chat-minotaur__subtitle">
                         The Lost Citadel
                     </div>
-                    <div style="font-size: 32px; font-weight: bold; color: #cc0000; text-shadow: 0 0 16px #ff0000, 0 0 32px #660000; letter-spacing: 3px; line-height: 1.15; margin-bottom: 6px;">
+                    <div class="sme-chat-minotaur__name">
                         THE SCARLET<br>MINOTAUR
                     </div>
-                    <pre style="
-                        font-family: 'Courier New', monospace;
-                        font-size: 7px;
-                        line-height: 1.2;
-                        color: #cc4444;
-                        margin: 10px auto;
-                        padding: 0;
-                        background: transparent;
-                        border: none;
-                        white-space: pre;
-                        display: inline-block;
-                        text-align: left;
-                    ">${MINOTAUR_ASCII}</pre>
-                    <div style="width: 60px; height: 2px; background: #660000; margin: 10px auto;"></div>
-                    <div style="font-size: 13px; color: #ffaaaa; font-style: italic; line-height: 1.5; margin: 10px 0;">
+                    <pre class="sme-chat-minotaur__art">${MINOTAUR_ASCII}</pre>
+                    <div class="sme-chat-minotaur__divider"></div>
+                    <div class="sme-chat-minotaur__desc">
                         Thundering hooves crack the stone. A blood-red hide fills the corridor.
                     </div>
-                    <div style="font-size: 12px; color: #cc6666; margin-top: 10px; padding: 8px; background: rgba(100,0,0,0.35); border-radius: 3px; font-style: italic;">
+                    <div class="sme-chat-minotaur__quote">
                         "${pick(encounterMessages)}"
                     </div>
                 </div>
@@ -364,27 +346,17 @@ class ScarletMinotaurEncounterApp extends foundry.applications.api.ApplicationV2
         ChatMessage.create({
             user:    game.user.id,
             content: `
-                <div style="text-align: center; padding: 10px;">
-                    <div style="font-size: 14px; font-weight: bold; color: #666; margin-bottom: 5px;">
+                <div class="sme-chat-encounter">
+                    <div class="sme-chat-encounter__title">
                         RANDOM ENCOUNTER
                     </div>
-                    <div style="font-size: 16px; font-weight: bold; color: #8B0000; margin: 10px 0; font-style: italic;">
+                    <div class="sme-chat-encounter__alert">
                         ⚔️ An encounter occurs!
                     </div>
-                    <div style="
-                        font-size: 14px;
-                        color: #2d1a1a;
-                        margin-top: 8px;
-                        line-height: 1.5;
-                        text-align: left;
-                        padding: 8px 10px;
-                        background: #fff5f5;
-                        border-radius: 3px;
-                        border-left: 3px solid #8B0000;
-                    ">
+                    <div class="sme-chat-encounter__text">
                         ${encounter}
                     </div>
-                    <div style="font-size: 13px; color: #aa0000; margin-top: 10px; font-style: italic;">
+                    <div class="sme-chat-encounter__flavor">
                         "${pick(encounterMessages)}"
                     </div>
                 </div>
@@ -402,7 +374,7 @@ class ScarletMinotaurEncounterApp extends foundry.applications.api.ApplicationV2
         ChatMessage.create({
             user:    game.user.id,
             content: `
-                <div style="font-size: 11px; color: #555; padding: 8px; background: #f5f5f5; border: 1px solid #ccc; border-radius: 3px; line-height: 1.7;">
+                <div class="sme-chat-debug">
                     <strong>Encounter Debug</strong><br>
                     Check: ${checkDie} (${checkLabel}) = <strong>${checkResult}</strong><br>
                     Table: 1d8 = ${rawD8}, penalty = −${penalty}, adjusted = <strong>${adjustedResult}</strong><br>
