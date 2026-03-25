@@ -10,7 +10,7 @@
 // Results are shown in the app window only — the GM decides how to communicate
 // encounters to players.
 
-import { resolveEncounter } from "./encounter-math.js";
+import { ENCOUNTERS, resolveEncounter, resolveDistance, resolveActivity, resolveReaction } from "./encounter-math.js";
 
 // --- Settings ------------------------------------------------------------------
 
@@ -42,6 +42,10 @@ class ScarletMinotaurEncounterApp extends foundry.applications.api.ApplicationV2
 
     // Renders fresh each time so the penalty display stays current after rolls.
     async _renderHTML(_context, _options) {
+        if (this._pendingRoll) {
+            return this._renderResults();
+        }
+
         const rollMode = game.settings.get(SME_SETTING_NS, SME_ROLLMODE_KEY);
         const showPicker = rollMode === "unset" || this._showPicker;
 
@@ -112,6 +116,48 @@ class ScarletMinotaurEncounterApp extends foundry.applications.api.ApplicationV2
         return container;
     }
 
+    _renderResults() {
+        const data = this._pendingRoll;
+        const container = document.createElement("div");
+        container.className = "sme-window sme-results";
+
+        // Build encounter list rows
+        const rows = data.encounters.map((text, i) => {
+            const index = i + 1; // 1-based
+            const isSelected = index === data.selectedIndex;
+            const isUnreachable = index > Math.max(1, 8 - data.penalty);
+            const isMinotaur = index === 1;
+            let cls = "sme-results__row";
+            if (isSelected) cls += " sme-results__row--selected";
+            if (isUnreachable) cls += " sme-results__row--unreachable";
+            if (isMinotaur) cls += " sme-results__row--minotaur";
+            // TODO(task-023): encounter text will come from compendium — sanitize
+            // before inserting into innerHTML to prevent XSS.
+            return `<div class="${cls}" data-index="${index}">${text}</div>`;
+        }).join("");
+
+        // Roll breakdown
+        const sign = data.penalty > 0 ? ` − ${data.penalty}` : "";
+        const rollInfo = `d8: ${data.rawD8}${sign} → ${data.adjustedResult}`;
+
+        // Sub-rolls summary
+        const subRolls = [
+            `Distance: ${data.distance.label} (${data.distance.roll})`,
+            `Activity: ${data.activity.label} (${data.activity.roll})`,
+            `Reaction: ${data.reaction.label} (${data.reaction.roll})`,
+            `Treasure: ${data.treasure ? "Yes" : "No"}`
+        ].join(" · ");
+
+        container.innerHTML = `
+            <div class="sme-title">Encounter</div>
+            <div class="sme-results__info">${rollInfo}</div>
+            <div class="sme-results__list">${rows}</div>
+            <div class="sme-results__subrolls">${subRolls}</div>
+            <button type="button" class="sme-btn-primary sme-results__done">Done</button>
+        `;
+        return container;
+    }
+
     _replaceHTML(result, content, _options) {
         content.replaceChildren(result);
     }
@@ -120,6 +166,30 @@ class ScarletMinotaurEncounterApp extends foundry.applications.api.ApplicationV2
         await super._onRender(context, options);
         const root = this.element instanceof HTMLElement ? this.element : this.element?.[0];
         if (!root?.querySelectorAll) return;
+
+        // --- Results panel mode ---
+        if (this._pendingRoll) {
+            this._injectHeaderButtons(root, false);
+
+            root.querySelectorAll(".sme-results__row").forEach(row => {
+                row.addEventListener("click", (event) => {
+                    event.preventDefault();
+                    this._pendingRoll.selectedIndex = Number(row.dataset.index);
+                    this.render({ force: true });
+                });
+            });
+
+            root.querySelector(".sme-results__done")?.addEventListener("click", async (event) => {
+                event.preventDefault();
+                const isMinotaur = this._pendingRoll.selectedIndex === 1;
+                const currentPenalty = this._pendingRoll.penalty;
+                const newPenalty = isMinotaur ? 0 : currentPenalty + 2;
+                await game.settings.set(SME_SETTING_NS, SME_SETTING_KEY, newPenalty);
+                this._pendingRoll = null;
+                this.render({ force: true });
+            });
+            return;
+        }
 
         const rollMode = game.settings.get(SME_SETTING_NS, SME_ROLLMODE_KEY);
         const showPicker = rollMode === "unset" || this._showPicker;
@@ -201,20 +271,40 @@ class ScarletMinotaurEncounterApp extends foundry.applications.api.ApplicationV2
 
     // --- Encounter Table Roll --------------------------------------------------
 
-    // Rolls 1d8, applies the Minotaur penalty, updates state, and re-renders.
-    // The results panel (task-022) will later intercept this to show the encounter.
+    // Rolls 1d8 + sub-roll dice, stores pending state, and re-renders to show
+    // the results panel. Penalty is updated when the GM clicks Done.
+    //
+    // Note: _pendingRoll intentionally survives window close — re-opening shows
+    // the same roll so the GM doesn't lose context. When task-023 replaces
+    // ENCOUNTERS with dynamic table lookup, the encounters array here may go
+    // stale if the table changes between close and re-open.
     async _rollEncounterTable() {
-        const penalty        = game.settings.get(SME_SETTING_NS, SME_SETTING_KEY);
-        const tableRoll      = await new Roll("1d8").evaluate();
-        const rawResult      = tableRoll.total;
-        const { isMinotaur } = resolveEncounter(rawResult, penalty);
+        const penalty = game.settings.get(SME_SETTING_NS, SME_SETTING_KEY);
 
-        // Penalty update: reset on Minotaur, otherwise increment for next roll.
-        const newPenalty = isMinotaur ? 0 : penalty + 2;
-        await game.settings.set(SME_SETTING_NS, SME_SETTING_KEY, newPenalty);
+        const [tableRoll, distRoll, actRoll, reactRoll, treasureRoll] = await Promise.all([
+            new Roll("1d8").evaluate(),
+            new Roll("1d6").evaluate(),
+            new Roll("2d6").evaluate(),
+            new Roll("2d6").evaluate(),
+            new Roll("1d2").evaluate()
+        ]);
 
-        // Refresh window to show updated penalty.
-        this.render();
+        const rawD8 = tableRoll.total;
+        const { adjustedResult } = resolveEncounter(rawD8, penalty);
+
+        this._pendingRoll = {
+            rawD8,
+            adjustedResult,
+            penalty,
+            selectedIndex: adjustedResult,
+            encounters: ENCOUNTERS,
+            distance: resolveDistance(distRoll.total),
+            activity: resolveActivity(actRoll.total),
+            reaction: resolveReaction(reactRoll.total),
+            treasure: treasureRoll.total === 1
+        };
+
+        this.render({ force: true });
     }
 }
 
