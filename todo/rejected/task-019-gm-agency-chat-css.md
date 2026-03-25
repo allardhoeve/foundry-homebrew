@@ -1,6 +1,6 @@
 # Task 019: Move encounter chat inline CSS to classes
 
-Independent of other tasks. Foundation for task-019-gm-agency-results-panel.
+**Cancelled** — superseded by task-021-remove-chat-output. All chat output has been removed, so moving inline CSS to classes is no longer applicable.
 
 ## Goal
 

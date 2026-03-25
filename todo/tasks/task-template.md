@@ -32,21 +32,30 @@ Depends on task-NNN. Independent of task-NNN.
 
 ## Changes
 
-<!-- Use one H3 per file. Prefix with New: or Modified: -->
+<!-- Use one H3 per file. Prefix with New: or Modified:
+     IMPORTANT: Do NOT include full implementations or "suggested approach" code blocks.
+     Give the function signature, behavioral contract, and edge cases — not the body.
+     The implementer should derive the "how" from the tests via TDD. -->
 
 ### New: `path/to/new_file.py`
 
-```python
-# paste representative skeleton or full implementation here
-```
+**Signature**: `functionName(arg: Type) -> ReturnType`
+
+**Contract**:
+- What the function accepts and returns
+- Key behavioral rules
+- Edge cases it must handle
 
 ### Modified: `path/to/existing_file.py`
 
-<!-- Describe what changes and why; include before/after snippet if helpful. -->
+<!-- Describe what changes and why. Include the new/changed signature if applicable.
+     Do NOT include the implementation — describe the contract instead. -->
 
 ## Tests
 
-<!-- Separate new test files from extensions to existing files. -->
+<!-- Separate new test files from extensions to existing files.
+     If existing tests are expected to need no changes, say so explicitly
+     and confirm after implementation (e.g., "Reviewed — no chat assertions, no changes needed"). -->
 
 Add `tests/test_<module>.py`:
 
@@ -61,7 +70,9 @@ Extend `tests/test_<existing>.py`:
 
 <!-- How to confirm the change works beyond automated tests.
      Include test commands to run during development and any manual checks.
-     Remove this section for pure logic changes where tests suffice. -->
+     Remove this section for pure logic changes where tests suffice.
+     When the task is complete, append a **Results (date):** line recording
+     what was run and whether it passed. -->
 
 ```bash
 venv/bin/python -m pytest tests/test_<module>.py tests/test_<related>.py -v

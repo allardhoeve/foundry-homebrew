@@ -7,12 +7,10 @@
 // Persistent state: the current penalty is stored in game.settings (world scope)
 // so it survives refreshes and is shared between GMs.
 //
-// Chat routing:
-//   - No encounter       → GM whisper (safe flavor)
-//   - Encounter result   → public chat (dramatic for Minotaur, standard otherwise)
-//   - Debug breakdown    → GM whisper (raw roll, penalty, adjusted result, new penalty)
+// Results are shown in the app window only — the GM decides how to communicate
+// encounters to players.
 
-import { ENCOUNTERS, resolveEncounter } from "./encounter-math.js";
+import { resolveEncounter } from "./encounter-math.js";
 
 // --- Settings ------------------------------------------------------------------
 
@@ -20,66 +18,6 @@ const SME_MODULE_ID = "foundry-homebrew";
 const SME_SETTING_NS  = "lost-citadel-macros";
 const SME_SETTING_KEY = "minotaurPenalty";
 const SME_ROLLMODE_KEY = "rollMode";
-
-// --- Flavor Text ---------------------------------------------------------------
-
-const encounterMessages = [
-    "Something stirs in the darkness...",
-    "The shadows grow hungry.",
-    "Fate turns against you. Something approaches.",
-    "The Citadel awakens. You are not alone.",
-    "A chill runs down your spine. Too late to run.",
-    "The darkness has noticed you.",
-    "Dread footsteps echo in the black.",
-    "The torch flickers. Something comes."
-];
-
-const safeMessages = [
-    "The darkness holds its breath. You pass unseen.",
-    "Fortune favors you... for now.",
-    "The shadows remain still. Continue onward.",
-    "No eyes watch from the black. Yet.",
-    "The Citadel sleeps. Tread carefully.",
-    "You move like ghosts through the gloom.",
-    "The fates grant you a moment's reprieve.",
-    "Silence. The predators hunt elsewhere.",
-    "Your luck holds. The dark is quiet.",
-    "Nothing stirs. But stay vigilant.",
-    "The torchlight wards away what lurks beyond."
-];
-
-const pick = (arr) => arr[Math.floor(Math.random() * arr.length)];
-
-// Escape <, >, & before injecting strings into innerHTML.
-const escapeHtml = (s) => s.replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;");
-
-// --- Minotaur ASCII Art --------------------------------------------------------
-
-// Art by LS. Stored as an array to sidestep template-literal backtick/backslash
-// escaping. escapeHtml() makes it safe for innerHTML; <pre> preserves whitespace.
-const MINOTAUR_ASCII = escapeHtml([
-    "       -\"\"\\",
-    "    .-\"  .`)     (",
-    "   j   .'_+     :[                )      .^--..",
-    "  i    -\"       |l                ].    /      i",
-    " ,\" .:j         `8o  _,,+.,.--,   d|   `:::;    b",
-    " i  :'|          \"88p;.  (-.\"_\"-.oP        \\.   :",
-    " ; .  (            >,%%%   f),):8\"          \\:'  i",
-    "i  :: j          ,;%%%:; ; ; i:%%%.,        i.   `.",
-    "i  `: ( ____  ,-::::::' ::j  [:```          [8:   )",
-    "<  ..``'::::8888oooooo.  :(jj(,;,,,         [8::  <",
-    "`. ``:.      oo.8888888888:;%%%8o.::.+888+o.:`:'  |",
-    " `.   `        `o`88888888b`%%%%%88< Y888P\"\"'-    ;",
-    "   \"`---`.       Y`888888888;;.,\"888b.\"\"\"..::::'-'",
-    "          \"-....  b`8888888:::::.`8888._::-\"",
-    "             `:::. `:::::O:::::::.`%%'|",
-    "              `.      \"``::::::''    .'",
-    "                `.                   <",
-    "                  +:         `:   -';",
-    "                   `:         : .::/",
-    "                    ;+_  :::. :..;;;",
-    "                    ;;;;,;;;;;;;;,;;"
-].join("\n"));
 
 // --- Application ---------------------------------------------------------------
 
@@ -249,142 +187,34 @@ class ScarletMinotaurEncounterApp extends foundry.applications.api.ApplicationV2
     // --- Check Roll ------------------------------------------------------------
 
     // Rolls the check die. On a 1, delegates to _rollEncounterTable.
-    async _runCheck(die, label) {
+    async _runCheck(die) {
         const roll   = await new Roll(die).evaluate();
         const result = roll.total;
 
         if (result === 1) {
-            await this._rollEncounterTable(die, label, result);
+            await this._rollEncounterTable();
         } else {
-            // No encounter — whisper to GM only.
-            ChatMessage.create({
-                user:    game.user.id,
-                content: `
-                    <div class="sme-chat-safe">
-                        <div class="sme-chat-safe__title">
-                            RANDOM ENCOUNTER CHECK
-                        </div>
-                        <div class="sme-chat-safe__die">
-                            ${die} — ${label}
-                        </div>
-                        <div class="sme-chat-safe__result">
-                            ${result}
-                        </div>
-                        <div class="sme-chat-safe__verdict">
-                            No Encounter
-                        </div>
-                        <div class="sme-chat-safe__flavor">
-                            "${pick(safeMessages)}"
-                        </div>
-                    </div>
-                `,
-                whisper: [game.user.id],
-                blind:   true,
-                speaker: { alias: "The Darkness" }
-            });
+            // No encounter — GM sees the die result in the app window.
+            this.render();
         }
     }
 
     // --- Encounter Table Roll --------------------------------------------------
 
-    // Rolls 1d8, applies the Minotaur penalty, posts results, and updates state.
-    async _rollEncounterTable(checkDie, checkLabel, checkResult) {
+    // Rolls 1d8, applies the Minotaur penalty, updates state, and re-renders.
+    // The results panel (task-022) will later intercept this to show the encounter.
+    async _rollEncounterTable() {
         const penalty        = game.settings.get(SME_SETTING_NS, SME_SETTING_KEY);
         const tableRoll      = await new Roll("1d8").evaluate();
         const rawResult      = tableRoll.total;
-        const { adjustedResult, encounter, isMinotaur } = resolveEncounter(rawResult, penalty);
+        const { isMinotaur } = resolveEncounter(rawResult, penalty);
 
         // Penalty update: reset on Minotaur, otherwise increment for next roll.
-        // First roll uses stored 0 (no penalty), subsequent rolls accumulate.
         const newPenalty = isMinotaur ? 0 : penalty + 2;
         await game.settings.set(SME_SETTING_NS, SME_SETTING_KEY, newPenalty);
 
-        // Public encounter message.
-        if (isMinotaur) {
-            this._postMinotaurEncounter();
-        } else {
-            this._postEncounter(encounter);
-        }
-
-        // GM-only debug breakdown.
-        this._postDebugInfo(checkDie, checkLabel, checkResult, rawResult, penalty, adjustedResult, newPenalty);
-
         // Refresh window to show updated penalty.
         this.render();
-    }
-
-    // --- Chat Messages ---------------------------------------------------------
-
-    // Dramatic full-screen treatment for the Scarlet Minotaur — posted publicly.
-    _postMinotaurEncounter() {
-        ChatMessage.create({
-            user:    game.user.id,
-            content: `
-                <div class="sme-chat-minotaur">
-                    <div class="sme-chat-minotaur__subtitle">
-                        The Lost Citadel
-                    </div>
-                    <div class="sme-chat-minotaur__name">
-                        THE SCARLET<br>MINOTAUR
-                    </div>
-                    <pre class="sme-chat-minotaur__art">${MINOTAUR_ASCII}</pre>
-                    <div class="sme-chat-minotaur__divider"></div>
-                    <div class="sme-chat-minotaur__desc">
-                        Thundering hooves crack the stone. A blood-red hide fills the corridor.
-                    </div>
-                    <div class="sme-chat-minotaur__quote">
-                        "${pick(encounterMessages)}"
-                    </div>
-                </div>
-            `,
-            speaker: { alias: "The Lost Citadel" }
-        });
-    }
-
-    // Standard encounter card — posted publicly.
-    _postEncounter(encounter) {
-        ChatMessage.create({
-            user:    game.user.id,
-            content: `
-                <div class="sme-chat-encounter">
-                    <div class="sme-chat-encounter__title">
-                        RANDOM ENCOUNTER
-                    </div>
-                    <div class="sme-chat-encounter__alert">
-                        ⚔️ An encounter occurs!
-                    </div>
-                    <div class="sme-chat-encounter__text">
-                        ${encounter}
-                    </div>
-                    <div class="sme-chat-encounter__flavor">
-                        "${pick(encounterMessages)}"
-                    </div>
-                </div>
-            `,
-            speaker: { alias: "The Lost Citadel" }
-        });
-    }
-
-    // GM-only whisper with full roll breakdown for verification.
-    _postDebugInfo(checkDie, checkLabel, checkResult, rawD8, penalty, adjustedResult, newPenalty) {
-        const penaltyChange = newPenalty === 0
-            ? `${penalty} → 0 (reset — Minotaur encountered)`
-            : `${penalty} → ${newPenalty} (+2)`;
-
-        ChatMessage.create({
-            user:    game.user.id,
-            content: `
-                <div class="sme-chat-debug">
-                    <strong>Encounter Debug</strong><br>
-                    Check: ${checkDie} (${checkLabel}) = <strong>${checkResult}</strong><br>
-                    Table: 1d8 = ${rawD8}, penalty = −${penalty}, adjusted = <strong>${adjustedResult}</strong><br>
-                    Penalty: ${penaltyChange}
-                </div>
-            `,
-            whisper: [game.user.id],
-            blind:   true,
-            speaker: { alias: "Debug" }
-        });
     }
 }
 
