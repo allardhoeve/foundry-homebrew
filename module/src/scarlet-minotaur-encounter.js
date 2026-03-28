@@ -10,7 +10,9 @@
 // Results are shown in the app window only — the GM decides how to communicate
 // encounters to players.
 
-import { ENCOUNTERS, resolveEncounter, resolveDistance, resolveActivity, resolveReaction } from "./encounter-math.js";
+import { resolveEncounter, resolveDistance, resolveActivity, resolveReaction } from "./encounter-math.js";
+
+const SME_TABLE_NAME = "The Lost Citadel: Random Encounters";
 
 // --- Settings ------------------------------------------------------------------
 
@@ -116,44 +118,44 @@ class ScarletMinotaurEncounterApp extends foundry.applications.api.ApplicationV2
         return container;
     }
 
-    _renderResults() {
+    async _renderResults() {
         const data = this._pendingRoll;
         const container = document.createElement("div");
         container.className = "sme-window sme-results";
 
-        // Build encounter list rows
-        const rows = data.encounters.map((text, i) => {
-            const index = i + 1; // 1-based
-            const isSelected = index === data.selectedIndex;
-            const isUnreachable = index > Math.max(1, 8 - data.penalty);
-            const isMinotaur = index === 1;
-            let cls = "sme-results__row";
-            if (isSelected) cls += " sme-results__row--selected";
-            if (isUnreachable) cls += " sme-results__row--unreachable";
-            if (isMinotaur) cls += " sme-results__row--minotaur";
-            // TODO(task-023): encounter text will come from compendium — sanitize
-            // before inserting into innerHTML to prevent XSS.
-            return `<div class="${cls}" data-index="${index}">${text}</div>`;
-        }).join("");
+        const selectedText = data.encounters[data.selectedIndex - 1];
+        const isMinotaur = data.selectedIndex === 1;
 
         // Roll breakdown
         const sign = data.penalty > 0 ? ` − ${data.penalty}` : "";
         const rollInfo = `d8: ${data.rawD8}${sign} → ${data.adjustedResult}`;
 
-        // Sub-rolls summary
-        const subRolls = [
-            `Distance: ${data.distance.label} (${data.distance.roll})`,
-            `Activity: ${data.activity.label} (${data.activity.roll})`,
-            `Reaction: ${data.reaction.label} (${data.reaction.roll})`,
-            `Treasure: ${data.treasure ? "Yes" : "No"}`
-        ].join(" · ");
+        // Enrich the encounter text so Foundry renders inline rolls and links
+        const enrichedHero = await TextEditor.enrichHTML(selectedText);
+
+        const heroClass = isMinotaur ? "sme-hero sme-hero--minotaur" : "sme-hero";
+
+        // Build tag pills — always show all 4 slots. Treasure is muted when
+        // absent, but always active for the Minotaur (the axe).
+        const hasTreasure = data.treasure || isMinotaur;
+        const treasureCls = hasTreasure ? "sme-tag" : "sme-tag sme-tag--disabled";
+        const tagHTML = `
+            <span class="sme-tag">${data.distance.label}</span>
+            <span class="sme-tag">${data.activity.label}</span>
+            <span class="sme-tag">${data.reaction.label}</span>
+            <span class="${treasureCls}">Treasure</span>`;
 
         container.innerHTML = `
             <div class="sme-title">Encounter</div>
             <div class="sme-results__info">${rollInfo}</div>
-            <div class="sme-results__list">${rows}</div>
-            <div class="sme-results__subrolls">${subRolls}</div>
-            <button type="button" class="sme-btn-primary sme-results__done">Done</button>
+            <div class="${heroClass}">
+                <div class="sme-hero__encounter">${enrichedHero}</div>
+                <div class="sme-hero__tags">${tagHTML}</div>
+            </div>
+            <div class="sme-results__actions">
+                <button type="button" class="sme-btn-secondary sme-results__change">Change</button>
+                <button type="button" class="sme-btn-primary sme-results__done">Done</button>
+            </div>
         `;
         return container;
     }
@@ -171,12 +173,9 @@ class ScarletMinotaurEncounterApp extends foundry.applications.api.ApplicationV2
         if (this._pendingRoll) {
             this._injectHeaderButtons(root, false);
 
-            root.querySelectorAll(".sme-results__row").forEach(row => {
-                row.addEventListener("click", (event) => {
-                    event.preventDefault();
-                    this._pendingRoll.selectedIndex = Number(row.dataset.index);
-                    this.render({ force: true });
-                });
+            root.querySelector(".sme-results__change")?.addEventListener("click", (event) => {
+                event.preventDefault();
+                this._openEncounterPicker();
             });
 
             root.querySelector(".sme-results__done")?.addEventListener("click", async (event) => {
@@ -269,16 +268,52 @@ class ScarletMinotaurEncounterApp extends foundry.applications.api.ApplicationV2
         }
     }
 
+    // --- Encounter Picker Dialog -----------------------------------------------
+
+    // Opens a dialog listing all encounters with enriched text so the GM can
+    // pick a different one. On selection, updates _pendingRoll and re-renders.
+    async _openEncounterPicker() {
+        const data = this._pendingRoll;
+        if (!data) return;
+
+        // Close any existing picker before opening a new one.
+        if (this._pickerDialog?.rendered) {
+            this._pickerDialog.close();
+        }
+
+        const parentApp = this;
+
+        this._pickerDialog = new ScarletMinotaurPickerDialog(parentApp, data);
+        this._pickerDialog.render({ force: true });
+    }
+
+    // --- Encounter Table Loader ------------------------------------------------
+
+    // Loads encounter text from the world's rollable table at runtime.
+    // Returns an ordered array of 8 encounter strings (index 0 = result 1),
+    // or null if the table is not present in the world.
+    _loadEncounterTable() {
+        const table = game.tables.getName(SME_TABLE_NAME);
+        if (!table) return null;
+
+        const sorted = [...table.results].sort((a, b) => a.range[0] - b.range[0]);
+        return sorted.map(r => r.description);
+    }
+
     // --- Encounter Table Roll --------------------------------------------------
 
     // Rolls 1d8 + sub-roll dice, stores pending state, and re-renders to show
     // the results panel. Penalty is updated when the GM clicks Done.
     //
     // Note: _pendingRoll intentionally survives window close — re-opening shows
-    // the same roll so the GM doesn't lose context. When task-023 replaces
-    // ENCOUNTERS with dynamic table lookup, the encounters array here may go
-    // stale if the table changes between close and re-open.
+    // the same roll so the GM doesn't lose context.
     async _rollEncounterTable() {
+        const encounters = this._loadEncounterTable();
+        if (!encounters) {
+            ui.notifications.warn(`Encounter table "${SME_TABLE_NAME}" not found. Import it from the adventure before rolling.`);
+            return;
+        }
+
         const penalty = game.settings.get(SME_SETTING_NS, SME_SETTING_KEY);
 
         const [tableRoll, distRoll, actRoll, reactRoll, treasureRoll] = await Promise.all([
@@ -290,14 +325,14 @@ class ScarletMinotaurEncounterApp extends foundry.applications.api.ApplicationV2
         ]);
 
         const rawD8 = tableRoll.total;
-        const { adjustedResult } = resolveEncounter(rawD8, penalty);
+        const { adjustedResult } = resolveEncounter(rawD8, penalty, encounters);
 
         this._pendingRoll = {
             rawD8,
             adjustedResult,
             penalty,
             selectedIndex: adjustedResult,
-            encounters: ENCOUNTERS,
+            encounters,
             distance: resolveDistance(distRoll.total),
             activity: resolveActivity(actRoll.total),
             reaction: resolveReaction(reactRoll.total),
@@ -305,6 +340,79 @@ class ScarletMinotaurEncounterApp extends foundry.applications.api.ApplicationV2
         };
 
         this.render({ force: true });
+    }
+}
+
+// --- Encounter Picker Dialog ---------------------------------------------------
+
+class ScarletMinotaurPickerDialog extends foundry.applications.api.ApplicationV2 {
+    static DEFAULT_OPTIONS = foundry.utils.mergeObject(super.DEFAULT_OPTIONS, {
+        id: "scarlet-minotaur-picker",
+        window: {
+            title: "Choose Encounter",
+            resizable: false,
+            minimizable: false
+        },
+        position: { width: 440 }
+    }, { inplace: false });
+
+    constructor(parentApp, rollData) {
+        super();
+        this._parentApp = parentApp;
+        this._rollData = rollData;
+    }
+
+    async _renderHTML(_context, _options) {
+        const data = this._rollData;
+        const container = document.createElement("div");
+
+        // Enrich all encounter texts in parallel
+        const enriched = await Promise.all(
+            data.encounters.map(text => TextEditor.enrichHTML(text))
+        );
+
+        const maxReachable = Math.max(1, 8 - data.penalty);
+
+        const rows = enriched.map((html, i) => {
+            const index = i + 1;
+            const isSelected = index === data.selectedIndex;
+            const isMinotaur = index === 1;
+            const isOutOfRange = index > maxReachable;
+            let cls = "sme-picker-dialog__row";
+            if (isSelected) cls += " sme-picker-dialog__row--selected";
+            if (isMinotaur) cls += " sme-picker-dialog__row--minotaur";
+            const badge = isOutOfRange
+                ? '<span class="sme-out-of-range-badge">out of range</span>'
+                : "";
+            return `<div class="${cls}" data-index="${index}">
+                <span class="sme-picker-dialog__row-text">${html}</span>${badge}
+            </div>`;
+        }).join("");
+
+        const penaltyBanner = data.penalty > 0
+            ? `<div class="sme-penalty-banner">Minotaur modifier: −${data.penalty}</div>`
+            : "";
+
+        container.innerHTML = `${penaltyBanner}<div class="sme-picker-dialog">${rows}</div>`;
+        return container;
+    }
+
+    _replaceHTML(result, content, _options) {
+        content.replaceChildren(result);
+    }
+
+    async _onRender(context, options) {
+        await super._onRender(context, options);
+        const root = this.element instanceof HTMLElement ? this.element : this.element?.[0];
+        if (!root) return;
+
+        root.querySelectorAll(".sme-picker-dialog__row").forEach(row => {
+            row.addEventListener("click", () => {
+                this._rollData.selectedIndex = Number(row.dataset.index);
+                this.close();
+                this._parentApp.render({ force: true });
+            });
+        });
     }
 }
 

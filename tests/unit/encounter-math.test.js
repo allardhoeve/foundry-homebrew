@@ -1,55 +1,60 @@
 import { describe, it } from 'node:test';
 import assert from 'node:assert/strict';
 import {
-    ENCOUNTERS,
     resolveEncounter,
     resolveDistance,
     resolveActivity,
     resolveReaction
 } from '../../module/src/encounter-math.js';
 
+// Test fixture — generic encounter text (no Shadowdark content).
+const ENCOUNTERS = [
+    "Encounter A", "Encounter B", "Encounter C", "Encounter D",
+    "Encounter E", "Encounter F", "Encounter G", "Encounter H"
+];
+
 describe('resolveEncounter', () => {
     it('returns the correct encounter for a normal roll with no penalty', () => {
-        const result = resolveEncounter(5, 0);
+        const result = resolveEncounter(5, 0, ENCOUNTERS);
         assert.equal(result.adjustedResult, 5);
-        assert.equal(result.encounter, ENCOUNTERS[4]);
+        assert.equal(result.encounter, "Encounter E");
         assert.equal(result.isMinotaur, false);
     });
 
     it('returns minotaur when d8 is 1 and penalty is 0', () => {
-        const result = resolveEncounter(1, 0);
+        const result = resolveEncounter(1, 0, ENCOUNTERS);
         assert.equal(result.adjustedResult, 1);
         assert.equal(result.isMinotaur, true);
-        assert.equal(result.encounter, ENCOUNTERS[0]);
+        assert.equal(result.encounter, "Encounter A");
     });
 
     it('clamps to minotaur when penalty exceeds roll', () => {
-        const result = resolveEncounter(3, 4);
+        const result = resolveEncounter(3, 4, ENCOUNTERS);
         assert.equal(result.adjustedResult, 1);
         assert.equal(result.isMinotaur, true);
     });
 
     it('clamps to minotaur under extreme penalty', () => {
-        const result = resolveEncounter(1, 8);
+        const result = resolveEncounter(1, 8, ENCOUNTERS);
         assert.equal(result.adjustedResult, 1);
         assert.equal(result.isMinotaur, true);
     });
 
     it('returns the last table entry for max roll with no penalty', () => {
-        const result = resolveEncounter(8, 0);
+        const result = resolveEncounter(8, 0, ENCOUNTERS);
         assert.equal(result.adjustedResult, 8);
-        assert.equal(result.encounter, ENCOUNTERS[7]);
+        assert.equal(result.encounter, "Encounter H");
         assert.equal(result.isMinotaur, false);
     });
 
     it('high roll absorbs penalty without hitting minotaur', () => {
-        const result = resolveEncounter(8, 6);
+        const result = resolveEncounter(8, 6, ENCOUNTERS);
         assert.equal(result.adjustedResult, 2);
         assert.equal(result.isMinotaur, false);
-        assert.equal(result.encounter, ENCOUNTERS[1]);
+        assert.equal(result.encounter, "Encounter B");
     });
 
-    it('accepts an explicit encounters parameter', () => {
+    it('works with any encounters array', () => {
         const custom = ["Alpha", "Beta", "Gamma", "Delta", "Echo", "Foxtrot", "Golf", "Hotel"];
         const result = resolveEncounter(3, 0, custom);
         assert.equal(result.encounter, "Gamma");
@@ -57,7 +62,7 @@ describe('resolveEncounter', () => {
         assert.equal(result.isMinotaur, false);
     });
 
-    it('uses explicit encounters for clamped result', () => {
+    it('clamps correctly with custom encounters', () => {
         const custom = ["First", "Second", "Third", "Fourth", "Fifth", "Sixth", "Seventh", "Eighth"];
         const result = resolveEncounter(2, 4, custom);
         assert.equal(result.encounter, "First");

@@ -47,16 +47,9 @@ Feature: Encounter Roller
     When I open the Encounter Roller
     And I force an encounter
     Then the results panel should be visible
-    And the results panel should show the encounter list
-    And the results panel should show the sub-rolls summary
+    And the results panel should show the hero encounter
+    And the results panel should show 4 tag pills
     And the results panel should show the Done button
-
-  Scenario: GM can override encounter selection
-    Given the encounter roll mode is "d6-only"
-    When I open the Encounter Roller
-    And I force an encounter
-    And I select encounter row 5
-    Then encounter row 5 should be selected
 
   Scenario: Done returns to roller
     Given the encounter roll mode is "d6-only"
@@ -70,26 +63,17 @@ Feature: Encounter Roller
     And the Minotaur penalty is 0
     When I open the Encounter Roller
     And I force an encounter
-    And I select encounter row 3
     And I click the Done button
     Then the encounter penalty display should show 2
 
-  Scenario: Minotaur selection resets penalty
+  Scenario: Minotaur selection via picker resets penalty
     Given the encounter roll mode is "d6-only"
     And the Minotaur penalty is 4
     When I open the Encounter Roller
     And I force an encounter
-    And I select encounter row 1
+    And I click Change and select encounter 1
     And I click the Done button
     Then the encounter penalty display should show 0
-
-  Scenario: Unreachable rows are muted based on penalty
-    Given the encounter roll mode is "d6-only"
-    And the Minotaur penalty is 4
-    When I open the Encounter Roller
-    And I force an encounter
-    Then encounter rows 1 through 4 should not be unreachable
-    And encounter rows 5 through 8 should be unreachable
 
   # --- Eye tests ---
 

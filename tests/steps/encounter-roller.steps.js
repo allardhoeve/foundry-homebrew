@@ -59,8 +59,15 @@ When('I click the Encounter Roller settings button', async ({ session }) => {
   await session.page.locator(`${ENCOUNTER_ID} .sme-picker`).waitFor({ state: 'visible', timeout: 5_000 });
 });
 
-When('I select encounter row {int}', async ({ session }, index) => {
-  await session.page.locator(`${ENCOUNTER_ID} .sme-results__row[data-index="${index}"]`).click();
+When('I click Change and select encounter {int}', async ({ session }, index) => {
+  // Click the Change button to open the picker dialog
+  await session.page.locator(`${ENCOUNTER_ID} .sme-results__change`).click();
+  // The picker is a separate ApplicationV2 window (#scarlet-minotaur-picker).
+  const pickerRow = session.page.locator(`#scarlet-minotaur-picker .sme-picker-dialog__row[data-index="${index}"]`);
+  await pickerRow.waitFor({ state: 'visible', timeout: 5_000 });
+  await pickerRow.click();
+  // Wait for the main window to re-render with updated hero
+  await session.page.locator(`${ENCOUNTER_ID} .sme-hero`).waitFor({ state: 'visible', timeout: 5_000 });
 });
 
 When('I click the Done button', async ({ session }) => {
@@ -99,43 +106,23 @@ Then('the Encounter Roller should show the primary button {string}', async ({ se
   await expect(btn).toContainText(label);
 });
 
-
 Then('the results panel should be visible', async ({ session }) => {
   await expect(session.page.locator(`${ENCOUNTER_ID} .sme-results`)).toBeVisible();
 });
 
-Then('the results panel should show the encounter list', async ({ session }) => {
-  const rows = session.page.locator(`${ENCOUNTER_ID} .sme-results__row`);
-  await expect(rows).toHaveCount(8);
+Then('the results panel should show the hero encounter', async ({ session }) => {
+  const hero = session.page.locator(`${ENCOUNTER_ID} .sme-hero__encounter`);
+  await expect(hero).toBeVisible();
+  await expect(hero).not.toBeEmpty();
 });
 
-Then('the results panel should show the sub-rolls summary', async ({ session }) => {
-  const subrolls = session.page.locator(`${ENCOUNTER_ID} .sme-results__subrolls`);
-  await expect(subrolls).toBeVisible();
-  await expect(subrolls).not.toBeEmpty();
+Then('the results panel should show {int} tag pills', async ({ session }, count) => {
+  const tags = session.page.locator(`${ENCOUNTER_ID} .sme-tag`);
+  await expect(tags).toHaveCount(count);
 });
 
 Then('the results panel should show the Done button', async ({ session }) => {
   await expect(session.page.locator(`${ENCOUNTER_ID} .sme-results__done`)).toBeVisible();
-});
-
-Then('encounter row {int} should be selected', async ({ session }, index) => {
-  const row = session.page.locator(`${ENCOUNTER_ID} .sme-results__row[data-index="${index}"]`);
-  await expect(row).toHaveClass(/sme-results__row--selected/);
-});
-
-Then('encounter rows {int} through {int} should not be unreachable', async ({ session }, from, to) => {
-  for (let i = from; i <= to; i++) {
-    const row = session.page.locator(`${ENCOUNTER_ID} .sme-results__row[data-index="${i}"]`);
-    await expect(row).not.toHaveClass(/sme-results__row--unreachable/);
-  }
-});
-
-Then('encounter rows {int} through {int} should be unreachable', async ({ session }, from, to) => {
-  for (let i = from; i <= to; i++) {
-    const row = session.page.locator(`${ENCOUNTER_ID} .sme-results__row[data-index="${i}"]`);
-    await expect(row).toHaveClass(/sme-results__row--unreachable/);
-  }
 });
 
 Then('describe the results panel', async ({ session, $testInfo }) => {
@@ -143,15 +130,14 @@ Then('describe the results panel', async ({ session, $testInfo }) => {
     const result = {};
     result.title = el.querySelector('.sme-title')?.textContent?.trim() ?? '';
     result.rollInfo = el.querySelector('.sme-results__info')?.textContent?.trim() ?? '';
-    result.subrolls = el.querySelector('.sme-results__subrolls')?.textContent?.trim() ?? '';
-    result.encounters = [...el.querySelectorAll('.sme-results__row')].map(row => ({
-      index: row.dataset.index,
-      text: row.textContent?.trim() ?? '',
-      selected: row.classList.contains('sme-results__row--selected'),
-      unreachable: row.classList.contains('sme-results__row--unreachable'),
-      minotaur: row.classList.contains('sme-results__row--minotaur'),
+    result.heroText = el.querySelector('.sme-hero__encounter')?.textContent?.trim() ?? '';
+    result.heroIsMinotaur = !!el.querySelector('.sme-hero--minotaur');
+    result.tags = [...el.querySelectorAll('.sme-tag')].map(tag => ({
+      text: tag.textContent?.trim() ?? '',
+      disabled: tag.classList.contains('sme-tag--disabled'),
     }));
     result.doneVisible = !!el.querySelector('.sme-results__done');
+    result.changeVisible = !!el.querySelector('.sme-results__change');
     return result;
   });
 
