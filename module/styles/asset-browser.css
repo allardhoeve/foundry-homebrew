@@ -1,0 +1,257 @@
+/* Override Foundry window chrome */
+#asset-browser {
+    background: #1a1a1e;
+    border: 1px solid #3a3a3e;
+    border-radius: 4px;
+    box-shadow: 0 0 20px rgba(0, 0, 0, 0.8);
+}
+
+#asset-browser .window-header {
+    background: transparent;
+    border: none;
+    padding: 2px 4px;
+    min-height: 0;
+    display: flex;
+    justify-content: space-between;
+}
+
+/* Main container — fill window content area */
+.ab-window {
+    background: #1a1a1e;
+    color: #e8dcc8;
+    display: flex;
+    flex-direction: column;
+    height: 100%;
+}
+
+/* Blackletter title */
+.ab-title {
+    font-family: "JSL Blackletter", serif;
+    font-size: 30px;
+    color: #ffffff;
+    letter-spacing: 1px;
+    text-align: center;
+    padding: 4px 16px 8px;
+}
+
+/* Split-pane body */
+.ab-body {
+    display: flex;
+    flex: 1;
+    min-height: 0;
+    overflow: hidden;
+}
+
+/* ---- Sidebar ---- */
+.ab-sidebar {
+    width: 220px;
+    flex-shrink: 0;
+    border-right: 1px solid #3a3a3e;
+    overflow-y: auto;
+    padding: 4px 0;
+}
+
+.ab-sidebar-header {
+    font-size: 11px;
+    font-weight: bold;
+    color: #888;
+    letter-spacing: 0.5px;
+    text-transform: uppercase;
+    padding: 6px 12px 4px;
+}
+
+/* Folder tree */
+.ab-folder-label {
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    padding: 5px 12px;
+    cursor: pointer;
+    color: #b0a898;
+    font-size: 13px;
+    transition: background 0.15s, color 0.15s;
+    user-select: none;
+}
+
+.ab-folder-label:hover {
+    background: rgba(255, 255, 255, 0.05);
+    color: #e8dcc8;
+}
+
+.ab-folder-label--selected {
+    background: rgba(160, 120, 50, 0.12);
+    color: #c9a54a;
+    border-left: 2px solid #c9a54a;
+    padding-left: 10px;
+}
+
+.ab-folder-chevron {
+    font-size: 9px;
+    width: 10px;
+    text-align: center;
+    transition: transform 0.15s;
+    flex-shrink: 0;
+}
+
+.ab-folder-chevron--expanded {
+    transform: rotate(90deg);
+}
+
+.ab-folder-children {
+    padding-left: 14px;
+}
+
+.ab-folder-children--hidden {
+    display: none;
+}
+
+/* Module-level source entry */
+.ab-source-label {
+    font-size: 11px;
+    font-weight: bold;
+    color: #666;
+    padding: 10px 12px 3px;
+    letter-spacing: 0.3px;
+}
+
+.ab-source-label:first-child {
+    padding-top: 4px;
+}
+
+/* ---- Content area ---- */
+.ab-content {
+    flex: 1;
+    display: flex;
+    flex-direction: column;
+    min-width: 0;
+    overflow: hidden;
+}
+
+/* Search bar */
+.ab-search-bar {
+    padding: 8px 12px;
+    border-bottom: 1px solid #3a3a3e;
+    flex-shrink: 0;
+}
+
+.ab-search-input {
+    width: 100%;
+    background: rgba(255, 255, 255, 0.05);
+    border: 1px solid rgba(255, 255, 255, 0.15);
+    border-radius: 3px;
+    color: #e8dcc8;
+    padding: 6px 10px;
+    font-size: 13px;
+    outline: none;
+    transition: border-color 0.2s;
+}
+
+.ab-search-input::placeholder {
+    color: #666;
+}
+
+.ab-search-input:focus {
+    border-color: rgba(160, 120, 50, 0.45);
+}
+
+/* Image grid — flexbox wrap avoids Foundry grid row-height issues */
+.ab-grid {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 10px;
+    padding: 12px;
+    overflow-y: auto;
+    flex: 1;
+    align-content: flex-start;
+}
+
+/* Image card */
+#asset-browser .ab-card {
+    cursor: pointer;
+    border: 1px solid rgba(255, 255, 255, 0.08);
+    border-radius: 4px;
+    overflow: hidden !important;
+    width: 140px;
+    transition: border-color 0.2s, box-shadow 0.2s;
+    position: relative;
+}
+
+.ab-card:hover {
+    border-color: rgba(160, 120, 50, 0.45);
+    box-shadow: 0 0 8px rgba(160, 120, 50, 0.15);
+}
+
+/* Foundry v13 wraps module CSS in @layer modules, which loses to unlayered
+   base styles. !important inside a layer beats everything else in the cascade,
+   so we use it here to ensure the grid images render correctly. */
+#asset-browser .ab-card-thumb {
+    background: #111;
+    overflow: hidden;
+    line-height: 0;
+}
+
+#asset-browser .ab-card-thumb img {
+    display: block !important;
+    width: 100% !important;
+    height: auto !important;
+    aspect-ratio: 1 / 1 !important;
+    object-fit: contain !important;
+    border: none !important;
+}
+
+.ab-card-name {
+    padding: 4px 6px;
+    font-size: 11px;
+    color: #b0a898;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+}
+
+/* Copied feedback overlay */
+.ab-card--copied::after {
+    content: "Copied!";
+    position: absolute;
+    inset: 0;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    background: rgba(160, 120, 50, 0.85);
+    color: #fff;
+    font-weight: bold;
+    font-size: 13px;
+    border-radius: 3px;
+    pointer-events: none;
+}
+
+/* Hidden by filter */
+#asset-browser .ab-card--hidden {
+    display: none !important;
+}
+
+/* Empty / loading states */
+.ab-empty {
+    color: #666;
+    font-size: 13px;
+    text-align: center;
+    padding: 40px 20px;
+}
+
+.ab-loading {
+    color: #888;
+    font-size: 12px;
+    padding: 12px;
+    text-align: center;
+}
+
+/* Status bar */
+.ab-status {
+    font-size: 11px;
+    color: #666;
+    padding: 4px 12px;
+    border-top: 1px solid #3a3a3e;
+    flex-shrink: 0;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+}
