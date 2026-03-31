@@ -42,6 +42,7 @@ class LightAdjusterApp extends foundry.applications.api.ApplicationV2 {
                 <button type="button" class="la-btn-primary" data-delta="60">+1 min</button>
                 <button type="button" class="la-btn-primary" data-delta="600">+10 min</button>
             </div>
+            <button type="button" class="la-btn-douse" data-action="douse-all">Expire All Lights</button>
             <div class="la-status">${this._statusMessage}</div>
             <div class="la-timers">${this._getTimerSummary()}</div>
         `;
@@ -62,6 +63,11 @@ class LightAdjusterApp extends foundry.applications.api.ApplicationV2 {
                 event.preventDefault();
                 await this._adjustLights(Number(button.dataset.delta));
             });
+        });
+
+        root.querySelector("[data-action='douse-all']")?.addEventListener("click", async (event) => {
+            event.preventDefault();
+            await this._douseAll();
         });
 
         this._registerHooks();
@@ -119,6 +125,38 @@ class LightAdjusterApp extends foundry.applications.api.ApplicationV2 {
         return entries.join(" - ");
     }
 
+    // The Shadowdark light source tracker caches item snapshots via toObject().
+    // After we modify remainingSecs directly, the cached snapshot is stale and
+    // the next tick would overwrite our change. Marking it dirty forces a
+    // re-gather from the live item data before the next tick runs.
+    _invalidateSystemTracker() {
+        const tracker = game.shadowdark?.lightSourceTracker;
+        if (tracker) tracker.dirty = true;
+    }
+
+    async _douseAll() {
+        if (!game.user.isGM) return;
+
+        const actors = game.actors.filter(a => a.type === "Player" || a.type === "NPC");
+        let totalLights = 0;
+
+        for (const actor of actors) {
+            const lightItems = actor.items.filter(item =>
+                item.system.light?.isSource && item.system.light?.active
+            );
+            for (const item of lightItems) {
+                await item.update({ "system.light.remainingSecs": 0 });
+                totalLights++;
+            }
+        }
+
+        this._statusMessage = totalLights > 0
+            ? `Doused ${totalLights} light${totalLights !== 1 ? "s" : ""}`
+            : "No active lights found";
+        this._invalidateSystemTracker();
+        this.render({ force: true });
+    }
+
     async _adjustLights(deltaSeconds) {
         if (!game.user.isGM) return;
 
@@ -153,6 +191,7 @@ class LightAdjusterApp extends foundry.applications.api.ApplicationV2 {
             this._statusMessage = "No active lights found";
         }
 
+        this._invalidateSystemTracker();
         this.render({ force: true });
     }
 }

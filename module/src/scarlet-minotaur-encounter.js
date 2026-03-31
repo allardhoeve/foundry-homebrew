@@ -14,6 +14,22 @@ import { resolveEncounter, resolveDistance, resolveActivity, resolveReaction } f
 
 const SME_TABLE_NAME = "The Lost Citadel: Random Encounters";
 
+// Flavour messages when no encounter occurs (roll > 1)
+const SME_SAFE_MESSAGES = [
+    "The darkness holds its breath.",
+    "Fortune favors you\u2026 for now.",
+    "The shadows remain still.",
+    "No eyes watch from the black. Yet.",
+    "The dungeon sleeps. Tread carefully.",
+    "You move like ghosts through the gloom.",
+    "The fates grant you a reprieve.",
+    "Silence. The predators hunt elsewhere.",
+    "Your luck holds. The dark is quiet.",
+    "Nothing stirs. But stay vigilant.",
+];
+
+const SME_SAFE_DISPLAY_MS = 2500;
+
 // --- Settings ------------------------------------------------------------------
 
 const SME_MODULE_ID = "foundry-homebrew";
@@ -46,6 +62,9 @@ class ScarletMinotaurEncounterApp extends foundry.applications.api.ApplicationV2
     async _renderHTML(_context, _options) {
         if (this._pendingRoll) {
             return this._renderResults();
+        }
+        if (this._safeRoll) {
+            return this._renderSafe();
         }
 
         const rollMode = game.settings.get(SME_SETTING_NS, SME_ROLLMODE_KEY);
@@ -118,6 +137,19 @@ class ScarletMinotaurEncounterApp extends foundry.applications.api.ApplicationV2
         return container;
     }
 
+    _renderSafe() {
+        const { result, die, message } = this._safeRoll;
+        const container = document.createElement("div");
+        container.className = "sme-window sme-safe";
+        container.innerHTML = `
+            <div class="sme-safe__die">${result}</div>
+            <div class="sme-safe__label">No Encounter</div>
+            <div class="sme-safe__flavour">${message}</div>
+            <div class="sme-safe__roll-info">${die}</div>
+        `;
+        return container;
+    }
+
     async _renderResults() {
         const data = this._pendingRoll;
         const container = document.createElement("div");
@@ -168,6 +200,20 @@ class ScarletMinotaurEncounterApp extends foundry.applications.api.ApplicationV2
         await super._onRender(context, options);
         const root = this.element instanceof HTMLElement ? this.element : this.element?.[0];
         if (!root?.querySelectorAll) return;
+
+        // --- Safe (no encounter) mode ---
+        if (this._safeRoll) {
+            this._injectHeaderButtons(root, false);
+            clearTimeout(this._safeTimer);
+            const dismiss = () => {
+                clearTimeout(this._safeTimer);
+                this._safeRoll = null;
+                this.render({ force: true });
+            };
+            this._safeTimer = setTimeout(dismiss, SME_SAFE_DISPLAY_MS);
+            root.querySelector(".sme-safe")?.addEventListener("click", dismiss);
+            return;
+        }
 
         // --- Results panel mode ---
         if (this._pendingRoll) {
@@ -263,8 +309,12 @@ class ScarletMinotaurEncounterApp extends foundry.applications.api.ApplicationV2
         if (result === 1) {
             await this._rollEncounterTable();
         } else {
-            // No encounter — GM sees the die result in the app window.
-            this.render();
+            this._safeRoll = {
+                result,
+                die,
+                message: SME_SAFE_MESSAGES[Math.floor(Math.random() * SME_SAFE_MESSAGES.length)],
+            };
+            this.render({ force: true });
         }
     }
 

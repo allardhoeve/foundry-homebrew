@@ -61,6 +61,27 @@
     border-color: rgba(180, 140, 60, 0.65);
 }
 
+/* Douse all button — destructive, muted until hover */
+.la-btn-douse {
+    display: block;
+    width: 100%;
+    margin-top: 10px;
+    background: rgba(180, 60, 60, 0.08);
+    border: 1px solid rgba(180, 60, 60, 0.25);
+    color: #996;
+    font-size: 12px;
+    padding: 5px 12px;
+    cursor: pointer;
+    border-radius: 3px;
+    transition: background 0.2s, border-color 0.2s, color 0.2s;
+}
+
+.la-btn-douse:hover {
+    background: rgba(180, 60, 60, 0.18);
+    border-color: rgba(200, 70, 70, 0.5);
+    color: #cc6666;
+}
+
 /* Status footer */
 .la-status {
     font-size: 12px;

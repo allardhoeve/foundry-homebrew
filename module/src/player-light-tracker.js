@@ -111,6 +111,7 @@ class PlayerLightTrackerApp extends foundry.applications.api.ApplicationV2 {
         position: {
             width: PLT_WINDOW_WIDTH,
         },
+        popOutModuleDisable: true,
     }, { inplace: false });
 
     constructor(options = {}) {
