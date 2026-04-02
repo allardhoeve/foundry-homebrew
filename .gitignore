@@ -16,3 +16,4 @@ playwright-report/
 tests/visual-storybook/
 .playwright-mcp/
 backups/
+tools/output/
