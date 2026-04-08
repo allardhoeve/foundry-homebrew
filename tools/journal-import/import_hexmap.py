@@ -5,16 +5,22 @@ JournalEntry and RollTable JSON documents.
 Uses pdfminer's layout analysis to identify text boxes, then classifies
 them by x-range containment as LEFT column, RIGHT column, or FULL width.
 
+Supports incremental chapter-based import: each invocation extracts a page
+range into a named chapter.  Re-running the same chapter replaces its pages
+while preserving other chapters in the journal.
+
 Usage:
-    uv run python import_hexmap.py <pdf_path> <first_page> <last_page> [--output-dir DIR]
+    uv run python import_hexmap.py <pdf_path> <first_page> <last_page> --chapter NAME --journal PATH [--name NAME]
 
 Example:
-    uv run python import_hexmap.py ~/Documents/Shadowdark/Revenge_of_the_Ravens.pdf 20 25
+    uv run python import_hexmap.py ~/devel/Ravens.pdf 20 25 --chapter "Hex Key" --journal ../output/ravens.json --name "Revenge of the Ravens"
+    uv run python import_hexmap.py ~/devel/Ravens.pdf 28 37 --chapter "Mossmoor Ruins" --journal ../output/ravens.json
 """
 
 from __future__ import annotations
 
 import argparse
+import hashlib
 import json
 import re
 import string
@@ -39,6 +45,7 @@ PAGE_NUMBER_Y = 555
 
 # Regex patterns
 HEX_TITLE_RE = re.compile(r"^(\d+)\.\s+(.+)$")
+ROOM_TITLE_RE = re.compile(r"^(V?\d{1,2})\.\s+(.+?)\.?\s*$")
 PEOPLE_HEADER_RE = re.compile(r"PEOPLE YOU MEET IN (.+)")
 DIE_HEADER_RE = re.compile(r"^(d\d+)\s*(.+)$")
 TABLE_ROW_RE = re.compile(r"^(\d+(?:-\d+)?)\s+(.+)$")
@@ -413,7 +420,23 @@ def _find_table_name(blocks, die_block, consumed):
         consumed.add(i)
         return b.first_line.strip()
 
-    # 3. Nearest hex title above on same page
+    # 3. Generic header block above (e.g. "OVERLAND VILLAGE ENCOUNTERS")
+    best_header = None
+    for i, b in enumerate(blocks):
+        if i in consumed or b.page_num != page:
+            continue
+        if b.is_header and b.top < die_top and die_top - b.top < 50:
+            # Skip hex titles and people headers — handled above
+            if HEX_TITLE_RE.match(b.first_line) or PEOPLE_HEADER_RE.match(b.first_line):
+                continue
+            if best_header is None or b.top > best_header[1].top:
+                best_header = (i, b)
+    if best_header:
+        i, b = best_header
+        consumed.add(i)
+        return _title_case(b.first_line.strip())
+
+    # 4. Nearest hex title above on same page
     best_hex = None
     for i, b in enumerate(blocks):
         if b.page_num != page or not b.is_header:
@@ -529,7 +552,63 @@ def _parse_table_rows(blocks, start_idx, max_roll=100):
     return rows, idx
 
 
+def _detect_room_header(block: TextBlock):
+    """Detect a dungeon room header in a body-text block.
+
+    Room headers have a bold first span like ``V1. Kobold Burrow.`` or
+    ``3. Training Grounds.`` at 10pt (not flagged as is_header).
+    The identifier must contain at least one digit to avoid matching
+    bold sub-items like ``Guards.`` or ``Treasure.``.
+
+    Returns *(number, name, remaining_paragraph)* or *None*.
+    """
+    if block.is_header:
+        return None
+    if not block.lines or not block.lines[0]:
+        return None
+    first_span = block.lines[0][0]
+    if not first_span.bold:
+        return None
+    m = ROOM_TITLE_RE.match(first_span.text.strip())
+    if not m:
+        return None
+    number = m.group(1)
+    name = m.group(2)
+
+    # Build remaining paragraph from the rest of the block (skip the bold header)
+    remaining_lines = []
+    rest_of_first_line = list(block.lines[0][1:])
+    # Strip stray leading period+space from the non-bold remainder
+    # (happens when the PDF splits "Name" and ". Description" across spans)
+    if rest_of_first_line:
+        first_rest = rest_of_first_line[0]
+        stripped = re.sub(r"^\.?\s*", "", first_rest.text)
+        if stripped:
+            rest_of_first_line[0] = RichSpan(stripped, first_rest.bold, first_rest.italic)
+        else:
+            rest_of_first_line = rest_of_first_line[1:]
+    if rest_of_first_line:
+        remaining_lines.append(rest_of_first_line)
+    remaining_lines.extend(block.lines[1:])
+    remaining_lines = [line for line in remaining_lines if line]
+
+    if remaining_lines:
+        temp = TextBlock(block_type=block.block_type, top=block.top,
+                         lines=remaining_lines, page_num=block.page_num)
+        para = _block_lines_to_paragraph(temp)
+        return number, name, para
+    return number, name, []
+
+
 def parse_blocks(blocks):
+    """Parse ordered blocks into intro paragraphs, location entries, and tables.
+
+    Auto-detects both hex entries (12pt bold headers like ``504. LANDEL``)
+    and room entries (10pt bold first-span like ``V1. Kobold Burrow.``).
+    Text before the first location entry is collected as intro paragraphs
+    for the chapter header page.
+    """
+    intro: list[list[RichSpan]] = []
     entries: list[HexEntry] = []
     tables: list[RollTableData] = []
     current_entry: HexEntry | None = None
@@ -540,7 +619,7 @@ def parse_blocks(blocks):
         block = blocks[idx]
         first = block.first_line
 
-        # Hex entry header
+        # --- 12pt header blocks ---
         if block.is_header:
             hex_match = HEX_TITLE_RE.match(first)
             people_match = PEOPLE_HEADER_RE.match(first)
@@ -556,8 +635,28 @@ def parse_blocks(blocks):
                 people_table_name = f"People You Meet in {_title_case(people_match.group(1))}"
                 idx += 1
                 continue
+            # Section header (FACTIONS, VILLAGE LEVEL, etc.) — treat as
+            # intro content or body paragraph with a heading tag
+            para = [RichSpan(f"[h3]{first}[/h3]", bold=True)]
+            if current_entry is None:
+                intro.append(para)
+            else:
+                current_entry.paragraphs.append(para)
+            idx += 1
+            continue
 
-        # Die header
+        # --- Room entry header (bold first span, 10pt) ---
+        room = _detect_room_header(block)
+        if room:
+            number, name, remaining = room
+            current_entry = HexEntry(number=number, name=_title_case(name))
+            entries.append(current_entry)
+            if remaining:
+                current_entry.paragraphs.append(remaining)
+            idx += 1
+            continue
+
+        # --- Die header (table) ---
         die_match = DIE_HEADER_RE.match(first)
         if die_match and die_match.group(2).strip()[0:1].isupper():
             formula = f"1{die_match.group(1)}"
@@ -571,24 +670,34 @@ def parse_blocks(blocks):
             people_table_name = None
             continue
 
-        # Body text
-        if current_entry is not None:
-            para = _block_lines_to_paragraph(block)
-            if para:
+        # --- Body text ---
+        para = _block_lines_to_paragraph(block)
+        if para:
+            if current_entry is not None:
                 current_entry.paragraphs.append(para)
+            else:
+                intro.append(para)
         idx += 1
 
-    return entries, tables
+    return intro, entries, tables
 
 
 # ---------------------------------------------------------------------------
 # HTML generation
 # ---------------------------------------------------------------------------
 
-def _spans_to_html(spans, hex_numbers):
+def _spans_to_html(spans):
+    """Convert rich spans to HTML.  Parenthesised 3-4 digit numbers become
+    @hex[NNN] placeholders, resolved to @UUID links in a later pass.
+    Section header markers [h3]...[/h3] are converted to <h3> tags."""
     parts = []
     for span in spans:
         text = span.text.replace("&", "&amp;").replace("<", "&lt;").replace(">", "&gt;")
+        # Section header markers
+        if text.startswith("[h3]") and text.endswith("[/h3]"):
+            inner = text[4:-5]
+            parts.append(f"</p><h3>{inner}</h3><p>")
+            continue
         if span.bold and span.italic:
             text = f"<strong><em>{text}</em></strong>"
         elif span.bold:
@@ -597,10 +706,7 @@ def _spans_to_html(spans, hex_numbers):
             text = f"<em>{text}</em>"
         parts.append(text)
     html = "".join(parts)
-    def _xref(m):
-        num = m.group(1)
-        return f'(@hex[{num}])' if num in hex_numbers else m.group(0)
-    return XREF_RE.sub(_xref, html)
+    return XREF_RE.sub(lambda m: f"(@hex[{m.group(1)}])", html)
 
 def _dehyphenate(html):
     return re.sub(r"(\w)-\s+(\w)", lambda m: m.group(1) + m.group(2), html)
@@ -610,43 +716,95 @@ def _dehyphenate(html):
 # Foundry VTT JSON
 # ---------------------------------------------------------------------------
 
+def _deterministic_id(seed: str, length: int = 16) -> str:
+    """Stable ID derived from a seed string. Same seed always gives same ID."""
+    return hashlib.sha256(seed.encode()).hexdigest()[:length]
+
 def _random_id(length=16):
     import random
     chars = string.ascii_letters + string.digits
     return "".join(random.choice(chars) for _ in range(length))
 
-def generate_journal_entry(entries, name="Hex Key"):
-    hex_numbers = {e.number for e in entries}
-    hex_page_ids = {e.number: _random_id() for e in entries}
+def generate_chapter_pages(intro, entries, chapter_name, chapter_index):
+    """Generate Foundry journal pages for one chapter.
+
+    *intro* is a list of paragraph spans for the chapter header page.
+    Returns a list of page dicts with @hex[NNN] placeholders still unresolved.
+    Sort values place this chapter after previous ones.
+    """
+    base_sort = (chapter_index + 1) * 1_000_000
     pages = []
+
+    # Chapter header / divider page (carries intro text if any)
+    intro_html = "\n".join(
+        f"<p>{_dehyphenate(_spans_to_html(para))}</p>" for para in intro
+    ) if intro else ""
+    # Clean up empty <p></p> around h3 tags
+    intro_html = intro_html.replace("<p></p><h3>", "<h3>").replace("</h3><p></p>", "</h3>")
+    intro_html = intro_html.replace("<p></p>", "")
+
+    pages.append({
+        "_id": _deterministic_id(f"{chapter_name}:__header__"),
+        "name": chapter_name,
+        "type": "text",
+        "title": {"show": True, "level": 1},
+        "text": {"content": intro_html, "format": 1},
+        "sort": base_sort,
+        "ownership": {"default": -1},
+        "flags": {"shadowbrew": {"chapter": chapter_name, "chapterHeader": True}},
+    })
+
     for i, entry in enumerate(entries):
-        page_id = hex_page_ids[entry.number]
+        page_name = f"{entry.number}. {entry.name}" if entry.number else entry.name
+        page_id = _deterministic_id(f"{chapter_name}:{page_name}")
         html_paragraphs = [
-            f"<p>{_dehyphenate(_spans_to_html(para, hex_numbers))}</p>"
+            f"<p>{_dehyphenate(_spans_to_html(para))}</p>"
             for para in entry.paragraphs
         ]
         content = "\n".join(html_paragraphs)
-        for num, pid in hex_page_ids.items():
-            m = next((e for e in entries if e.number == num), None)
-            if m:
-                content = content.replace(
-                    f"@hex[{num}]", f"@UUID[.{pid}]{{{num}. {m.name}}}",
-                )
+        # Clean up empty <p></p> around h3 tags
+        content = content.replace("<p></p><h3>", "<h3>").replace("</h3><p></p>", "</h3>")
+        content = content.replace("<p></p>", "")
         pages.append({
             "_id": page_id,
-            "name": f"{entry.number}. {entry.name}",
+            "name": page_name,
             "type": "text",
             "title": {"show": True, "level": 2},
             "text": {"content": content, "format": 1},
-            "sort": (i + 1) * 100000,
+            "sort": base_sort + (i + 1) * 1000,
             "ownership": {"default": -1},
+            "flags": {"shadowbrew": {"chapter": chapter_name}},
         })
-    return {
-        "_id": _random_id(), "name": name, "pages": pages,
-        "ownership": {"default": 0}, "folder": None, "sort": 0, "flags": {},
-    }
 
-def generate_roll_table(table):
+    return pages
+
+
+def _resolve_xrefs(journal):
+    """Resolve @hex[NNN] placeholders to @UUID links across all pages."""
+    # Build map: hex number -> (page_id, display_name)
+    hex_map = {}
+    for page in journal["pages"]:
+        m = re.match(r"^(\d{3,4})\.\s+(.+)$", page["name"])
+        if m:
+            hex_map[m.group(1)] = (page["_id"], page["name"])
+
+    hex_placeholder_re = re.compile(r"@hex\[(\d{3,4})\]")
+
+    def _replace(m):
+        num = m.group(1)
+        if num in hex_map:
+            pid, name = hex_map[num]
+            return f"@UUID[.{pid}]{{{name}}}"
+        return f"({num})"  # revert unmatched to plain parenthesised number
+
+    for page in journal["pages"]:
+        content = page.get("text", {}).get("content", "")
+        if "@hex[" in content:
+            page["text"]["content"] = hex_placeholder_re.sub(_replace, content)
+
+    return journal
+
+def generate_roll_table(table, chapter_name=""):
     results = []
     for row in table.rows:
         text = _dehyphenate("".join(s.text for s in row.spans)).strip()
@@ -662,13 +820,147 @@ def generate_roll_table(table):
     return {
         "_id": _random_id(), "name": table.name, "formula": table.formula,
         "replacement": True, "displayRoll": True, "results": results,
-        "folder": None, "sort": 0, "ownership": {"default": 0}, "flags": {},
+        "folder": None, "sort": 0, "ownership": {"default": 0},
+        "flags": {"shadowbrew": {"chapter": chapter_name}} if chapter_name else {},
     }
+
+
+# ---------------------------------------------------------------------------
+# Import macro generation
+# ---------------------------------------------------------------------------
+
+IMPORT_MACRO_TEMPLATE = """\
+// Foundry VTT import macro for "{journal_name}"
+// Paste into a Script Macro and run, or paste into the F12 console.
+// Creates or updates the journal and roll tables (organised in folders).
+
+const journalData = {journal_json};
+const tableData = {tables_json};
+
+// --- Helper: find or create a folder ---
+async function getOrCreateFolder(name, type, parent = null) {{
+  let folder = game.folders.find(f => f.name === name && f.type === type && f.folder?.id === (parent?.id ?? null));
+  if (!folder) {{
+    folder = await Folder.create({{ name, type, folder: parent?.id ?? null }});
+  }}
+  return folder;
+}}
+
+// --- Upsert journal ---
+const journalFolder = await getOrCreateFolder("{journal_name}", "JournalEntry");
+let journal = game.journal.get(journalData._id);
+if (journal) {{
+  const deleteIds = journal.pages.map(p => p._id);
+  await journal.deleteEmbeddedDocuments("JournalEntryPage", deleteIds);
+  await journal.update({{
+    name: journalData.name,
+    flags: journalData.flags,
+    folder: journalFolder.id,
+  }});
+  await journal.createEmbeddedDocuments("JournalEntryPage", journalData.pages);
+  ui.notifications.info(`Updated: ${{journal.name}} (${{journal.pages.size}} pages)`);
+}} else {{
+  journalData.folder = journalFolder.id;
+  journal = await JournalEntry.create(journalData);
+  ui.notifications.info(`Created: ${{journal.name}} (${{journal.pages.size}} pages)`);
+}}
+
+// --- Upsert roll tables (in chapter sub-folders) ---
+const tablesRootFolder = await getOrCreateFolder("{journal_name}", "RollTable");
+const chapterFolderCache = {{}};
+
+for (const t of tableData) {{
+  // Derive chapter from the "chapter: " prefix in the table name
+  const chapter = t.flags?.shadowbrew?.chapter ?? "{journal_name}";
+  if (!chapterFolderCache[chapter]) {{
+    chapterFolderCache[chapter] = await getOrCreateFolder(chapter, "RollTable", tablesRootFolder);
+  }}
+  const folder = chapterFolderCache[chapter];
+
+  let existing = game.tables.find(rt => rt.name === t.name);
+  if (existing) {{
+    const deleteIds = existing.results.map(r => r._id);
+    await existing.deleteEmbeddedDocuments("TableResult", deleteIds);
+    await existing.update({{ name: t.name, formula: t.formula, folder: folder.id }});
+    await existing.createEmbeddedDocuments("TableResult", t.results);
+    ui.notifications.info(`Updated table: ${{existing.name}}`);
+  }} else {{
+    t.folder = folder.id;
+    const table = await RollTable.create(t);
+    ui.notifications.info(`Created table: ${{table.name}}`);
+  }}
+}}
+"""
+
+def _generate_import_macro(journal: dict, roll_tables: list[dict], output_path: Path):
+    """Generate a Foundry VTT import macro JS file."""
+    journal_json = json.dumps(journal, ensure_ascii=False)
+    tables_json = json.dumps(roll_tables, ensure_ascii=False)
+    content = IMPORT_MACRO_TEMPLATE.format(
+        journal_name=journal["name"],
+        journal_json=journal_json,
+        tables_json=tables_json,
+    )
+    with open(output_path, "w") as f:
+        f.write(content)
 
 
 # ---------------------------------------------------------------------------
 # Main
 # ---------------------------------------------------------------------------
+
+def _load_or_create_journal(journal_path: Path, name: str) -> dict:
+    """Load an existing journal JSON or create a new shell."""
+    if journal_path.exists():
+        with open(journal_path) as f:
+            journal = json.load(f)
+        print(f"Loaded existing journal: {journal['name']} ({len(journal['pages'])} pages)")
+        return journal
+
+    journal_id = _deterministic_id(f"journal:{name}")
+    journal = {
+        "_id": journal_id,
+        "name": name,
+        "pages": [],
+        "ownership": {"default": 0},
+        "folder": None,
+        "sort": 0,
+        "flags": {"shadowbrew": {"chapters": []}},
+    }
+    print(f"Creating new journal: {name}")
+    return journal
+
+
+def _merge_chapter(journal: dict, chapter_name: str, new_pages: list[dict]) -> dict:
+    """Replace a chapter's pages in the journal, preserving other chapters."""
+    flags = journal.setdefault("flags", {}).setdefault("shadowbrew", {})
+    chapters = flags.setdefault("chapters", [])
+
+    # Determine chapter index
+    if chapter_name in chapters:
+        chapter_index = chapters.index(chapter_name)
+        # Remove old pages for this chapter
+        old_count = len(journal["pages"])
+        journal["pages"] = [
+            p for p in journal["pages"]
+            if p.get("flags", {}).get("shadowbrew", {}).get("chapter") != chapter_name
+        ]
+        removed = old_count - len(journal["pages"])
+        print(f"Replacing chapter '{chapter_name}' ({removed} old pages removed)")
+    else:
+        chapter_index = len(chapters)
+        chapters.append(chapter_name)
+        print(f"Adding new chapter '{chapter_name}' (index {chapter_index})")
+
+    # Recalculate sort values for the new pages based on chapter index
+    base_sort = (chapter_index + 1) * 1_000_000
+    for i, page in enumerate(new_pages):
+        page["sort"] = base_sort + i * 1000
+
+    journal["pages"].extend(new_pages)
+    journal["pages"].sort(key=lambda p: p["sort"])
+    return journal
+
 
 def main():
     parser = argparse.ArgumentParser(
@@ -677,18 +969,22 @@ def main():
     parser.add_argument("pdf_path", type=Path)
     parser.add_argument("first_page", type=int)
     parser.add_argument("last_page", type=int)
-    parser.add_argument("--name", default="Hex Key")
-    parser.add_argument("--output-dir", type=Path,
-                        default=Path(__file__).parent.parent / "output")
+    parser.add_argument("--chapter", required=True,
+                        help="Chapter name for this batch of pages")
+    parser.add_argument("--journal", required=True, type=Path,
+                        help="Path to journal JSON (created if missing, appended if exists)")
+    parser.add_argument("--name", default="Journal",
+                        help="Journal display name (used only on first creation)")
     args = parser.parse_args()
 
     if not args.pdf_path.exists():
         print(f"Error: PDF not found: {args.pdf_path}", file=sys.stderr)
         sys.exit(1)
-    args.output_dir.mkdir(parents=True, exist_ok=True)
+    args.journal.parent.mkdir(parents=True, exist_ok=True)
 
     page_range = range(args.first_page - 1, args.last_page)
 
+    # --- Extract ---
     print(f"Extracting pages {args.first_page}-{args.last_page}...")
     blocks = _extract_blocks(args.pdf_path, page_range)
     print(f"  {len(blocks)} text blocks")
@@ -705,28 +1001,70 @@ def main():
         label = f"{'HDR' if b.is_header else '   '} {b.block_type.name:5s}"
         print(f"  {label} p={b.page_num} top={b.top:6.1f} | {b.first_line[:60]}")
 
-    entries, inline_tables = parse_blocks(ordered)
+    intro, entries, inline_tables = parse_blocks(ordered)
     tables.extend(inline_tables)
-    print(f"\n{len(entries)} hex entries, {len(tables)} tables")
+
+    # Prefix table names with chapter to avoid cross-chapter collisions,
+    # then deduplicate within the chapter by numbering
+    for t in tables:
+        t.name = f"{args.chapter}: {t.name}"
+    name_counts: dict[str, int] = {}
+    for t in tables:
+        name_counts[t.name] = name_counts.get(t.name, 0) + 1
+    seen: dict[str, int] = {}
+    for t in tables:
+        if name_counts[t.name] > 1:
+            seen[t.name] = seen.get(t.name, 0) + 1
+            t.name = f"{t.name} {seen[t.name]}"
+
+    print(f"\n{len(intro)} intro paragraphs, {len(entries)} entries, {len(tables)} tables")
     for e in entries:
         print(f"  {e.number}. {e.name} ({len(e.paragraphs)} para)")
     for t in tables:
         print(f"  Table: {t.name} ({t.formula}, {len(t.rows)} rows)")
 
-    # Generate output
-    journal = generate_journal_entry(entries, name=args.name)
-    journal_path = args.output_dir / "journal-hexkey.json"
-    with open(journal_path, "w") as f:
-        json.dump(journal, f, indent=2)
-    print(f"\nJournal: {journal_path}")
+    # --- Load / create journal ---
+    journal = _load_or_create_journal(args.journal, args.name)
 
+    # Determine chapter index (peek at existing chapters)
+    chapters = journal.get("flags", {}).get("shadowbrew", {}).get("chapters", [])
+    chapter_index = chapters.index(args.chapter) if args.chapter in chapters else len(chapters)
+
+    # --- Generate chapter pages ---
+    new_pages = generate_chapter_pages(intro, entries, args.chapter, chapter_index)
+    print(f"\nGenerated {len(new_pages)} pages for chapter '{args.chapter}'")
+
+    # --- Merge into journal ---
+    journal = _merge_chapter(journal, args.chapter, new_pages)
+
+    # --- Resolve cross-references across all chapters ---
+    journal = _resolve_xrefs(journal)
+
+    # --- Write journal ---
+    with open(args.journal, "w") as f:
+        json.dump(journal, f, indent=2)
+    total = len(journal["pages"])
+    chapters = journal["flags"]["shadowbrew"]["chapters"]
+    print(f"\nJournal: {args.journal} ({total} pages, chapters: {chapters})")
+
+    # --- Write roll tables ---
+    output_dir = args.journal.parent
     for table in tables:
-        rt = generate_roll_table(table)
+        rt = generate_roll_table(table, chapter_name=args.chapter)
         slug = re.sub(r"[^a-z0-9]+", "-", table.name.lower()).strip("-")
-        table_path = args.output_dir / f"rolltable-{slug}.json"
+        table_path = output_dir / f"rolltable-{slug}.json"
         with open(table_path, "w") as f:
             json.dump(rt, f, indent=2)
         print(f"RollTable: {table_path}")
+
+    # --- Generate import macro (includes ALL roll tables in output dir) ---
+    all_roll_tables = []
+    for rt_path in sorted(output_dir.glob("rolltable-*.json")):
+        with open(rt_path) as f:
+            all_roll_tables.append(json.load(f))
+    macro_path = output_dir / "import-macro.js"
+    _generate_import_macro(journal, all_roll_tables, macro_path)
+    print(f"Macro: {macro_path} ({len(all_roll_tables)} tables)")
 
 
 if __name__ == "__main__":
