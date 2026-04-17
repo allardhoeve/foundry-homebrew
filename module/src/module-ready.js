@@ -13,6 +13,13 @@
  *
  * See docs/foundry-api.md for the full initialization lifecycle.
  */
+Hooks.once("init", () => {
+    CONFIG.fontDefinitions["JSL Blackletter"] = {
+        editor: true,
+        fonts: [],
+    };
+});
+
 Hooks.once("ready", () => {
     const module = game.modules.get("foundry-homebrew");
     module.ready = true;
