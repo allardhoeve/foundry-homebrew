@@ -1,6 +1,6 @@
 # Allard's Foundry Homebrew
 
-A personal FoundryVTT module for Shadowdark and The Lost Citadel, written for Foundry v13 (build 351) using the V2 Application framework.
+A personal FoundryVTT module for Shadowdark and The Lost Citadel, written for Foundry v14 (build 360) using the V2 Application framework.
 
 ## Features
 
@@ -131,7 +131,7 @@ The workflow builds the compendium pack, stamps the version into `module.json`, 
 
 ## Requirements
 
-- FoundryVTT v13 (build 351+)
+- FoundryVTT v14 (build 360+)
 - The `ApplicationV2` API (`foundry.applications.api.ApplicationV2`)
 - The Shadowdark system (`foundryvtt-shadowdark`) for Shadowdark-specific macros
 

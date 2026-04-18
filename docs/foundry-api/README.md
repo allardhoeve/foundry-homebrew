@@ -1,11 +1,11 @@
 # Foundry VTT API Reference
 
-**Version:** v13 build 351 (Shadowdark system 3.6.2)
+**Version:** v14 build 360 (Shadowdark system 3.6.2)
 
 This documents the **undocumented** parts of Foundry VTT — the HTTP server API,
 WebSocket protocol, and gotchas that the official docs miss or get wrong. For the
 client-side JavaScript API (`game.*`, `Actor`, `Item`, etc.), use the
-[official API docs](https://foundryvtt.com/api/v13/index.html).
+[official API docs](https://foundryvtt.com/api/v14/index.html).
 
 ## Contents
 

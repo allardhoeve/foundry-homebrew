@@ -23,7 +23,7 @@ No auth required.
 ```json
 {
   "active": true,
-  "version": "13.351",
+  "version": "14.360",
   "world": "lost-citadel",
   "system": "shadowdark",
   "systemVersion": "3.6.2",

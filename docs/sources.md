@@ -12,12 +12,12 @@ while flagging sources that are likely outdated or system-specific.
 - C: Useful examples, but inconsistent, outdated, or narrowly scoped
 
 ## A — Official References
-- Foundry VTT API (v13 index)
-  - URL: https://foundryvtt.com/api/v13/index.html
+- Foundry VTT API (v14 index)
+  - URL: https://foundryvtt.com/api/v14/index.html
   - Notes: Versioned API index and guidance on public vs private API usage.
 
 - ApplicationV2 API
-  - URL: https://foundryvtt.com/api/v13/classes/foundry.applications.api.ApplicationV2.html
+  - URL: https://foundryvtt.com/api/v14/classes/foundry.applications.api.ApplicationV2.html
   - Notes: Modern application class for UI and rendering.
 
 - Hooks API
@@ -29,7 +29,7 @@ while flagging sources that are likely outdated or system-specific.
   - Notes: Official macro usage, types, and best practices.
 
 - Macro Document API
-  - URL: https://foundryvtt.com/api/v13/classes/foundry.documents.Macro.html
+  - URL: https://foundryvtt.com/api/v14/classes/foundry.documents.Macro.html
   - Notes: Macro document fields and creation patterns.
 
 - Module Development Guide
@@ -67,11 +67,11 @@ while flagging sources that are likely outdated or system-specific.
 
 - Illumination Buffer (module example)
   - URL: https://foundryvtt.com/packages/illuminationbuffer
-  - Notes: Example of a v13 API-focused module with rendering hooks.
+  - Notes: Example of a v13/v14 API-focused module with rendering hooks.
 
 - Iron Codex (module example)
   - URL: https://foundrymodules.com/releases/iron-codex.html
-  - Notes: V13 module using official API; good for design patterns and structure.
+  - Notes: Module using official API; good for design patterns and structure.
 
 ## C — Mixed/Outdated Sources
 - Foundry VTT Community Modules (deprecated list)

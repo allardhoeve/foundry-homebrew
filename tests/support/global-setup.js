@@ -15,7 +15,7 @@ const NETWORK_ERROR_BAIL_MS = 15_000;
 /**
  * Playwright global setup — runs once before all tests.
  *
- * Observed browser flow (Foundry v13 build 351):
+ * Observed browser flow (Foundry v14 build 360):
  *   GET /         → redirects to /auth (admin password)
  *   POST /setup   → { action: "adminAuth", adminPassword: "..." }
  *   POST /setup   → { action: "launchWorld", world: "..." }
