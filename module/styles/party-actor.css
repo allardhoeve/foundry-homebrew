@@ -1,0 +1,118 @@
+/* Party Actor — inherits Shadowdark system styling via .shadowdark class.
+   Only party-specific additions here. */
+
+/* Spacing between SD-boxes (Shadowdark uses grids, not stacked boxes) */
+.party-sheet .SD-box + .SD-box {
+    margin-top: 8px;
+}
+
+/* SD-list uses flex-wrap:wrap for multi-column inventory items;
+   our member rows are single-line, so prevent wrapping */
+.pa-member {
+    flex-wrap: nowrap;
+}
+
+/* Member portrait */
+.pa-portrait {
+    width: 36px;
+    height: 36px;
+    flex-shrink: 0;
+    object-fit: cover;
+    border: 1px solid black;
+    margin-right: 8px;
+}
+
+/* Member info block */
+.pa-member-info {
+    flex: 1;
+    min-width: 0;
+}
+
+.pa-member-name {
+    cursor: pointer;
+}
+
+.pa-member-name:hover {
+    color: var(--clickable, #a546b6);
+}
+
+/* Stats row — fixed-width columns so values align across members */
+.pa-member-stats {
+    display: flex;
+    margin-top: 2px;
+    font-size: 12px;
+}
+
+.pa-stat {
+    min-width: 55px;
+}
+
+.pa-stat i {
+    margin-right: 3px;
+}
+
+.pa-hp--damaged {
+    color: #b8860b;
+}
+
+.pa-hp--dead {
+    color: #cc4444;
+}
+
+.pa-light--active {
+    color: #b8860b;
+}
+
+/* Remove action — hover color override (Shadowdark .actions a handles the rest) */
+.pa-remove:hover {
+    color: #cc4444;
+}
+
+/* Effect icons */
+.pa-member-effects {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 4px;
+    margin-top: 4px;
+}
+
+.pa-effect-icon {
+    width: 20px;
+    height: 20px;
+    border: 1px solid black;
+}
+
+/* Drop hint below member list */
+.pa-drop-hint {
+    text-align: center;
+    font-size: 11px;
+    color: var(--inactive-control, #A0A09A);
+    font-style: italic;
+    padding: 6px 0 2px;
+}
+
+/* Empty state */
+.pa-empty {
+    text-align: center;
+    padding: 24px 16px;
+    color: var(--inactive-control, #A0A09A);
+    font-size: 14px;
+}
+
+.pa-empty i {
+    font-size: 28px;
+    margin-bottom: 8px;
+    display: block;
+}
+
+/* Notes textarea */
+.pa-notes-field {
+    width: 100%;
+    min-height: 60px;
+    background: var(--form-background, rgba(0, 0, 0, 0.04));
+    border: none;
+    font-size: 13px;
+    padding: 5px;
+    resize: none;
+    box-sizing: border-box;
+}

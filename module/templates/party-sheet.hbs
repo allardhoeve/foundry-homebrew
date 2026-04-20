@@ -1,0 +1,72 @@
+<form class="{{cssClass}} flexcol" autocomplete="off">
+
+<header class="SD-header flex0">
+    <img class="portrait" src="{{actor.img}}" width="110" height="110" data-edit="img">
+    <div class="SD-title">
+        <input name="name" type="text" value="{{actor.name}}" placeholder="Party Name">
+    </div>
+</header>
+
+<section class="SD-content-body flex1">
+    <div class="SD-box">
+        <div class="header">
+            <label>Members</label><span></span>
+        </div>
+        <div class="content">
+            {{#if isEmpty}}
+            <div class="pa-empty">
+                <i class="fa-solid fa-users"></i>
+                <div>Drag Player characters here to add them to the party</div>
+            </div>
+            {{else}}
+            <ol class="SD-list pa-members">
+                {{#each members}}
+                <li class="pa-member" data-uuid="{{this.uuid}}">
+                    <img class="pa-portrait" src="{{this.img}}" alt="{{this.name}}">
+                    <div class="pa-member-info">
+                        <a class="pa-member-name" data-uuid="{{this.uuid}}">{{this.name}}</a>
+                        <div class="pa-member-stats">
+                            <span class="pa-stat {{this.hpClass}}">
+                                <i class="fa-solid fa-heart"></i> {{this.hp}}/{{this.hpMax}}
+                            </span>
+                            <span class="pa-stat">
+                                <i class="fa-solid fa-drumstick-bite"></i> {{this.rations}}
+                            </span>
+                            <span class="pa-stat {{#if this.hasLight}}pa-light--active{{/if}}">
+                                <i class="fa-solid fa-fire-flame-curved"></i> {{this.lightSources}}
+                            </span>
+                        </div>
+                        {{#if this.effects.length}}
+                        <div class="pa-member-effects">
+                            {{#each this.effects}}
+                            <img class="pa-effect-icon" src="{{this.icon}}" title="{{this.name}}" alt="{{this.name}}">
+                            {{/each}}
+                        </div>
+                        {{/if}}
+                    </div>
+                    <div class="actions">
+                        <a class="pa-remove" data-uuid="{{this.uuid}}" title="Remove from party">
+                            <i class="fa-solid fa-xmark"></i>
+                        </a>
+                    </div>
+                </li>
+                {{/each}}
+            </ol>
+            {{/if}}
+            {{#unless isEmpty}}
+            <div class="pa-drop-hint">Drop Player characters here to add</div>
+            {{/unless}}
+        </div>
+    </div>
+
+    <div class="SD-box">
+        <div class="header">
+            <label>GM Notes</label><span></span>
+        </div>
+        <div class="content">
+            <textarea class="pa-notes-field" name="system.notes" placeholder="Notes...">{{notes}}</textarea>
+        </div>
+    </div>
+</section>
+
+</form>
