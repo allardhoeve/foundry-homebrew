@@ -63,6 +63,10 @@
     color: #b8860b;
 }
 
+.pa-slots--over {
+    color: #cc4444;
+}
+
 /* Remove action — hover color override (Shadowdark .actions a handles the rest) */
 .pa-remove:hover {
     color: #cc4444;

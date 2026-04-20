@@ -113,6 +113,12 @@ class PartySheet extends foundry.appv1.sheets.ActorSheet {
             const activeLights = await actor.getActiveLightSources();
             const hasLight = activeLights?.length > 0;
 
+            // Slot usage
+            const slotUsage = actor.system.getSlotUsage();
+            const slotsUsed = slotUsage.total;
+            const slotsMax = actor.system.slots;
+            const slotsOver = slotsUsed > slotsMax;
+
             const effects = [...actor.allApplicableEffects()]
                 .filter(e => !e.isSuppressed && e.statuses.size > 0)
                 .map(e => ({ name: e.name, icon: e.icon ?? e.img ?? "" }));
@@ -123,7 +129,8 @@ class PartySheet extends foundry.appv1.sheets.ActorSheet {
 
             members.push({
                 uuid, name: actor.name, img: actor.img,
-                hp, hpMax, hpClass, rations, lightSources, hasLight, effects,
+                hp, hpMax, hpClass, rations, lightSources, hasLight,
+                slotsUsed, slotsMax, slotsOver, effects,
             });
         }
         return members;

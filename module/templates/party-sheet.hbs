@@ -35,6 +35,9 @@
                             <span class="pa-stat {{#if this.hasLight}}pa-light--active{{/if}}">
                                 <i class="fa-solid fa-fire-flame-curved"></i> {{this.lightSources}}
                             </span>
+                            <span class="pa-stat {{#if this.slotsOver}}pa-slots--over{{/if}}">
+                                <i class="fa-solid fa-weight-hanging"></i> {{this.slotsUsed}}/{{this.slotsMax}}
+                            </span>
                         </div>
                         {{#if this.effects.length}}
                         <div class="pa-member-effects">
