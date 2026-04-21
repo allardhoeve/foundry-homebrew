@@ -264,6 +264,27 @@ const syncAllPartyLights = foundry.utils.debounce(async () => {
     }
 }, PA_DEBOUNCE_MS);
 
+async function syncPartyOwnership(partyActor) {
+    // Grant Owner permission to users who own member actors
+    const ownership = { ...partyActor.ownership };
+    let changed = false;
+
+    for (const uuid of partyActor.system.members) {
+        const actor = await fromUuid(uuid);
+        if (!actor) continue;
+        for (const [userId, level] of Object.entries(actor.ownership)) {
+            if (userId === "default") continue;
+            if (level >= CONST.DOCUMENT_OWNERSHIP_LEVELS.OWNER
+                && (ownership[userId] ?? 0) < CONST.DOCUMENT_OWNERSHIP_LEVELS.OWNER) {
+                ownership[userId] = CONST.DOCUMENT_OWNERSHIP_LEVELS.OWNER;
+                changed = true;
+            }
+        }
+    }
+
+    if (changed) await partyActor.update({ ownership });
+}
+
 function isPartyMember(actorId) {
     const typeKey = `${PA_MODULE_ID}.Party`;
     for (const actor of game.actors) {
@@ -305,6 +326,9 @@ Hooks.on("ready", () => {
 
     // Sync when the party actor itself is updated (members added/removed)
     Hooks.on("updateActor", (actor) => {
-        if (actor.type === `${PA_MODULE_ID}.Party`) syncAllPartyLights();
+        if (actor.type === `${PA_MODULE_ID}.Party`) {
+            syncAllPartyLights();
+            syncPartyOwnership(actor);
+        }
     });
 });
