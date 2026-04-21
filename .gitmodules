@@ -7,3 +7,6 @@
 [submodule "third_party/foundryvtt-shadowdark"]
 	path = third_party/foundryvtt-shadowdark
 	url = https://github.com/Muttley/foundryvtt-shadowdark
+[submodule "third_party/FoundryVTT-crunch-my-party"]
+	path = third_party/FoundryVTT-crunch-my-party
+	url = git@github.com:coffiarts/FoundryVTT-crunch-my-party.git
