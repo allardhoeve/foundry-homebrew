@@ -4,6 +4,9 @@
 // crawls. The Party actor aggregates read-only data from its member Player
 // actors and can be placed as a single token on a scene.
 
+import { computeHpClass } from "./party-hp.js";
+import { computePartyOwnership } from "./party-ownership.js";
+
 const PA_MODULE_ID = "foundry-homebrew";
 const PA_MODULE_PATH = "modules/foundry-homebrew";
 const PA_DEBOUNCE_MS = 250;
@@ -51,6 +54,8 @@ class PartySheet extends foundry.appv1.sheets.ActorSheet {
 
     activateListeners(html) {
         super.activateListeners(html);
+
+        /* Add listeners for buttons on the Party sheet */
 
         // Click member name -> open their character sheet
         html.find(".pa-member-name").on("click", async (e) => {
@@ -119,13 +124,13 @@ class PartySheet extends foundry.appv1.sheets.ActorSheet {
             const slotsMax = actor.system.slots;
             const slotsOver = slotsUsed > slotsMax;
 
-            const effects = [...actor.allApplicableEffects()]
-                .filter(e => !e.isSuppressed && e.statuses.size > 0)
+            const activeEffects = [...actor.allApplicableEffects()]
+                .filter(e => !e.isSuppressed && e.statuses.size > 0);
+            const statuses = new Set(activeEffects.flatMap(e => [...e.statuses]));
+            const effects = activeEffects
                 .map(e => ({ name: e.name, icon: e.icon ?? e.img ?? "" }));
 
-            const hpClass = hpFraction <= 0 ? "pa-hp--dead"
-                : hpFraction < 0.5 ? "pa-hp--damaged"
-                : "";
+            const hpClass = computeHpClass(hp, hpMax, statuses);
 
             members.push({
                 uuid, name: actor.name, img: actor.img,
@@ -182,18 +187,13 @@ class PartySheet extends foundry.appv1.sheets.ActorSheet {
     }
 }
 
-// --- Party token light sync ---------------------------------------------------
+// --- Party state sync ---------------------------------------------------------
+// One function syncs everything: light, sight, ownership.
+// Resolves member actors once, computes all derived state, applies in one pass.
 
-let _lightSourceMappings = null;
-
-async function getLightSourceMappings() {
-    if (!_lightSourceMappings) {
-        _lightSourceMappings = await foundry.utils.fetchJsonWithTimeout(
-            "systems/shadowdark/assets/mappings/map-light-sources.json"
-        );
-    }
-    return _lightSourceMappings;
-}
+const _lightSourceMappings = foundry.utils.fetchJsonWithTimeout(
+    "systems/shadowdark/assets/mappings/map-light-sources.json"
+);
 
 const PA_NO_LIGHT = {
     bright: 0, dim: 0, angle: 360, alpha: 0.5,
@@ -203,17 +203,22 @@ const PA_NO_LIGHT = {
     darkness: { min: 0, max: 1 },
 };
 
-async function syncPartyLight(partyActor) {
-    const mappings = await getLightSourceMappings();
+async function syncPartyState(partyActor) {
+    const mappings = await _lightSourceMappings;
 
-    // Take the max bright and max dim independently across all member light sources
+    // Resolve all member actors once
+    const memberActors = [];
+    for (const uuid of partyActor.system.members) {
+        const actor = await fromUuid(uuid);
+        if (actor) memberActors.push(actor);
+    }
+
+    // --- Light & sight ---
     let maxBright = 0;
     let maxDim = 0;
     let bestLight = null;
 
-    for (const uuid of partyActor.system.members) {
-        const actor = await fromUuid(uuid);
-        if (!actor) continue;
+    for (const actor of memberActors) {
         const activeLights = await actor.getActiveLightSources();
         for (const item of activeLights ?? []) {
             const template = item.system.light?.template;
@@ -222,7 +227,6 @@ async function syncPartyLight(partyActor) {
             const light = mapping.light;
             if ((light.bright || 0) > maxBright) maxBright = light.bright;
             if ((light.dim || 0) > maxDim) maxDim = light.dim;
-            // Use the light with the largest reach as base for animation/color
             const reach = Math.max(light.bright || 0, light.dim || 0);
             if (!bestLight || reach > Math.max(bestLight.bright || 0, bestLight.dim || 0)) {
                 bestLight = light;
@@ -234,14 +238,18 @@ async function syncPartyLight(partyActor) {
     const lightData = hasLight
         ? { ...bestLight, bright: maxBright, dim: maxDim }
         : PA_NO_LIGHT;
-    const sightRange = Math.max(maxBright, maxDim);
-
     const sightData = {
         enabled: hasLight,
-        range: sightRange,
+        range: Math.max(maxBright, maxDim),
     };
 
-    // Update all placed tokens for this party actor
+    // --- Ownership ---
+    const ownership = computePartyOwnership(
+        memberActors.map(a => a.ownership),
+        Array.from(game.users),
+    );
+
+    // --- Apply ---
     for (const scene of game.scenes) {
         const tokens = scene.tokens.filter(t => t.actorId === partyActor._id);
         for (const token of tokens) {
@@ -249,41 +257,19 @@ async function syncPartyLight(partyActor) {
         }
     }
 
-    // Update prototype token
-    await Actor.updateDocuments([{
-        _id: partyActor._id,
+    await partyActor.update({
+        ownership,
         "prototypeToken.light": lightData,
         "prototypeToken.sight": sightData,
-    }]);
+    });
 }
 
-const syncAllPartyLights = foundry.utils.debounce(async () => {
+const syncAllPartyState = foundry.utils.debounce(async () => {
     const typeKey = `${PA_MODULE_ID}.Party`;
     for (const actor of game.actors) {
-        if (actor.type === typeKey) await syncPartyLight(actor);
+        if (actor.type === typeKey) await syncPartyState(actor);
     }
 }, PA_DEBOUNCE_MS);
-
-async function syncPartyOwnership(partyActor) {
-    // Grant Owner permission to users who own member actors
-    const ownership = { ...partyActor.ownership };
-    let changed = false;
-
-    for (const uuid of partyActor.system.members) {
-        const actor = await fromUuid(uuid);
-        if (!actor) continue;
-        for (const [userId, level] of Object.entries(actor.ownership)) {
-            if (userId === "default") continue;
-            if (level >= CONST.DOCUMENT_OWNERSHIP_LEVELS.OWNER
-                && (ownership[userId] ?? 0) < CONST.DOCUMENT_OWNERSHIP_LEVELS.OWNER) {
-                ownership[userId] = CONST.DOCUMENT_OWNERSHIP_LEVELS.OWNER;
-                changed = true;
-            }
-        }
-    }
-
-    if (changed) await partyActor.update({ ownership });
-}
 
 function isPartyMember(actorId) {
     const typeKey = `${PA_MODULE_ID}.Party`;
@@ -302,7 +288,7 @@ Hooks.once("init", () => {
     const typeKey = `${PA_MODULE_ID}.Party`;
 
     CONFIG.Actor.dataModels[typeKey] = PartyDataModel;
-    CONFIG.Actor.typeLabels[typeKey] = "Party";
+    CONFIG.Actor.typeLabels[typeKey] = "HOMEBREW.actor.party";
 
     foundry.documents.collections.Actors.registerSheet(PA_MODULE_ID, PartySheet, {
         types: [typeKey],
@@ -311,24 +297,16 @@ Hooks.once("init", () => {
     });
 });
 
-// Light sync hooks — run even when the sheet is closed
+// State sync hooks — run even when the sheet is closed
 Hooks.on("ready", () => {
-    // Sync on member item changes (light sources lit/extinguished)
     const onMemberItem = (doc) => {
-        if (isPartyMember(doc.parent?._id)) syncAllPartyLights();
+        if (isPartyMember(doc.parent?._id)) syncAllPartyState();
     };
     Hooks.on("updateItem", onMemberItem);
     Hooks.on("createItem", onMemberItem);
     Hooks.on("deleteItem", onMemberItem);
-
-    // Sync on world time changes (light timers expire)
-    Hooks.on("updateWorldTime", syncAllPartyLights);
-
-    // Sync when the party actor itself is updated (members added/removed)
+    Hooks.on("updateWorldTime", syncAllPartyState);
     Hooks.on("updateActor", (actor) => {
-        if (actor.type === `${PA_MODULE_ID}.Party`) {
-            syncAllPartyLights();
-            syncPartyOwnership(actor);
-        }
+        if (actor.type === `${PA_MODULE_ID}.Party`) syncAllPartyState();
     });
 });

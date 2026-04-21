@@ -3,6 +3,7 @@ Feature: Party Actor
 
   Background:
     Given I am logged in as Gamemaster
+    And all Party actors are deleted
 
   Scenario: Party actor can be created and opened
     When I create a Party actor named "Test Party"
@@ -36,6 +37,23 @@ Feature: Party Actor
     And I add player "Iraga Draguul (1)" to the party
     And I click member name "Iraga Draguul (1)"
     Then the character sheet for "Iraga Draguul (1)" should be visible
+
+  Scenario: Non-Player actor is not added to the party
+    When I create a Party actor named "Reject Party"
+    And I add a non-Player actor to the party
+    Then the Party sheet should show the empty state
+
+  Scenario: Member stats are displayed
+    When I create a Party actor named "Stats Party"
+    And I add player "Iraga Draguul (1)" to the party
+    Then the Party sheet should show rations for "Iraga Draguul (1)"
+    And the Party sheet should show light sources for "Iraga Draguul (1)"
+    And the Party sheet should show slot usage for "Iraga Draguul (1)"
+
+  Scenario: Notes field can be edited
+    When I create a Party actor named "Notes Party"
+    And I set the party notes to "Watch out for traps"
+    Then the Party sheet should show notes "Watch out for traps"
 
   # --- Eye tests ---
 
