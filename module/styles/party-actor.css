@@ -109,6 +109,46 @@
     display: block;
 }
 
+/* Merge / Explode buttons */
+.pa-token-actions {
+    display: flex;
+    justify-content: center;
+    padding: 4px 0;
+}
+
+.pa-merge-btn,
+.pa-explode-btn {
+    cursor: pointer;
+    border: 1px solid rgba(0, 0, 0, 0.3);
+    border-radius: 4px;
+    padding: 6px 16px;
+    font-size: 13px;
+    font-weight: bold;
+}
+
+.pa-merge-btn {
+    background: #b8860b;
+    color: #1a1a1e;
+}
+
+.pa-merge-btn:hover:not(:disabled) {
+    background: #d4a017;
+}
+
+.pa-merge-btn:disabled {
+    opacity: 0.4;
+    cursor: not-allowed;
+}
+
+.pa-explode-btn {
+    background: #8b4513;
+    color: #e8dcc8;
+}
+
+.pa-explode-btn:hover {
+    background: #a0522d;
+}
+
 /* Notes textarea */
 .pa-notes-field {
     width: 100%;

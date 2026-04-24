@@ -70,6 +70,23 @@
             <textarea class="pa-notes-field" name="system.notes" placeholder="Notes...">{{notes}}</textarea>
         </div>
     </div>
+
+    <div class="SD-box">
+        <div class="header">
+            <label>Party Token</label><span></span>
+        </div>
+        <div class="content pa-token-actions">
+            {{#if merged}}
+            <button type="button" class="pa-explode-btn">
+                <i class="fa-solid fa-burst"></i> Explode
+            </button>
+            {{else}}
+            <button type="button" class="pa-merge-btn" {{#if isEmpty}}disabled{{/if}}>
+                <i class="fa-solid fa-compress"></i> Merge
+            </button>
+            {{/if}}
+        </div>
+    </div>
 </section>
 
 </form>

@@ -7,6 +7,7 @@
 import { computeHpClass } from "./party-hp.js";
 import { countRations, countLightSources, computeSlotStatus, collectEffects, isMemberOf } from "./party-members.js";
 import { computePartyOwnership } from "./party-ownership.js";
+import { mergePartyTokens, explodePartyTokens } from "./party-tokens.js";
 
 const PA_MODULE_ID = "foundry-homebrew";
 const PA_MODULE_PATH = "modules/foundry-homebrew";
@@ -22,6 +23,7 @@ class PartyDataModel extends foundry.abstract.TypeDataModel {
                 new fields.DocumentUUIDField({ type: "Actor" })
             ),
             notes: new fields.HTMLField({ required: false, blank: true, initial: "" }),
+            merged: new fields.BooleanField({ initial: false }),
         };
     }
 }
@@ -49,6 +51,7 @@ class PartySheet extends foundry.appv1.sheets.ActorSheet {
         context.actor = this.actor;
         context.members = await this._getMemberData();
         context.notes = this.actor.system.notes;
+        context.merged = this.actor.system.merged;
         context.isEmpty = context.members.length === 0;
         return context;
     }
@@ -64,6 +67,18 @@ class PartySheet extends foundry.appv1.sheets.ActorSheet {
             const uuid = e.currentTarget.dataset.uuid;
             const actor = await fromUuid(uuid);
             actor?.sheet?.render(true);
+        });
+
+        // Merge button -> collapse member tokens into party token
+        html.find(".pa-merge-btn").on("click", async (e) => {
+            e.preventDefault();
+            await mergePartyTokens(this.actor);
+        });
+
+        // Explode button -> expand party token into member tokens
+        html.find(".pa-explode-btn").on("click", async (e) => {
+            e.preventDefault();
+            await explodePartyTokens(this.actor);
         });
 
         // Click X -> remove member
