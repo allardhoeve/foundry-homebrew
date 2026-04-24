@@ -1,6 +1,6 @@
 .idea
 .claude
-third_party/foundryvtt-13.*
+third_party/foundryvtt-*/
 node_modules/
 module/packs/
 .build-tmp/
