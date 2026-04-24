@@ -5,6 +5,7 @@
 // actors and can be placed as a single token on a scene.
 
 import { computeHpClass } from "./party-hp.js";
+import { countRations, countLightSources, computeSlotStatus, collectEffects, isMemberOf } from "./party-members.js";
 import { computePartyOwnership } from "./party-ownership.js";
 
 const PA_MODULE_ID = "foundry-homebrew";
@@ -89,7 +90,7 @@ class PartySheet extends foundry.appv1.sheets.ActorSheet {
             ui.notifications.warn("Only Player characters can be added to the party.");
             return;
         }
-        if (this.actor.system.members.includes(actor.uuid)) return;
+        if (isMemberOf(this.actor.system.members, actor._id)) return;
         await this.actor.update({
             "system.members": [...this.actor.system.members, actor.uuid],
         });
@@ -105,31 +106,11 @@ class PartySheet extends foundry.appv1.sheets.ActorSheet {
 
             const hp = actor.system.attributes.hp.value;
             const hpMax = actor.system.attributes.hp.max;
-            const hpFraction = hpMax > 0 ? hp / hpMax : 0;
-
-            const rations = actor.items
-                .filter(i => i.name.toLowerCase() === "rations" && !i.system.stashed)
-                .reduce((sum, i) => sum + (i.system.quantity ?? 0), 0);
-
-            const lightSources = actor.items
-                .filter(i => i.system.light?.isSource && !i.system.stashed)
-                .reduce((sum, i) => sum + (i.system.quantity ?? 0), 0);
-
-            const activeLights = await actor.getActiveLightSources();
-            const hasLight = activeLights?.length > 0;
-
-            // Slot usage
-            const slotUsage = actor.system.getSlotUsage();
-            const slotsUsed = slotUsage.total;
-            const slotsMax = actor.system.slots;
-            const slotsOver = slotsUsed > slotsMax;
-
-            const activeEffects = [...actor.allApplicableEffects()]
-                .filter(e => !e.isSuppressed && e.statuses.size > 0);
-            const statuses = new Set(activeEffects.flatMap(e => [...e.statuses]));
-            const effects = activeEffects
-                .map(e => ({ name: e.name, icon: e.icon ?? e.img ?? "" }));
-
+            const rations = countRations(actor.items);
+            const lightSources = countLightSources(actor.items);
+            const hasLight = (await actor.getActiveLightSources())?.length > 0;
+            const { used: slotsUsed, max: slotsMax, over: slotsOver } = computeSlotStatus(actor.system);
+            const { statuses, effects } = collectEffects(actor);
             const hpClass = computeHpClass(hp, hpMax, statuses);
 
             members.push({
@@ -149,13 +130,7 @@ class PartySheet extends foundry.appv1.sheets.ActorSheet {
             this.render({ force: false });
         }, PA_DEBOUNCE_MS);
 
-        const isMember = (actorId) => {
-            for (const uuid of this.actor.system.members) {
-                if (uuid === `Actor.${actorId}`) return true;
-            }
-            return false;
-        };
-
+        const isMember = (actorId) => isMemberOf(this.actor.system.members, actorId);
         const isMemberChild = (doc) => isMember(doc.parent?._id);
 
         const register = (name, fn) => {
@@ -275,9 +250,7 @@ function isPartyMember(actorId) {
     const typeKey = `${PA_MODULE_ID}.Party`;
     for (const actor of game.actors) {
         if (actor.type !== typeKey) continue;
-        for (const uuid of actor.system.members) {
-            if (uuid === `Actor.${actorId}`) return true;
-        }
+        if (isMemberOf(actor.system.members, actorId)) return true;
     }
     return false;
 }
