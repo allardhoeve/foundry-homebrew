@@ -39,7 +39,9 @@ jobs:
             macros/ \
             src/ \
             styles/ \
-            assets/
+            assets/ \
+            lang/ \
+            templates/
           cd ..
           zip module.zip LICENSE
 
