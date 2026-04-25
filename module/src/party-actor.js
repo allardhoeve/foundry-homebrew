@@ -11,6 +11,8 @@ import { mergePartyTokens, explodePartyTokens } from "./party-tokens.js";
 
 const PA_MODULE_ID = "foundry-homebrew";
 const PA_MODULE_PATH = "modules/foundry-homebrew";
+const PA_DEFAULT_ARTWORK = `${PA_MODULE_PATH}/assets/images/party-artwork.webp`;
+const PA_DEFAULT_TOKEN = `${PA_MODULE_PATH}/assets/images/party-token.webp`;
 const PA_DEBOUNCE_MS = 250;
 
 // --- Data Model ---------------------------------------------------------------
@@ -282,6 +284,15 @@ Hooks.once("init", () => {
         types: [typeKey],
         makeDefault: true,
         label: "Party Sheet",
+    });
+});
+
+// Set default token image for new Party actors
+Hooks.on("preCreateActor", (actor) => {
+    if (actor.type !== `${PA_MODULE_ID}.Party`) return;
+    actor.updateSource({
+        img: PA_DEFAULT_ARTWORK,
+        "prototypeToken.texture.src": PA_DEFAULT_TOKEN,
     });
 });
 

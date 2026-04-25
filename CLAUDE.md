@@ -60,6 +60,14 @@ Client-scoped Foundry settings are reset automatically by the login step (`local
 
 See `docs/TESTING.md` for BDD infrastructure details.
 
+### Connecting to the dev Foundry instance
+
+- **URL**: `http://localhost:30000` (Docker, see `docker/docker-compose.yml`)
+- **Credentials**: `docker/secrets.json` — admin key, user IDs, passwords
+- **Login flow**: API-based, not UI. See `tests/support/global-setup.js` for the full sequence: admin auth → launch world → poll `/join` → per-user join with userid/password
+- **Pre-authenticated sessions**: stored in `tests/.auth/storageState-{user}.json`
+- **Login step definition**: `tests/steps/common.steps.js` — `Given I am logged in as {string}`
+
 ## Committing
 
 If you commit at the user's request, or if you deem this necessary, always record if the commit is part of a task. This should be in the title ("task-051: something something summary").
