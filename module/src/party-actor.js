@@ -17,6 +17,14 @@ const PA_DEBOUNCE_MS = 250;
 
 // --- Data Model ---------------------------------------------------------------
 
+// Stub so Shadowdark's getRollData()/abilityModifier() don't crash on Party actors.
+// Older Shadowdark versions access this.system.abilities unconditionally.
+const ABILITY_STUB = { base: 10, bonus: 0, mod: 0 };
+const ABILITIES_STUB = Object.freeze({
+    str: ABILITY_STUB, dex: ABILITY_STUB, con: ABILITY_STUB,
+    int: ABILITY_STUB, wis: ABILITY_STUB, cha: ABILITY_STUB,
+});
+
 class PartyDataModel extends foundry.abstract.TypeDataModel {
     static defineSchema() {
         const fields = foundry.data.fields;
@@ -27,6 +35,10 @@ class PartyDataModel extends foundry.abstract.TypeDataModel {
             notes: new fields.HTMLField({ required: false, blank: true, initial: "" }),
             merged: new fields.BooleanField({ initial: false }),
         };
+    }
+
+    get abilities() {
+        return ABILITIES_STUB;
     }
 }
 
