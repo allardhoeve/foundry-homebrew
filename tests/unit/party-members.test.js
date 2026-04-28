@@ -4,6 +4,7 @@ import {
     countRations,
     countLightSources,
     computeSlotStatus,
+    computeSlotUsage,
     collectEffects,
     isMemberOf,
 } from '../../module/src/party-members.js';
@@ -87,27 +88,125 @@ describe('countLightSources', () => {
     });
 });
 
+// --- computeSlotUsage ---
+
+describe('computeSlotUsage', () => {
+    // Builders for clarity in slot-math tests.
+    const gear = (name, { quantity = 1, perSlot = 1, slotsUsed = 1, freeCarry = 0, stashed = false, treasure = false } = {}) => ({
+        name,
+        type: 'Basic',
+        system: {
+            isPhysical: true,
+            quantity,
+            stashed,
+            treasure,
+            slots: { per_slot: perSlot, slots_used: slotsUsed, free_carry: freeCarry },
+        },
+    });
+
+    const gem = ({ stashed = false } = {}) => ({
+        name: 'Ruby',
+        type: 'Gem',
+        system: { isPhysical: true, isGem: true, stashed },
+    });
+
+    it('returns zeros for empty inventory and no coins', () => {
+        const usage = computeSlotUsage({}, []);
+        assert.deepEqual(usage, { coins: 0, gear: 0, gems: 0, treasure: 0, total: 0 });
+    });
+
+    it('counts a single non-stashed gear item', () => {
+        const usage = computeSlotUsage({}, [gear('Sword', { slotsUsed: 1 })]);
+        assert.equal(usage.gear, 1);
+        assert.equal(usage.total, 1);
+    });
+
+    it('separates treasure from gear', () => {
+        const items = [
+            gear('Sword', { slotsUsed: 2 }),
+            gear('Crown', { slotsUsed: 1, treasure: true }),
+        ];
+        const usage = computeSlotUsage({}, items);
+        assert.equal(usage.gear, 2);
+        assert.equal(usage.treasure, 1);
+        assert.equal(usage.total, 3);
+    });
+
+    it('skips stashed gear', () => {
+        const items = [
+            gear('Sword', { slotsUsed: 1 }),
+            gear('Backup Sword', { slotsUsed: 1, stashed: true }),
+        ];
+        assert.equal(computeSlotUsage({}, items).gear, 1);
+    });
+
+    it('honors per_slot bundling', () => {
+        // Arrows: 20-per-slot, quantity 25 => ceil(25/20) * 1 = 2 slots
+        const items = [gear('Arrows', { quantity: 25, perSlot: 20, slotsUsed: 1 })];
+        assert.equal(computeSlotUsage({}, items).gear, 2);
+    });
+
+    it('honors free_carry on first stack of a name', () => {
+        // Torch with free_carry 2, quantity 3 => 3 - 2 = 1 slot
+        const items = [gear('Torch', { quantity: 3, freeCarry: 2 })];
+        assert.equal(computeSlotUsage({}, items).gear, 1);
+    });
+
+    it('does not double-apply free_carry across same-named stacks', () => {
+        // First stack consumes the free_carry budget; second pays full price.
+        const items = [
+            gear('Torch', { quantity: 2, freeCarry: 2 }),
+            gear('Torch', { quantity: 2, freeCarry: 2 }),
+        ];
+        // First: 2 - 2 = 0; second: 2 - 0 = 2.
+        assert.equal(computeSlotUsage({}, items).gear, 2);
+    });
+
+    it('groups gems at 10-per-slot, including stashed', () => {
+        const items = [...Array(15)].map(() => gem());
+        const usage = computeSlotUsage({}, items);
+        assert.equal(usage.gems, 2);
+    });
+
+    it('counts coin slots above 100 free-carry', () => {
+        const usage = computeSlotUsage({ coins: { gp: 250, sp: 0, cp: 0 } }, []);
+        // ceil((250 - 100) / 100) = 2
+        assert.equal(usage.coins, 2);
+    });
+
+    it('charges no slot for coins under the free-carry limit', () => {
+        const usage = computeSlotUsage({ coins: { gp: 50, sp: 30, cp: 20 } }, []);
+        assert.equal(usage.coins, 0);
+    });
+});
+
 // --- computeSlotStatus ---
 
 describe('computeSlotStatus', () => {
-    const makeSystem = (total, slots) => ({
-        getSlotUsage: () => ({ total }),
-        slots,
+    const lightItem = (slotsUsed) => ({
+        name: 'Item',
+        type: 'Basic',
+        system: { isPhysical: true, quantity: 1, slots: { per_slot: 1, slots_used: slotsUsed, free_carry: 0 } },
     });
 
     it('under limit', () => {
-        const result = computeSlotStatus(makeSystem(5, 10));
+        const result = computeSlotStatus({ slots: 10 }, [lightItem(5)]);
         assert.deepEqual(result, { used: 5, max: 10, over: false });
     });
 
     it('at limit', () => {
-        const result = computeSlotStatus(makeSystem(10, 10));
+        const result = computeSlotStatus({ slots: 10 }, [lightItem(10)]);
         assert.deepEqual(result, { used: 10, max: 10, over: false });
     });
 
     it('over limit', () => {
-        const result = computeSlotStatus(makeSystem(12, 10));
+        const result = computeSlotStatus({ slots: 10 }, [lightItem(12)]);
         assert.deepEqual(result, { used: 12, max: 10, over: true });
+    });
+
+    it('returns safe zeros for systems without slots field', () => {
+        assert.deepEqual(computeSlotStatus({}, []), { used: 0, max: 0, over: false });
+        assert.deepEqual(computeSlotStatus(null, []), { used: 0, max: 0, over: false });
     });
 });
 

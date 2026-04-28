@@ -18,7 +18,8 @@ const PA_DEBOUNCE_MS = 250;
 // --- Data Model ---------------------------------------------------------------
 
 // Stub so Shadowdark's getRollData()/abilityModifier() don't crash on Party actors.
-// Older Shadowdark versions access this.system.abilities unconditionally.
+// Shadowdark 3.6.x registers ActorSD as CONFIG.Actor.documentClass for ALL actor
+// types and accesses this.system.abilities unconditionally.
 const ABILITY_STUB = { base: 10, bonus: 0, mod: 0 };
 const ABILITIES_STUB = Object.freeze({
     str: ABILITY_STUB, dex: ABILITY_STUB, con: ABILITY_STUB,
@@ -138,7 +139,7 @@ class PartySheet extends foundry.appv1.sheets.ActorSheet {
             const rations = countRations(actor.items);
             const lightSources = countLightSources(actor.items);
             const hasLight = (await actor.getActiveLightSources())?.length > 0;
-            const { used: slotsUsed, max: slotsMax, over: slotsOver } = computeSlotStatus(actor.system);
+            const { used: slotsUsed, max: slotsMax, over: slotsOver } = computeSlotStatus(actor.system, actor.items);
             const { statuses, effects } = collectEffects(actor);
             const hpClass = computeHpClass(hp, hpMax, statuses);
 
