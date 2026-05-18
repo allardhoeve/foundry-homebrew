@@ -163,7 +163,7 @@ class ScarletMinotaurEncounterApp extends foundry.applications.api.ApplicationV2
         const rollInfo = `d8: ${data.rawD8}${sign} → ${data.adjustedResult}`;
 
         // Enrich the encounter text so Foundry renders inline rolls and links
-        const enrichedHero = await TextEditor.enrichHTML(selectedText);
+        const enrichedHero = await foundry.applications.ux.TextEditor.implementation.enrichHTML(selectedText);
 
         const heroClass = isMinotaur ? "sme-hero sme-hero--minotaur" : "sme-hero";
 
