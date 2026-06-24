@@ -1,6 +1,6 @@
 .idea
 .claude
-third_party/foundryvtt-*/
+third_party/foundryvtt/
 node_modules/
 module/packs/
 .build-tmp/
@@ -18,3 +18,5 @@ tests/visual-storybook/
 .playwright-mcp/
 backups/
 tools/output/
+tools/**/.env
+tools/foundry/

@@ -1,3 +1,25 @@
+## Foundry VTT CLI
+
+To read from or write to the remote Foundry instance, use the CLI at `tools/foundry/foundry.py`:
+
+```
+uv run python tools/foundry/foundry.py journal list
+uv run python tools/foundry/foundry.py journal upsert --title NAME --folder FOLDER [--public] --content HTML
+uv run python tools/foundry/foundry.py journal delete --title NAME
+```
+
+Run `uv run python tools/foundry/foundry.py --help` for the full reference.
+Credentials are in `tools/foundry/.env` (gitignored).
+
+## Notion to Foundry journal sync
+
+When the user asks to sync campaign content from Notion to Foundry journals:
+1. Read the relevant pages from the Notion Campaign Database (`collection://aebc21f2-fe33-827b-8d09-87d02dc66938`) using the Notion MCP tools.
+2. Convert the Notion content to clean HTML.
+3. Write each entry to Foundry using `foundry journal upsert`, placing it in the appropriate folder by tag (NPCs → "NPCs", Settlement → "Locations", etc.) and passing `--public` so players can see it.
+
+The Notion campaign space is "Revenge of the Ravens": https://app.notion.com/p/387c21f2fe33800186e1da9ef234876a
+
 ## Instructions for code
 - Our Foundry version is 14 build 360.
 - Only develop against the V2 Application framework (`foundry.applications.api.ApplicationV2`).

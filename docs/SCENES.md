@@ -22,7 +22,7 @@ module/scenes/
   ...
 ```
 
-Each scene JSON follows the Foundry v14 schema (background image, grid config, walls, lights, tokens, etc.). Reference example: `third_party/foundryvtt-14.360/public/nue/defaultscene/scene.json`.
+Each scene JSON follows the Foundry v14 schema (background image, grid config, walls, lights, tokens, etc.). Reference example: `third_party/foundryvtt/public/nue/defaultscene/scene.json`.
 
 ### 2. Background images
 
