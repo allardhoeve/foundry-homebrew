@@ -1,6 +1,7 @@
 // Pure ownership computation — no Foundry dependencies, testable in Node.
 
-const OWNER = 3; // CONST.DOCUMENT_OWNERSHIP_LEVELS.OWNER
+const OWNER = 3;    // CONST.DOCUMENT_OWNERSHIP_LEVELS.OWNER
+const OBSERVER = 2; // CONST.DOCUMENT_OWNERSHIP_LEVELS.OBSERVER
 
 /**
  * Compute the party actor's ownership map from member actor ownerships.
@@ -15,7 +16,7 @@ export function computePartyOwnership(memberOwnerships, users) {
         for (const [userId, level] of Object.entries(memberOwnership)) {
             if (userId === "default") continue;
             if (level >= OWNER) {
-                ownership[userId] = OWNER;
+                ownership[userId] = OBSERVER;
             }
         }
     }

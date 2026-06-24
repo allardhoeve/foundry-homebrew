@@ -306,6 +306,7 @@ Hooks.on("preCreateActor", (actor) => {
     actor.updateSource({
         img: PA_DEFAULT_ARTWORK,
         "prototypeToken.texture.src": PA_DEFAULT_TOKEN,
+        "prototypeToken.ring.enabled": true,
     });
 });
 

@@ -10,3 +10,9 @@
 [submodule "third_party/FoundryVTT-crunch-my-party"]
 	path = third_party/FoundryVTT-crunch-my-party
 	url = https://github.com/coffiarts/FoundryVTT-crunch-my-party.git
+[submodule "third_party/hexploration"]
+	path = third_party/hexploration
+	url = https://github.com/foundryvtt/hexploration.git
+[submodule "third_party/foundry-vtt-mcp"]
+	path = third_party/foundry-vtt-mcp
+	url = https://github.com/adambdooley/foundry-vtt-mcp
