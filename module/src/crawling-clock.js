@@ -34,23 +34,14 @@ function ccApp() {
 
 // JSL Blackletter has old-style figures: 3 4 5 7 9 drop below the baseline, 6 rises
 // above it and 8 rises further still. Every number therefore shares a baseline but its
-// *ink* sits somewhere different — measured across 0-20, the ink centre swings by a
-// quarter of the type size, which is why 5 hangs out of the die's facet and 8 rides high.
+// *ink* sits somewhere different, so centring the text box leaves the number visibly
+// off-centre on the die's facet.
 //
-// Classifying by the extremes among the digits present gives six cases, whatever the
-// number: the stylesheet holds the matching nudge that drops each one onto the facet's
-// centre. Six covers any number of any length, not just 0-20.
-const CC_TALL_FIGURES = "8";
-const CC_RISING_FIGURES = "6";
-const CC_DROPPING_FIGURES = "34579";
-
+// The clock only ever shows 0-20, so each value gets its own class and the stylesheet
+// holds a position (and where needed a size) fitted to that exact number. See the table
+// in crawling-clock.css for how those were derived.
 function ccFigureClass(value) {
-    const digits = [...String(value)];
-    const rise = digits.some(d => CC_TALL_FIGURES.includes(d)) ? "tall"
-        : digits.some(d => CC_RISING_FIGURES.includes(d)) ? "rising"
-        : "even";
-    const drop = digits.some(d => CC_DROPPING_FIGURES.includes(d)) ? "drop" : "flat";
-    return `crawling-clock__value--${rise}-${drop}`;
+    return `crawling-clock__value--v${value}`;
 }
 
 function ccStoredValue() {

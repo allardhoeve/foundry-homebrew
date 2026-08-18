@@ -56,25 +56,51 @@
     left: 0;
     right: 0;
     top: 55%;
-    transform: translateY(calc(-50% + var(--cc-figure-shift, 0em)));
+    transform: translateY(calc(-50% + var(--cc-figure-shift, -0.156em)));
     text-align: center;
     font-family: "JSL Blackletter", serif;
-    font-size: 48px;
+    font-size: var(--cc-figure-size, 48px);
     line-height: 1;
     color: #e8dcc8;
 }
 
-/* Optical centring for old-style figures — see ccFigureClass() in crawling-clock.js.
- * The box is centred by the rule above, which lands every number on a shared baseline;
- * these shift the *ink* onto the facet's centre instead. Values are in em so they hold
- * if the type size changes, and were derived from the font's measured ascent and
- * descent, taking the x-height group (0 1 2, so 20 and 11) as the reference position. */
-.crawling-clock__value--even-flat   { --cc-figure-shift: 0em; }
-.crawling-clock__value--even-drop   { --cc-figure-shift: -0.113em; }
-.crawling-clock__value--rising-flat { --cc-figure-shift: 0.078em; }
-.crawling-clock__value--rising-drop { --cc-figure-shift: -0.038em; }
-.crawling-clock__value--tall-flat   { --cc-figure-shift: 0.126em; }
-.crawling-clock__value--tall-drop   { --cc-figure-shift: 0.010em; }
+/* Per-value fitting. The clock only ever shows 0-20, so each number is placed against
+ * the die's centre facet individually — see ccFigureClass() in crawling-clock.js.
+ *
+ * How these were derived, so they can be re-derived if the die or the type changes:
+ * the facet runs from its apex at y 21.5 to its base at 64.3 and is 49.3 wide there
+ * (generator coordinates, viewBox units). Each number's ink box was measured from the
+ * font, then placed with its centre on the facet's centroid (y 50.03) and sized to the
+ * largest that keeps 1.6 units of clearance from the base and the sloping sides.
+ *
+ * Two consequences worth knowing before changing anything. The facet narrows towards
+ * the apex, so raising a number forces it smaller — targeting 3 units higher made seven
+ * values shrink, and 5 units higher, ten. At the centroid only 14 has to give, which is
+ * why everything else shares one size. And the shifts are em, so they scale with the
+ * size beside them; they are not interchangeable between values.
+ *
+ * Nudge an individual number here. Nothing else needs to change. */
+.crawling-clock__value--v0  { --cc-figure-shift: -0.156em; }
+.crawling-clock__value--v1  { --cc-figure-shift: -0.158em; }
+.crawling-clock__value--v2  { --cc-figure-shift: -0.157em; }
+.crawling-clock__value--v3  { --cc-figure-shift: -0.263em; }
+.crawling-clock__value--v4  { --cc-figure-shift: -0.269em; }
+.crawling-clock__value--v5  { --cc-figure-shift: -0.265em; }
+.crawling-clock__value--v6  { --cc-figure-shift: -0.080em; }
+.crawling-clock__value--v7  { --cc-figure-shift: -0.266em; }
+.crawling-clock__value--v8  { --cc-figure-shift: -0.032em; }
+.crawling-clock__value--v9  { --cc-figure-shift: -0.284em; }
+.crawling-clock__value--v10 { --cc-figure-shift: -0.157em; }
+.crawling-clock__value--v11 { --cc-figure-shift: -0.158em; }
+.crawling-clock__value--v12 { --cc-figure-shift: -0.158em; }
+.crawling-clock__value--v13 { --cc-figure-shift: -0.262em; }
+.crawling-clock__value--v14 { --cc-figure-shift: -0.279em; --cc-figure-size: 45.5px; }
+.crawling-clock__value--v15 { --cc-figure-shift: -0.265em; }
+.crawling-clock__value--v16 { --cc-figure-shift: -0.080em; }
+.crawling-clock__value--v17 { --cc-figure-shift: -0.266em; }
+.crawling-clock__value--v18 { --cc-figure-shift: -0.032em; }
+.crawling-clock__value--v19 { --cc-figure-shift: -0.284em; }
+.crawling-clock__value--v20 { --cc-figure-shift: -0.156em; }
 
 /* --- Supporting text and controls ---------------------------------------- */
 
