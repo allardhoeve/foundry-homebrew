@@ -1,0 +1,35 @@
+/* The Crawling Clock — minimum legibility only. Design work is task 071. */
+
+.crawling-clock {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 8px;
+    padding: 8px;
+}
+
+.crawling-clock__value {
+    font-size: 48px;
+    line-height: 1;
+    font-weight: bold;
+}
+
+.crawling-clock__stirs {
+    text-transform: uppercase;
+    letter-spacing: 1px;
+}
+
+.crawling-clock__roll-line {
+    min-height: 1.2em;
+    font-size: var(--font-size-13);
+}
+
+.crawling-clock__roll {
+    width: 100%;
+}
+
+.crawling-clock__gm {
+    display: flex;
+    gap: 4px;
+    width: 100%;
+}

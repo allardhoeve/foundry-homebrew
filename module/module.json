@@ -25,8 +25,9 @@
       "path": "lang/en.json"
     }
   ],
-  "esmodules": ["src/party-actor.js", "src/player-light-tracker.js", "src/scarlet-minotaur-encounter.js", "src/light-adjuster.js", "src/asset-browser.js", "src/module-ready.js"],
-  "styles": ["styles/party-actor.css", "styles/player-light-tracker.css", "styles/scarlet-minotaur.css", "styles/light-adjuster.css", "styles/asset-browser.css"],
+  "socket": true,
+  "esmodules": ["src/party-actor.js", "src/player-light-tracker.js", "src/scarlet-minotaur-encounter.js", "src/light-adjuster.js", "src/asset-browser.js", "src/crawling-clock.js", "src/module-ready.js"],
+  "styles": ["styles/party-actor.css", "styles/player-light-tracker.css", "styles/scarlet-minotaur.css", "styles/light-adjuster.css", "styles/asset-browser.css", "styles/crawling-clock.css"],
   "packs": [
     {
       "name": "macros",
