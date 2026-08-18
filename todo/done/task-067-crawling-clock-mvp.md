@@ -211,7 +211,25 @@ Manual, dev world (`http://localhost:30000`), GM in one browser and a player in 
 8. Change `crawlingClockMax` / `crawlingClockDie` in settings → button label and the
    next Reset follow.
 
-Append a **Results (date):** line here after running.
+**Results (2026-08-18):** built and verified as the MVP base only. Tasks 068, 071 and
+072 were rejected: the base was built directly from this task, and the feel and packaging
+steps were dropped. So there is no die animation, no low/stirs styling, no sound, no
+launcher macro and no version bump. The widget opens from the console one-liner.
+
+Verified in the dev world: module loads with `socket: true`; roll ticks the display and
+writes the setting once; whisper carries the persisted number; public line at 0 appears
+exactly once; display clamps at 0 and shows a plain "The dungeon stirs." line; Reset and
+± work; a payload arriving at a client with the widget **closed** still persists and does
+not pop the widget open; a payload from another client drives display, roll line,
+persistence and whisper.
+
+Found while testing: the `game.users.activeGM === game.user` guard compares User
+documents, so it does not distinguish **two connections of the same GM user** (two tabs,
+or a laptop and a tablet). Every such connection passes the guard and writes its own
+whisper. Duplicate whispers are the usual symptom; the writes were idempotent under a
+race here (both read the same value and wrote the same result), but a slower interleaving
+could double-subtract. Left undefended, per "Explicitly not built". A roll id in the
+payload, ignored by the GM if already applied, is the cheap fix if it ever matters.
 
 ## Pitfalls
 
@@ -234,18 +252,21 @@ Append a **Results (date):** line here after running.
 
 ## Acceptance criteria
 
-- [ ] Widget opens from the macro (and `toggleInterface()`), never by itself
-- [ ] A player's roll animates the die and ticks the counter on every open widget
-- [ ] Nothing appears in players' chat for a roll; the GM gets a whispered line with the
+Dropped items are marked as such: they belonged to the rejected tasks 071 and 072.
+
+- [x] Widget opens from `toggleInterface()`, never by itself — macro dropped with 072
+- [x] A player's roll ticks the counter on every open widget — animation dropped with 071
+- [x] Nothing appears in players' chat for a roll; the GM gets a whispered line with the
       persisted number
-- [ ] The GM can keep the widget closed all session and the value still persists
+- [x] The GM can keep the widget closed all session and the value still persists
       correctly
-- [ ] Reopening, reloading, or joining late shows the stored number
-- [ ] Zero state on every client, plus one public chat line and a sound
-- [ ] GM Reset and ±1 update every screen
-- [ ] Start value and die editable in settings; roll button label follows the die
-- [ ] Existing encounter macros untouched and still working
-- [ ] No inline CSS in the JS; `module.json` version bumped once
+- [x] Reopening, reloading, or joining late shows the stored number
+- [x] A plain zero line on every client, plus one public chat line — styled zero state
+      and sound dropped with 071
+- [x] GM Reset and ±1 update every screen
+- [x] Start value and die editable in settings; roll button label follows the die
+- [x] Existing encounter macros untouched and still working
+- [x] No inline CSS in the JS — version bump dropped with 072
 
 ## Scope boundaries
 
