@@ -84,7 +84,7 @@ Dev world, GM in one browser and a player in another.
    plays, and the final number is correct on both screens.
 3. Drive it to 0 → both screens show the stirs state, both play the sound, and still
    exactly **one** public chat message appears.
-4. GM Reset → both screens leave the stirs state and show the start value.
+4. GM Reset → both screens leave the stirs state and show 20.
 5. Open the widget fresh while the clock is mid-session → it paints the current number
    with no animation.
 6. Roll with one widget closed, then open it → correct number, no stale animation.
@@ -118,7 +118,7 @@ Append a **Results (date):** line here after running.
 
 - **In scope**: die animation, the counter tick-down, the low and stirs states, the
   sound, the design pass on the stylesheet.
-- **Out of scope**: the SVG d20 icosahedron shape, Dice So Nice integration, richer
-  zero-state animation, in-widget UI for the die or start value. All follow-up polish.
+- **Out of scope**: Dice So Nice integration, richer zero-state animation, in-widget UI
+  for the die. All follow-up polish.
 - **Do not** rebuild the state model to make animation easier. Adding `seed` to the
   payload is the only change the transport needs.

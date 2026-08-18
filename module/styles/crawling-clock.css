@@ -56,13 +56,25 @@
     left: 0;
     right: 0;
     top: 55%;
-    transform: translateY(-50%);
+    transform: translateY(calc(-50% + var(--cc-figure-shift, 0em)));
     text-align: center;
     font-family: "JSL Blackletter", serif;
     font-size: 48px;
     line-height: 1;
     color: #e8dcc8;
 }
+
+/* Optical centring for old-style figures — see ccFigureClass() in crawling-clock.js.
+ * The box is centred by the rule above, which lands every number on a shared baseline;
+ * these shift the *ink* onto the facet's centre instead. Values are in em so they hold
+ * if the type size changes, and were derived from the font's measured ascent and
+ * descent, taking the x-height group (0 1 2, so 20 and 11) as the reference position. */
+.crawling-clock__value--even-flat   { --cc-figure-shift: 0em; }
+.crawling-clock__value--even-drop   { --cc-figure-shift: -0.113em; }
+.crawling-clock__value--rising-flat { --cc-figure-shift: 0.078em; }
+.crawling-clock__value--rising-drop { --cc-figure-shift: -0.038em; }
+.crawling-clock__value--tall-flat   { --cc-figure-shift: 0.126em; }
+.crawling-clock__value--tall-drop   { --cc-figure-shift: 0.010em; }
 
 /* --- Supporting text and controls ---------------------------------------- */
 

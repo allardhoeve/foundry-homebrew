@@ -60,8 +60,9 @@ Everything lives here: settings, socket handler, widget.
 
 - `crawlingClockValue` — Number, scope `world`, `config: false`, default 20. The truth.
   `onChange` → if the widget is rendered, repaint it with the new value.
-- `crawlingClockMax` — Number, scope `world`, `config: true`, default 20.
 - `crawlingClockDie` — String, scope `world`, `config: true`, default `"1d6"`.
+
+The clock always starts at 20 and that is a constant, not a setting: it is a d20.
 
 **Socket**: channel `"module.foundry-homebrew"`, payload
 `{ action: "roll", rolled, userId }`.
@@ -100,8 +101,8 @@ be reachable from the Application class.
   4. Call the handler locally with the same payload. Sockets do not loop back to the
      sender, and this keeps one code path for everyone.
 - The last-roll line.
-- GM-only controls: `Reset` writes `crawlingClockMax`; `+` and `−` write `current ± 1`,
-  clamped to `[0, max]`. All three are plain setting writes; the repaint happens through
+- GM-only controls: `Reset` writes 20; `+` and `−` write `current ± 1`,
+  clamped to `[0, 20]`. All three are plain setting writes; the repaint happens through
   `onChange`, not from the click handler. These buttons are the fix for any arithmetic
   mishap, which is why nothing else in this feature defends against one.
 - `toggleInterface()`, mirroring the other apps in this module.
@@ -157,8 +158,7 @@ game.modules.get("foundry-homebrew").api.crawlingClock.toggleInterface()
    decrement.
 8. Drive it to 0 → the display clamps at 0 and exactly one public chat line appears.
 9. GM `Reset` and `±` update every open widget.
-10. Change `crawlingClockMax` / `crawlingClockDie` in settings → the button label and the
-    next Reset follow.
+10. Change `crawlingClockDie` in settings → the roll button's label follows.
 11. The existing encounter macros still work, untouched.
 
 Append a **Results (date):** line here after running.
@@ -183,7 +183,7 @@ Append a **Results (date):** line here after running.
 - Register the settings **before** constructing the app inside the same `init` callback,
   or reading a setting in the constructor throws "setting not registered" (see
   `player-light-tracker.js:121-122`).
-- Clamp `±` so the counter cannot go negative or above max.
+- Clamp `±` so the counter cannot go negative or above 20.
 - No inline CSS in the JS (CLAUDE.md).
 - Sharp edge, accepted: a bad die formula typed into the settings box makes `new Roll(die)`
   throw inside the click handler. Not defended against.

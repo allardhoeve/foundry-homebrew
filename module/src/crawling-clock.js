@@ -17,8 +17,11 @@ const CC_NS = "foundry-homebrew";
 const CC_SOCKET = `module.${CC_MODULE_ID}`;
 
 const CC_VALUE_KEY = "crawlingClockValue";
-const CC_MAX_KEY = "crawlingClockMax";
 const CC_DIE_KEY = "crawlingClockDie";
+
+// The clock is a d20 and starts at 20. Not configurable: any other number would make
+// the die on the widget a lie. What the GM can change is the die that decrements it.
+const CC_CLOCK_MAX = 20;
 
 // --- Module-scope helpers ------------------------------------------------------
 //
@@ -29,12 +32,29 @@ function ccApp() {
     return game.modules.get(CC_MODULE_ID)?.api?.crawlingClock;
 }
 
-function ccStoredValue() {
-    return game.settings.get(CC_NS, CC_VALUE_KEY);
+// JSL Blackletter has old-style figures: 3 4 5 7 9 drop below the baseline, 6 rises
+// above it and 8 rises further still. Every number therefore shares a baseline but its
+// *ink* sits somewhere different — measured across 0-20, the ink centre swings by a
+// quarter of the type size, which is why 5 hangs out of the die's facet and 8 rides high.
+//
+// Classifying by the extremes among the digits present gives six cases, whatever the
+// number: the stylesheet holds the matching nudge that drops each one onto the facet's
+// centre. Six covers any number of any length, not just 0-20.
+const CC_TALL_FIGURES = "8";
+const CC_RISING_FIGURES = "6";
+const CC_DROPPING_FIGURES = "34579";
+
+function ccFigureClass(value) {
+    const digits = [...String(value)];
+    const rise = digits.some(d => CC_TALL_FIGURES.includes(d)) ? "tall"
+        : digits.some(d => CC_RISING_FIGURES.includes(d)) ? "rising"
+        : "even";
+    const drop = digits.some(d => CC_DROPPING_FIGURES.includes(d)) ? "drop" : "flat";
+    return `crawling-clock__value--${rise}-${drop}`;
 }
 
-function ccMax() {
-    return game.settings.get(CC_NS, CC_MAX_KEY);
+function ccStoredValue() {
+    return game.settings.get(CC_NS, CC_VALUE_KEY);
 }
 
 // Runs on every client that receives a roll, including the roller (sockets do not
@@ -140,7 +160,7 @@ class CrawlingClockApp extends foundry.applications.api.ApplicationV2 {
         container.innerHTML = `<div class="crawling-clock${stateClass}">
             <div class="crawling-clock__die">
                 ${CRAWLING_CLOCK_D20}
-                <div class="crawling-clock__value">${value}</div>
+                <div class="crawling-clock__value ${ccFigureClass(value)}">${value}</div>
             </div>
             ${stirs}
             <div class="crawling-clock__roll-line">${rollLine}</div>
@@ -178,9 +198,9 @@ class CrawlingClockApp extends foundry.applications.api.ApplicationV2 {
             case "roll":
                 return this._onRoll();
             case "reset":
-                return game.settings.set(CC_NS, CC_VALUE_KEY, ccMax());
+                return game.settings.set(CC_NS, CC_VALUE_KEY, CC_CLOCK_MAX);
             case "up":
-                return game.settings.set(CC_NS, CC_VALUE_KEY, Math.min(ccMax(), ccStoredValue() + 1));
+                return game.settings.set(CC_NS, CC_VALUE_KEY, Math.min(CC_CLOCK_MAX, ccStoredValue() + 1));
             case "down":
                 return game.settings.set(CC_NS, CC_VALUE_KEY, Math.max(0, ccStoredValue() - 1));
         }
@@ -204,20 +224,11 @@ Hooks.once("init", () => {
         scope: "world",
         config: false,
         type: Number,
-        default: 20,
+        default: CC_CLOCK_MAX,
         onChange: value => {
             const app = ccApp();
             if (app?.rendered) app.syncValue(value);
         }
-    });
-
-    game.settings.register(CC_NS, CC_MAX_KEY, {
-        name: "Crawling Clock: Start Value",
-        hint: "The number the clock resets to.",
-        scope: "world",
-        config: true,
-        type: Number,
-        default: 20
     });
 
     game.settings.register(CC_NS, CC_DIE_KEY, {
