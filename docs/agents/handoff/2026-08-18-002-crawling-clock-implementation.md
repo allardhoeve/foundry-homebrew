@@ -110,6 +110,12 @@ were partly absorbed — the macro, the d20, and the low/stirs states all shippe
 remainder dropped. The **die animation and the zero sound were never built** and are the
 only unchecked boxes in 067.
 
+The sound is chosen but not in the repo: freesound.org 655238, "Dice Rolling.wav" by
+**Gamufreaku**, **CC BY 4.0**. Only the **first second** is wanted — the die landing on
+wood. Attribution is a condition of the licence, so `LICENSE` (currently plain MIT with no
+third-party section) needs one when the audio lands, not before. Details in 067 under
+"Notes for the parts that were not built".
+
 ## Important context for future sessions
 
 ### Branch and release status
@@ -153,21 +159,30 @@ matters: a roll id in the payload that the GM ignores if already applied.
 
 ### Previewing UI without joining the world
 
-Joining as Gamemaster to check the widget makes you a second GM connection and doubles the
-user's whispers. Instead, previews were rendered standalone:
+**`docs/design/crawling-clock-values.html`** — committed, self-contained, opens by
+double-clicking. Every value 0-20 plus the low and stirs states, from the shipped stylesheet
+and the generated die at the real 180px, font embedded. A checkbox overlays the facet guides
+used to fit the counter. Rebuild it with `npm run preview:clock`
+(`tools/preview/crawling-clock.py`) after changing the stylesheet or the die.
 
-1. Build an HTML page injecting the **real** `crawling-clock.css` and the generated SVG.
-2. Serve it — `python3 -m http.server 8899` from the scratchpad. Playwright MCP **blocks
-   `file:` URLs**, so it must be over HTTP.
-3. Copy the font out of the container so the preview does not lie:
-   `docker cp foundry:/data/Data/systems/shadowdark/fonts/JBLACK.TTF .` and `@font-face` it.
+Use it instead of logging in to look at something: joining as Gamemaster makes you a second
+GM connection and doubles the user's whispers.
 
-That last step matters. Two rounds of feedback were spent on a preview that had silently
-fallen back to Times, and on one that used a 130px die when the widget ships 180px. **Render
-at true size, with the real font, from the shipped CSS.**
+Two traps that cost a round of feedback each, now handled by that page but worth knowing if
+you build another preview:
 
-`cairosvg` is unusable here — no libcairo on the system. The browser is the better renderer
-anyway since it is what Foundry uses.
+- **The font must be real.** JSL Blackletter ships with the Shadowdark system
+  (`/data/Data/systems/shadowdark/fonts/JBLACK.TTF`, declared via `@font-face` in the system
+  CSS). A page that cannot load it falls back to Times and misreports everything. It is
+  embedded as a data URI in the committed page. Its licence allows free distribution only
+  **unaltered and accompanied by `JBLACK.TXT`**, which is why that file sits beside it, and
+  forbids inclusion in a commercial package.
+- **Render at true size.** A 130px die when the widget ships 180px makes the type look
+  better-fitted than it is.
+
+If you do build a throwaway page: Playwright MCP **blocks `file:` URLs**, so serve it over
+HTTP. `cairosvg` is unusable here — no libcairo — and the browser is the better renderer
+anyway, being what Foundry uses.
 
 ### Testing
 
