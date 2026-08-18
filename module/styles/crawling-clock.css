@@ -47,10 +47,8 @@
     fill: none;
 }
 
-/* Seated on the die's bare centre facet. The face spans y 21.5–64.3 in the generated
-   geometry, so 55% drops the number into the wider lower half where two digits clear
-   the apex. Sized against the 180px die above: much smaller and it floats, much
-   larger and "20" crowds the facet corners. Both were compared at true size. */
+/* Seated on the die's bare centre facet. This rule holds the layout; the per-value table
+   below supplies each number's position and, where it needs one, its size. */
 .crawling-clock__value {
     position: absolute;
     left: 0;
@@ -94,13 +92,13 @@
 .crawling-clock__value--v11 { --cc-figure-shift: -0.158em; }
 .crawling-clock__value--v12 { --cc-figure-shift: -0.158em; }
 .crawling-clock__value--v13 { --cc-figure-shift: -0.262em; }
-.crawling-clock__value--v14 { --cc-figure-shift: -0.279em; --cc-figure-size: 45.5px; }
+.crawling-clock__value--v14 { --cc-figure-shift: -0.291em; --cc-figure-size: 43px; }
 .crawling-clock__value--v15 { --cc-figure-shift: -0.265em; }
 .crawling-clock__value--v16 { --cc-figure-shift: -0.080em; }
-.crawling-clock__value--v17 { --cc-figure-shift: -0.266em; }
+.crawling-clock__value--v17 { --cc-figure-shift: -0.225em; }
 .crawling-clock__value--v18 { --cc-figure-shift: -0.032em; }
 .crawling-clock__value--v19 { --cc-figure-shift: -0.284em; }
-.crawling-clock__value--v20 { --cc-figure-shift: -0.156em; }
+.crawling-clock__value--v20 { --cc-figure-shift: -0.170em; --cc-figure-size: 45px; }
 
 /* --- Supporting text and controls ---------------------------------------- */
 
