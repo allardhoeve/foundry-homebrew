@@ -1,3 +1,5 @@
+import { CRAWLING_CLOCK_D20 } from "./crawling-clock-d20.js";
+
 // The Crawling Clock — a shared, player-visible dungeon timer.
 //
 // A counter starts at 20. Any player rolls a die (default 1d6) and the result is
@@ -129,12 +131,21 @@ class CrawlingClockApp extends foundry.applications.api.ApplicationV2 {
                </div>`
             : "";
 
+        // State lives on the container so the die and the number restyle together.
+        let stateClass = "";
+        if (value === 0) stateClass = " crawling-clock--stirs";
+        else if (value <= 6) stateClass = " crawling-clock--low";
+
         const container = document.createElement("div");
-        container.innerHTML = `<div class="crawling-clock">
-            <div class="crawling-clock__value">${value}</div>
+        container.innerHTML = `<div class="crawling-clock${stateClass}">
+            <div class="crawling-clock__die">
+                ${CRAWLING_CLOCK_D20}
+                <div class="crawling-clock__value">${value}</div>
+            </div>
             ${stirs}
             <div class="crawling-clock__roll-line">${rollLine}</div>
-            <button type="button" class="crawling-clock__roll" data-cc-action="roll">Roll ${die}</button>
+            <button type="button" class="crawling-clock__roll" data-cc-action="roll"
+                    ${value === 0 ? "disabled" : ""}>Roll ${die}</button>
             ${gmControls}
         </div>`;
         return container;

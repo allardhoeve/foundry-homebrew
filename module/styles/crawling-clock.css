@@ -1,35 +1,134 @@
-/* The Crawling Clock — minimum legibility only. Design work is task 071. */
+/* The Crawling Clock.
+ *
+ * Palette and type follow docs/ui-design-guide.md: #1a1a1e ground, #e8dcc8 parchment,
+ * amber primary. The die is inline SVG (tools/d20/generate-d20.py) so its strokes can
+ * take the state colours — an <img> could not be restyled.
+ */
+
+#crawling-clock {
+    background: #1a1a1e;
+    border: 1px solid #3a3a3e;
+    border-radius: 4px;
+    box-shadow: 0 0 20px rgba(0, 0, 0, 0.8);
+}
 
 .crawling-clock {
     display: flex;
     flex-direction: column;
     align-items: center;
-    gap: 8px;
-    padding: 8px;
+    padding: 6px 10px 12px;
 }
 
+/* --- The die ------------------------------------------------------------- */
+
+.crawling-clock__die {
+    position: relative;
+    width: 180px;
+}
+
+.crawling-clock .cc-d20 {
+    display: block;
+    width: 100%;
+    height: auto;
+}
+
+.crawling-clock .cc-d20__hatch path {
+    stroke: #e8dcc8;
+    stroke-width: 0.5;
+    stroke-linecap: round;
+    fill: none;
+    opacity: 0.55;
+}
+
+.crawling-clock .cc-d20__edges path {
+    stroke: #e8dcc8;
+    stroke-width: 1.4;
+    stroke-linecap: round;
+    fill: none;
+}
+
+/* Seated on the die's bare centre facet, measured from the generated geometry:
+   the face spans y 21.5–64.3 with its centroid at 50, and 53% sits it in the
+   wider lower half where a two-digit number clears the apex. */
 .crawling-clock__value {
-    font-size: 48px;
+    position: absolute;
+    left: 0;
+    right: 0;
+    top: 53%;
+    transform: translateY(-50%);
+    text-align: center;
+    font-family: "JSL Blackletter", serif;
+    font-size: 36px;
     line-height: 1;
-    font-weight: bold;
+    color: #e8dcc8;
+}
+
+/* --- Supporting text and controls ---------------------------------------- */
+
+.crawling-clock__roll-line {
+    min-height: 1.2em;
+    margin: 4px 0 8px;
+    font-size: var(--font-size-12);
+    color: #b0a898;
 }
 
 .crawling-clock__stirs {
+    margin-top: 4px;
+    color: #cc4444;
+    font-size: var(--font-size-12);
     text-transform: uppercase;
     letter-spacing: 1px;
 }
 
-.crawling-clock__roll-line {
-    min-height: 1.2em;
-    font-size: var(--font-size-13);
-}
-
 .crawling-clock__roll {
     width: 100%;
+    background: transparent;
+    border: 1px solid #c9a54a;
+    border-radius: 3px;
+    padding: 6px;
+    color: #d4a843;
 }
 
 .crawling-clock__gm {
     display: flex;
     gap: 4px;
     width: 100%;
+    margin-top: 6px;
+}
+
+.crawling-clock__gm button {
+    flex: 1;
+    background: transparent;
+    border: 1px solid #3a3a3e;
+    border-radius: 3px;
+    padding: 4px;
+    color: #b0a898;
+}
+
+/* --- States --------------------------------------------------------------
+ * One signal at a time (design guide): low colours the number only, and the die
+ * is left alone. Zero is the exception — the whole die turns, because that is the
+ * moment the table is meant to notice. */
+
+.crawling-clock--low .crawling-clock__value {
+    color: #cc6666;
+}
+
+.crawling-clock--stirs .crawling-clock__value {
+    color: #cc4444;
+}
+
+.crawling-clock--stirs .cc-d20__edges path {
+    stroke: #cc4444;
+}
+
+.crawling-clock--stirs .cc-d20__hatch path {
+    opacity: 0.28;
+}
+
+/* At zero the roll is disabled in the markup; this is only the matching cue.
+   The GM's Reset is the way forward. */
+.crawling-clock__roll:disabled {
+    opacity: 0.4;
+    cursor: default;
 }
