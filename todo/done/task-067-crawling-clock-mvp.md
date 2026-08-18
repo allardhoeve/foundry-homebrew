@@ -255,6 +255,50 @@ race here (both read the same value and wrote the same result), but a slower int
 could double-subtract. Left undefended, per "Explicitly not built". A roll id in the
 payload, ignored by the GM if already applied, is the cheap fix if it ever matters.
 
+## Notes for the parts that were not built
+
+### The sound at zero
+
+Chosen but **not yet in the repo**:
+<https://freesound.org/people/Gamufreaku/sounds/655238/>
+
+- "Dice Rolling.wav" by **Gamufreaku**, **CC BY 4.0**, 2:24.905, wav.
+- Only the **first second is useful** — that is the die landing on wood. The rest is
+  shaking and further rolls. Trim before shipping it.
+
+The licence is attribution, so crediting is a condition of use, not a courtesy. Add the
+credit **at the same time as the audio file**, not before — `LICENSE` is currently plain
+MIT with no third-party section, and crediting an asset that is not in the repo would be
+its own kind of wrong. When it lands, `LICENSE` needs a third-party section naming the
+title, the author, the licence and the URL.
+
+Note the parallel with the die: this is the second external asset considered for this
+feature. The first was someone else's illustration and was dropped. This one is usable
+precisely because its licence says so.
+
+### Seeing the widget without joining the world
+
+**`docs/design/crawling-clock-values.html`** — every value 0-20 plus the low and stirs
+states, drawn from the shipped stylesheet and the generated die at the real 180px, with
+the font embedded. Open it directly; no server, no Foundry, no build step. A checkbox
+overlays the die's centre facet in red and the target ink centre in blue, which is how the
+counter's fitting was judged and the fastest way to tell whether a number is off-centre or
+simply too big for the plate.
+
+Reach for it rather than logging in to look at something: a second connection as the same
+GM user defeats the `activeGM` guard and doubles the whispers while you are in there.
+
+`tools/preview/crawling-clock.py` (`npm run preview:clock`) rebuilds the page after the
+stylesheet or the die changes. The page is the artefact; the script only refreshes it.
+
+Two traps it now avoids, both of which cost a round of misdirected feedback during this
+task: a preview whose font silently fell back to Times, and one drawn at a 130px die when
+the widget ships 180px. Anything rendered smaller than true size misreports the type's fit.
+
+`JBLACK.TXT` sits beside the page and must stay there. JSL Blackletter is Jeffrey S. Lee's,
+distributable only unaltered and accompanied by that readme, and not in a commercial
+package.
+
 ## Pitfalls
 
 - **The persistence listener must live at module scope**, registered once at `ready`,
