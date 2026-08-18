@@ -22,5 +22,11 @@
     "name": "Light Adjuster",
     "file": "macros/light-adjuster-macro.js",
     "icon": "modules/foundry-homebrew/assets/images/torchie256.png"
+  },
+  {
+    "id": "Zc7vQm3XtLpR8yKd",
+    "name": "The Crawling Clock",
+    "file": "macros/crawling-clock-macro.js",
+    "icon": "icons/svg/clockwork.svg"
   }
 ]
