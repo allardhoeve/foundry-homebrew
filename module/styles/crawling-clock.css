@@ -47,18 +47,19 @@
     fill: none;
 }
 
-/* Seated on the die's bare centre facet, measured from the generated geometry:
-   the face spans y 21.5–64.3 with its centroid at 50, and 53% sits it in the
-   wider lower half where a two-digit number clears the apex. */
+/* Seated on the die's bare centre facet. The face spans y 21.5–64.3 in the generated
+   geometry, so 55% drops the number into the wider lower half where two digits clear
+   the apex. Sized against the 180px die above: much smaller and it floats, much
+   larger and "20" crowds the facet corners. Both were compared at true size. */
 .crawling-clock__value {
     position: absolute;
     left: 0;
     right: 0;
-    top: 53%;
+    top: 55%;
     transform: translateY(-50%);
     text-align: center;
     font-family: "JSL Blackletter", serif;
-    font-size: 36px;
+    font-size: 48px;
     line-height: 1;
     color: #e8dcc8;
 }
