@@ -225,9 +225,20 @@ ours; a reference image found during design was someone else's and was not used.
 
 The counter uses JSL Blackletter, whose old-style figures put every number on a shared
 baseline but leave the *ink* off-centre by up to a quarter of the type size — 5 hung out of
-the facet, 8 rode high. `ccFigureClass()` classifies a number by the extremes among its
-digits and the stylesheet nudges each of the six cases onto the facet's centre. Measured
-result: ink-centre spread across 0-20 fell from 12.1px to 1.1px.
+the facet, 8 rode high. Because the clock only ever shows 0-20, each value gets its own
+class and the stylesheet places it individually: ink box measured from the font, centred on
+the facet's centroid, sized to keep clearance from the base and the sloping sides. Twenty
+of the twenty-one share one size; 14 and 20 were then hand-tuned smaller and 17 lowered.
+
+Two things learned there, both recorded above the table in `crawling-clock.css`. The facet
+narrows towards the apex, so raising a number costs it size — the centroid is the highest
+position that keeps the set at one size. And the shifts are `em`, so they are tied to the
+size on the same line: changing one without recomputing the other lets the number drift.
+
+An intermediate attempt grouped the numbers into six typographic buckets. It was abandoned
+once the maximum became fixed, and it had been positioned against a target derived on the
+wrong assumption that the text baseline sits at the centre of its line box. It does not,
+which is why that version sat low.
 
 Verified in the dev world: module loads with `socket: true`; roll ticks the display and
 writes the setting once; whisper carries the persisted number; public line at 0 appears
