@@ -24,8 +24,20 @@ The Notion campaign space is "Revenge of the Ravens": https://app.notion.com/p/3
 - Our Foundry version is 14 build 360.
 - Only develop against the V2 Application framework (`foundry.applications.api.ApplicationV2`).
 
+### Checking an API: read the source in `third_party/`
+Foundry core and the systems we build against are checked into `third_party/`, at the versions we run. Grep there. Never answer an API question from memory, and never go into the Docker container for it.
+
+- **Foundry core** — `third_party/foundryvtt/public/scripts/foundry.mjs` is the whole client API in one file: document schemas, permission tests, application classes. `third_party/foundryvtt/package.json` confirms the build.
+- **Shadowdark** — `third_party/foundryvtt-shadowdark/`, including its compendium packs under `data/packs/`.
+- Also present: community macros and roll tables, `crunch-my-party`, `hexploration`, the Foundry MCP server.
+
+`docker/data/` is bind-mounted into the container, but it is only Foundry's *Data* directory (worlds, modules, systems as installed). Foundry's own application code is not in there, which is the trap: not finding it under `docker/data/` does not mean it is not on disk.
+
 ### Please note deprecations
 - The renderChatMessage hook is deprecated. Please use renderChatMessageHTML instead, which now passes an HTMLElement argument instead of jQuery.
+
+### Settled constraints — do not re-litigate these in reviews
+- **World settings are GM-write-only.** Players cannot call `game.settings.set` on a world-scoped setting. So any feature where a player action changes shared state needs a socket carrying the action to the active GM, who performs the single write. Where you find that shape (the Crawling Clock is the reference), the socket is a required relay, not a latency optimisation over a direct write, and proposing to drop it in favour of the setting's `onChange` alone is wrong. `onChange` is the fan-out on the way back, not a substitute for the trip out.
 
 ## Recording TODOs
 

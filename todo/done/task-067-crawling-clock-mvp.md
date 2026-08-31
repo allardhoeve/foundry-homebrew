@@ -339,6 +339,28 @@ Two items were deliberately not built and are marked as such.
 - [x] Existing encounter macros untouched and still working
 - [x] No inline CSS in the JS
 
+## Changed after acceptance (2026-08-31)
+
+A review session revisited the MVP. Three of the criteria above no longer describe what
+ships, so read them as history, not as the spec:
+
+- **The roll is now public, not whispered.** The criterion "Nothing appears in players'
+  chat for a roll" is reversed. The GM posts one public roll message per roll, authored
+  as the roller (`author`, which `BaseChatMessage#canCreate` permits only to a GM), with
+  the flavor "The Crawling Clock: {user} rolled a {n}. There is now {left} left." It is
+  the audit trail and it is how a player with the widget closed follows the descent. The
+  GM still owns the value: only a GM knows the persisted number at the moment of writing,
+  so a player posting it would publish their optimistic guess as the record.
+- **Dice So Nice now works**, free, because that message is a real roll message. It was
+  listed below as out of scope.
+- **The bad-die-formula sharp edge is defended.** `_onRoll` catches and notifies, and the
+  die setting validates with `Roll.validate` on change.
+
+Also: reaching zero via the GM's ± announces "The dungeon stirs." like a roll does (all
+writes go through `ccSetValue`), the roll line clears when the clock moves for a reason
+other than the roll it describes, and the figure size derives from `--cc-die-size` so the
+per-value table survives a change to the die's size.
+
 ## Scope boundaries
 
 - **Out of scope (→ a follow-up polish task, not yet written)**: richer zero-state

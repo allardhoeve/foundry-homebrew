@@ -1,6 +1,6 @@
 {
   "name": "foundry-homebrew",
-  "version": "1.0.0",
+  "version": "1.4.0",
   "description": "FoundryVTT macros for Shadowdark and The Lost Citadel",
   "private": true,
   "type": "module",

@@ -13,6 +13,10 @@
 }
 
 .crawling-clock {
+    /* The one dimension worth editing. Everything on the die is derived from it, so the
+       number keeps its fit at any size. */
+    --cc-die-size: 180px;
+
     display: flex;
     flex-direction: column;
     align-items: center;
@@ -23,7 +27,7 @@
 
 .crawling-clock__die {
     position: relative;
-    width: 180px;
+    width: var(--cc-die-size);
 }
 
 .crawling-clock .cc-d20 {
@@ -57,7 +61,9 @@
     transform: translateY(calc(-50% + var(--cc-figure-shift, -0.156em)));
     text-align: center;
     font-family: "JSL Blackletter", serif;
-    font-size: var(--cc-figure-size, 48px);
+    /* Sized in the die's own viewBox units (0-100 across), which is how the fit below
+       was measured, then scaled to whatever the die is drawn at. */
+    font-size: calc(var(--cc-die-size) * var(--cc-figure-size, 26.67) / 100);
     line-height: 1;
     color: #e8dcc8;
 }
@@ -77,6 +83,9 @@
  * why everything else shares one size. And the shifts are em, so they scale with the
  * size beside them; they are not interchangeable between values.
  *
+ * Both columns are in viewBox units: --cc-figure-size is a fraction of the die's 100-unit
+ * width, so the whole table survives a change to --cc-die-size untouched.
+ *
  * Nudge an individual number here. Nothing else needs to change. */
 .crawling-clock__value--v0  { --cc-figure-shift: -0.156em; }
 .crawling-clock__value--v1  { --cc-figure-shift: -0.158em; }
@@ -92,13 +101,13 @@
 .crawling-clock__value--v11 { --cc-figure-shift: -0.158em; }
 .crawling-clock__value--v12 { --cc-figure-shift: -0.158em; }
 .crawling-clock__value--v13 { --cc-figure-shift: -0.262em; }
-.crawling-clock__value--v14 { --cc-figure-shift: -0.291em; --cc-figure-size: 43px; }
+.crawling-clock__value--v14 { --cc-figure-shift: -0.291em; --cc-figure-size: 23.89; }
 .crawling-clock__value--v15 { --cc-figure-shift: -0.265em; }
 .crawling-clock__value--v16 { --cc-figure-shift: -0.080em; }
 .crawling-clock__value--v17 { --cc-figure-shift: -0.225em; }
 .crawling-clock__value--v18 { --cc-figure-shift: -0.032em; }
 .crawling-clock__value--v19 { --cc-figure-shift: -0.284em; }
-.crawling-clock__value--v20 { --cc-figure-shift: -0.170em; --cc-figure-size: 45px; }
+.crawling-clock__value--v20 { --cc-figure-shift: -0.170em; --cc-figure-size: 25.00; }
 
 /* --- Supporting text and controls ---------------------------------------- */
 

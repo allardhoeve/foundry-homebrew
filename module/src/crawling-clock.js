@@ -5,15 +5,19 @@ import { CRAWLING_CLOCK_D20 } from "./crawling-clock-d20.js";
 // A counter starts at 20. Any player rolls a die (default 1d6) and the result is
 // subtracted. At 0 the dungeon stirs; the GM handles the actual encounter.
 //
-// Division of labour:
-//   - The world setting `crawlingClockValue` is the truth. Only the active GM writes it.
-//   - The socket payload is the moment: it makes every open widget move at once,
-//     without waiting on a database write.
+// Division of labour, and why it cannot be flattened:
+//   - The world setting `crawlingClockValue` is the truth, and Foundry makes world
+//     settings read-only to players. Only the active GM can write it, so a player's
+//     click can never reach the truth on its own.
+//   - Hence the socket. It is the only route from the player who clicked to the GM who
+//     can persist, and on the way it moves every open widget at once. It is a relay,
+//     not a latency optimisation over a write the player could have made instead: there
+//     is no such write. Removing it does not simplify the clock, it breaks it.
 //   - Anything that missed a payload (widget closed, reload, late join) self-heals by
 //     snapping to the stored value on the next repaint.
 
+// Also the settings namespace: Foundry scopes a module's settings under its id.
 const CC_MODULE_ID = "foundry-homebrew";
-const CC_NS = "foundry-homebrew";
 const CC_SOCKET = `module.${CC_MODULE_ID}`;
 
 const CC_VALUE_KEY = "crawlingClockValue";
@@ -45,35 +49,57 @@ function ccFigureClass(value) {
 }
 
 function ccStoredValue() {
-    return game.settings.get(CC_NS, CC_VALUE_KEY);
+    return game.settings.get(CC_MODULE_ID, CC_VALUE_KEY);
 }
 
 // Runs on every client that receives a roll, including the roller (sockets do not
 // loop back, so the roller calls this directly with the same payload).
 function ccHandleRoll(payload) {
-    const { rolled, userId } = payload;
+    const { roll, userId } = payload;
 
+    // Serialised rolls carry their total, so moving the widget costs no deserialisation.
+    // Only the GM, who has to build the chat message, rebuilds the Roll itself.
     const app = ccApp();
-    if (app?.rendered) app.applyRoll(rolled, userId);
+    if (app?.rendered) app.applyRoll(roll.total, userId);
 
-    if (game.users.activeGM === game.user) ccPersistRoll(rolled, userId);
+    if (game.users.activeGM === game.user) ccPersistRoll(roll, userId);
 }
 
-// Only the active GM gets here, so the setting is written once and the whisper is
-// created once.
-async function ccPersistRoll(rolled, userId) {
-    const next = Math.max(0, ccStoredValue() - rolled);
-    await game.settings.set(CC_NS, CC_VALUE_KEY, next);
+// Every write to the clock goes through here, GM controls included, so reaching zero
+// announces itself however it was reached. Only a GM ever gets here.
+//
+// A write that changes nothing is dropped rather than sent: it saves the round trip,
+// and it stops the GM's minus at 0 announcing the stirring a second time.
+async function ccSetValue(next) {
+    if (next === ccStoredValue()) return;
 
+    await game.settings.set(CC_MODULE_ID, CC_VALUE_KEY, next);
+    if (next === 0) await ChatMessage.create({ content: "The dungeon stirs." });
+}
+
+// Only the active GM gets here, so the setting is written once and the roll is posted
+// once.
+//
+// The message is the clock's audit trail, and it is how anyone with the widget closed
+// follows the descent. It is a real roll message so the dice stay inspectable, and the
+// flavor says the whole thing in words so the log reads without expanding anything.
+//
+// The GM posts it on the roller's behalf. Only a GM can write the setting, so only a GM
+// knows the resulting value at the moment of writing; letting the player post it would
+// mean publishing their optimistic guess as the record. `author` makes it read as theirs
+// all the same (BaseChatMessage#canCreate lets a GM, and only a GM, do this).
+async function ccPersistRoll(rollData, userId) {
+    const next = Math.max(0, ccStoredValue() - rollData.total);
     const name = game.users.get(userId)?.name ?? "Someone";
-    await ChatMessage.create({
-        content: `${name} rolled ${rolled}. Clock: ${next}.`,
-        whisper: [game.user.id]
-    });
+    const roll = Roll.fromData(rollData);
 
-    if (next === 0) {
-        await ChatMessage.create({ content: "The dungeon stirs." });
-    }
+    // "public" against the GM's own chat mode: a private audit trail is not one.
+    await roll.toMessage({
+        author: userId,
+        flavor: `The Crawling Clock: ${name} rolled a ${rollData.total}. There is now ${next} left.`
+    }, { messageMode: "public" });
+
+    await ccSetValue(next);
 }
 
 // --- Application ---------------------------------------------------------------
@@ -115,20 +141,30 @@ class CrawlingClockApp extends foundry.applications.api.ApplicationV2 {
     }
 
     // Reconcile path: the stored value wins. Guarded by `rendered` at the call site.
+    //
+    // The roll line says how the clock came to read what it reads. If the stored value
+    // agrees with what we painted, this is the write catching up with a roll we already
+    // showed and the line still holds. If it disagrees, the clock moved for some other
+    // reason — a GM reset or nudge — and the line now describes a number that is gone.
     syncValue(value) {
+        if (value !== this._displayed) this._lastRoll = null;
         this._displayed = value;
         this.render();
     }
 
     async _renderHTML(_context, _options) {
+        // Remember what went on screen: syncValue compares against it to tell a roll
+        // catching up from a clock that moved underneath us.
         const value = this._displayed ?? ccStoredValue();
         this._displayed = value;
 
-        const die = game.settings.get(CC_NS, CC_DIE_KEY);
+        const die = game.settings.get(CC_MODULE_ID, CC_DIE_KEY);
 
+        // Empty when there is nothing to say; the stylesheet holds the line's height
+        // open so the widget does not resize under the button.
         const rollLine = this._lastRoll
             ? `${this._lastRoll.name} rolled ${this._lastRoll.rolled}`
-            : "&nbsp;";
+            : "";
 
         const stirs = value === 0
             ? `<div class="crawling-clock__stirs">The dungeon stirs.</div>`
@@ -169,10 +205,7 @@ class CrawlingClockApp extends foundry.applications.api.ApplicationV2 {
     async _onRender(context, options) {
         await super._onRender(context, options);
 
-        const root = this.element instanceof HTMLElement ? this.element : this.element?.[0];
-        if (!root) return;
-
-        root.querySelectorAll("[data-cc-action]").forEach(button => {
+        this.element.querySelectorAll("[data-cc-action]").forEach(button => {
             button.addEventListener("click", () => this._onAction(button.dataset.ccAction));
         });
     }
@@ -189,19 +222,28 @@ class CrawlingClockApp extends foundry.applications.api.ApplicationV2 {
             case "roll":
                 return this._onRoll();
             case "reset":
-                return game.settings.set(CC_NS, CC_VALUE_KEY, CC_CLOCK_MAX);
+                return ccSetValue(CC_CLOCK_MAX);
             case "up":
-                return game.settings.set(CC_NS, CC_VALUE_KEY, Math.min(CC_CLOCK_MAX, ccStoredValue() + 1));
+                return ccSetValue(Math.min(CC_CLOCK_MAX, ccStoredValue() + 1));
             case "down":
-                return game.settings.set(CC_NS, CC_VALUE_KEY, Math.max(0, ccStoredValue() - 1));
+                return ccSetValue(Math.max(0, ccStoredValue() - 1));
         }
     }
 
     async _onRoll() {
-        const die = game.settings.get(CC_NS, CC_DIE_KEY);
-        const roll = await new Roll(die).evaluate();
+        const die = game.settings.get(CC_MODULE_ID, CC_DIE_KEY);
 
-        const payload = { action: "roll", rolled: roll.total, userId: game.user.id };
+        // The die is free text a GM typed. A bad formula must not take the button down
+        // with it, and the player who clicked deserves to know why nothing happened.
+        let roll;
+        try {
+            roll = await new Roll(die).evaluate();
+        } catch {
+            ui.notifications.error(`The Crawling Clock die "${die}" is not a roll formula.`);
+            return;
+        }
+
+        const payload = { action: "roll", roll: roll.toJSON(), userId: game.user.id };
         game.socket.emit(CC_SOCKET, payload);
         ccHandleRoll(payload);
     }
@@ -210,7 +252,7 @@ class CrawlingClockApp extends foundry.applications.api.ApplicationV2 {
 // --- Registration --------------------------------------------------------------
 
 Hooks.once("init", () => {
-    game.settings.register(CC_NS, CC_VALUE_KEY, {
+    game.settings.register(CC_MODULE_ID, CC_VALUE_KEY, {
         name: "Crawling Clock Value",
         scope: "world",
         config: false,
@@ -222,13 +264,19 @@ Hooks.once("init", () => {
         }
     });
 
-    game.settings.register(CC_NS, CC_DIE_KEY, {
+    game.settings.register(CC_MODULE_ID, CC_DIE_KEY, {
         name: "Crawling Clock: Die",
         hint: "The die rolled each round and subtracted from the clock.",
         scope: "world",
         config: true,
         type: String,
-        default: "1d6"
+        default: "1d6",
+        // onChange lands on every client; only the GM who typed it needs telling.
+        onChange: die => {
+            if (game.user.isGM && !Roll.validate(die)) {
+                ui.notifications.warn(`"${die}" is not a roll formula. The Crawling Clock cannot be rolled until it is.`);
+            }
+        }
     });
 
     const module = game.modules.get(CC_MODULE_ID);
