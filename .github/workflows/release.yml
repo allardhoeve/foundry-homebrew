@@ -21,10 +21,14 @@ jobs:
       - name: Install dependencies
         run: npm ci
 
+      # --allow-same-version because the tag and package.json are expected to agree:
+      # module.json's version is what Foundry reads from main to offer an update, so it
+      # is bumped before tagging, and package.json is kept in step with it. Without the
+      # flag npm exits 1 with "Version not changed" and the release never builds.
       - name: Stamp version from git tag
         run: |
           TAG=${GITHUB_REF_NAME#v}
-          npm version "$TAG" --no-git-tag-version
+          npm version "$TAG" --no-git-tag-version --allow-same-version
           sed -i "s/\"version\": \"[^\"]*\"/\"version\": \"$TAG\"/" module/module.json
 
       - name: Build compendium pack
