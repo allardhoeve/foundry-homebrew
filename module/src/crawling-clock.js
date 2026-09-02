@@ -303,12 +303,17 @@ class CrawlingClockApp extends foundry.applications.api.ApplicationV2 {
         this._turnDie();
     }
 
-    // The cogwheel lives in the window header, following the same pattern as the Scarlet
-    // Minotaur window. The header survives a re-render (ApplicationV2 only replaces the
-    // window content), so the button is removed and rebuilt each time rather than
-    // accumulating one per render.
+    // The cogwheel, built the way Foundry builds its own header buttons: the same
+    // `header-control icon fa-solid` classes the frame gives the ellipsis and the close
+    // button, and inserted *before* the close button, which is where core puts its own
+    // supplemental controls (see BackupManager#_onFirstRender). Wearing those classes
+    // means it takes the frame's own sizing, colour and hover for free rather than
+    // needing a stylesheet to win an argument about it.
+    //
+    // The header survives a re-render, because ApplicationV2 replaces only the window
+    // content, so the button is rebuilt each time rather than accumulating one per render.
     _renderCog() {
-        const header = this.element.querySelector(".window-header");
+        const header = this.window?.header ?? this.element.querySelector(".window-header");
         if (!header) return;
 
         header.querySelector(".crawling-clock__cog")?.remove();
@@ -316,24 +321,24 @@ class CrawlingClockApp extends foundry.applications.api.ApplicationV2 {
 
         const cog = document.createElement("button");
         cog.type = "button";
-        cog.className = "crawling-clock__cog";
-        cog.title = "Choose the die";
+        cog.className = "header-control icon fa-solid fa-cog crawling-clock__cog";
+        cog.dataset.tooltip = "Choose the die";
+        cog.setAttribute("aria-label", "Choose the die");
         cog.setAttribute("aria-expanded", String(this._settingsOpen));
-        cog.innerHTML = '<i class="fas fa-cog"></i>';
         cog.addEventListener("click", event => {
             event.preventDefault();
             event.stopPropagation();
             this._settingsOpen = !this._settingsOpen;
             this.render();
         });
-        // The header drag handler treats a double click as "maximise"; swallow it so a
-        // quick second click on the cog does not resize the window.
+        // The header treats a double click as "maximise"; swallow it so a quick second
+        // click on the cog does not resize the window.
         cog.addEventListener("dblclick", event => {
             event.preventDefault();
             event.stopPropagation();
         });
 
-        header.appendChild(cog);
+        header.querySelector("button[data-action=close]")?.before(cog) ?? header.append(cog);
     }
 
     // Turn the die from the face it was rendered on to the one it rolled. Both faces are

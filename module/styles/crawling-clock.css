@@ -228,22 +228,11 @@
     margin-top: 6px;
 }
 
-/* The cogwheel, in the window header beside Foundry's own controls. Quiet until
-   hovered: it is a GM affordance, not part of the round. */
-#crawling-clock .window-header .crawling-clock__cog {
-    background: none;
-    border: none;
-    cursor: pointer;
-    color: #999;
-    font-size: var(--font-size-14);
-    padding: 2px 6px;
-    margin: 0;
-    transition: color 0.3s;
-}
-
-#crawling-clock .window-header .crawling-clock__cog:hover,
+/* The cogwheel wears Foundry's own `header-control icon` classes, so its size, colour
+   and hover come from the window frame and are deliberately not restated here. The only
+   thing added is a cue that the picker below is open. */
 #crawling-clock .window-header .crawling-clock__cog[aria-expanded="true"] {
-    color: #e8dcc8;
+    color: #d4a843;
 }
 
 /* The die picker. A quiet footer under the GM controls, per the design guide: it is
