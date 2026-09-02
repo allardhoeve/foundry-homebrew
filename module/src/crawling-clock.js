@@ -271,11 +271,18 @@ Hooks.once("init", () => {
         config: true,
         type: String,
         default: "1d6",
-        // onChange lands on every client; only the GM who typed it needs telling.
+        // onChange lands on every client. The warning is for the GM who typed it; the
+        // repaint is for everyone, so no one is left looking at a button advertising the
+        // old die. Both reads of the setting are live, so the roll was always correct
+        // even when the label was stale, which is why this is a cosmetic fix and not a
+        // behavioural one.
         onChange: die => {
             if (game.user.isGM && !Roll.validate(die)) {
                 ui.notifications.warn(`"${die}" is not a roll formula. The Crawling Clock cannot be rolled until it is.`);
             }
+
+            const app = ccApp();
+            if (app?.rendered) app.render();
         }
     });
 
