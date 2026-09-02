@@ -228,6 +228,75 @@
     margin-top: 6px;
 }
 
+/* The cogwheel, in the window header beside Foundry's own controls. Quiet until
+   hovered: it is a GM affordance, not part of the round. */
+#crawling-clock .window-header .crawling-clock__cog {
+    background: none;
+    border: none;
+    cursor: pointer;
+    color: #999;
+    font-size: var(--font-size-14);
+    padding: 2px 6px;
+    margin: 0;
+    transition: color 0.3s;
+}
+
+#crawling-clock .window-header .crawling-clock__cog:hover,
+#crawling-clock .window-header .crawling-clock__cog[aria-expanded="true"] {
+    color: #e8dcc8;
+}
+
+/* The die picker. A quiet footer under the GM controls, per the design guide: it is
+   configuration, so it sits below the actions rather than between them and the die. */
+.crawling-clock__settings {
+    position: relative;
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    width: 100%;
+    margin-top: 6px;
+}
+
+/* Suppressing the platform control took its arrow with it, so the select had no sign it
+   opened. This puts one back. pointer-events: none, or it swallows the click that is
+   meant to open the menu underneath it. */
+.crawling-clock__settings::after {
+    content: "";
+    position: absolute;
+    right: 9px;
+    top: 50%;
+    margin-top: -2px;
+    border-left: 4px solid transparent;
+    border-right: 4px solid transparent;
+    border-top: 5px solid #b0a898;
+    pointer-events: none;
+}
+
+.crawling-clock__settings label {
+    font-size: var(--font-size-12);
+    color: #b0a898;
+}
+
+.crawling-clock__settings select {
+    flex: 1;
+    /* Without this the platform draws its own control and ignores the background, which
+       lands a white box in the middle of a near-black panel. */
+    appearance: none;
+    background: transparent;
+    border: 1px solid #3a3a3e;
+    border-radius: 3px;
+    padding: 3px 20px 3px 6px;
+    color: #b0a898;
+    font-size: var(--font-size-12);
+}
+
+/* The open menu is drawn by the platform, so its options need a ground of their own or
+   they inherit the transparent one and come out unreadable. */
+.crawling-clock__settings option {
+    background: #1a1a1e;
+    color: #e8dcc8;
+}
+
 .crawling-clock__gm button {
     flex: 1;
     background: transparent;

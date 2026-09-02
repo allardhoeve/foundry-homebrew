@@ -38,6 +38,11 @@ const CC_DIE_KEY = "crawlingClockDie";
 const CC_CLOCK_MAX = CRAWLING_CLOCK_D20_MAX;
 const CC_CLOCK_MIN = CRAWLING_CLOCK_D20_MIN;
 
+// The dice the cogwheel offers. The setting itself stays free text, because a GM who
+// wants 2d4 should still be able to type it in the module settings; these are the ones
+// worth reaching for mid-session without leaving the table.
+const CC_DIE_PRESETS = ["1d3", "1d4", "1d6", "1d8", "1d10", "1d12"];
+
 // --- Module-scope helpers ------------------------------------------------------
 //
 // The socket handler lives here, not on the Application. The GM must keep persisting
@@ -81,6 +86,16 @@ function ccDieMarkup(value) {
     return `<div class="cc-d20-3d">
                 <div class="cc-d20-3d__body cc-d20-3d__body--to${value}" data-cc-face="${value}">${faces}</div>
             </div>`;
+}
+
+// What the cogwheel's picker offers, given what the clock is currently rolling.
+//
+// The presets, plus the current die when it is not one of them. The setting is free text
+// and a GM may well have typed 2d4 into the module settings; dropping it here would make
+// the picker misreport what the clock is rolling, and picking any option would silently
+// discard their formula.
+function ccDieOptions(die) {
+    return CC_DIE_PRESETS.includes(die) ? CC_DIE_PRESETS : [...CC_DIE_PRESETS, die];
 }
 
 // Runs on every client that receives a roll, including the roller (sockets do not
@@ -155,6 +170,9 @@ class CrawlingClockApp extends foundry.applications.api.ApplicationV2 {
     // The value the die should be facing when the next render starts, so it has
     // somewhere to turn *from*. Null means paint the die already landed.
     _spinFrom = null;
+
+    // Whether the GM's die picker is showing. Local and GM-only.
+    _settingsOpen = false;
 
     toggleInterface() {
         if (this.rendered) {
@@ -234,6 +252,16 @@ class CrawlingClockApp extends foundry.applications.api.ApplicationV2 {
                </div>`
             : "";
 
+        // Only a GM can write a world setting, so only a GM is offered the picker.
+        const settings = game.user.isGM && this._settingsOpen
+            ? `<div class="crawling-clock__settings">
+                   <label for="cc-die-select">Die</label>
+                   <select id="cc-die-select" data-cc-die>
+                       ${ccDieOptions(die).map(d => `<option value="${d}"${d === die ? " selected" : ""}>${d}</option>`).join("")}
+                   </select>
+               </div>`
+            : "";
+
         // State lives on the container so the die and the number restyle together.
         let stateClass = "";
         if (value === CC_CLOCK_MIN) stateClass = " crawling-clock--stirs";
@@ -249,6 +277,7 @@ class CrawlingClockApp extends foundry.applications.api.ApplicationV2 {
             <button type="button" class="crawling-clock__roll" data-cc-action="roll"
                     ${value === CC_CLOCK_MIN ? "disabled" : ""}>Roll ${die}</button>
             ${gmControls}
+            ${settings}
         </div>`;
         return container;
     }
@@ -264,7 +293,47 @@ class CrawlingClockApp extends foundry.applications.api.ApplicationV2 {
             button.addEventListener("click", () => this._onAction(button.dataset.ccAction));
         });
 
+        // Writing a world setting is a GM-only act, and the picker is only rendered for a
+        // GM, so this listener can only ever be reached by one.
+        this.element.querySelector("[data-cc-die]")?.addEventListener("change", event => {
+            game.settings.set(CC_MODULE_ID, CC_DIE_KEY, event.target.value);
+        });
+
+        this._renderCog();
         this._turnDie();
+    }
+
+    // The cogwheel lives in the window header, following the same pattern as the Scarlet
+    // Minotaur window. The header survives a re-render (ApplicationV2 only replaces the
+    // window content), so the button is removed and rebuilt each time rather than
+    // accumulating one per render.
+    _renderCog() {
+        const header = this.element.querySelector(".window-header");
+        if (!header) return;
+
+        header.querySelector(".crawling-clock__cog")?.remove();
+        if (!game.user.isGM) return;
+
+        const cog = document.createElement("button");
+        cog.type = "button";
+        cog.className = "crawling-clock__cog";
+        cog.title = "Choose the die";
+        cog.setAttribute("aria-expanded", String(this._settingsOpen));
+        cog.innerHTML = '<i class="fas fa-cog"></i>';
+        cog.addEventListener("click", event => {
+            event.preventDefault();
+            event.stopPropagation();
+            this._settingsOpen = !this._settingsOpen;
+            this.render();
+        });
+        // The header drag handler treats a double click as "maximise"; swallow it so a
+        // quick second click on the cog does not resize the window.
+        cog.addEventListener("dblclick", event => {
+            event.preventDefault();
+            event.stopPropagation();
+        });
+
+        header.appendChild(cog);
     }
 
     // Turn the die from the face it was rendered on to the one it rolled. Both faces are
@@ -295,6 +364,7 @@ class CrawlingClockApp extends foundry.applications.api.ApplicationV2 {
         this._displayed = null;
         this._lastRoll = null;
         this._spinFrom = null;
+        this._settingsOpen = false;
     }
 
     async _onAction(action) {
@@ -369,6 +439,7 @@ Hooks.once("init", () => {
     const module = game.modules.get(CC_MODULE_ID);
     module.api ??= {};
     module.api.crawlingClock = new CrawlingClockApp();
+    module.api.dieOptions = ccDieOptions;
 });
 
 Hooks.once("ready", () => {

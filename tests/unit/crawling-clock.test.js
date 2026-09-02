@@ -95,6 +95,28 @@ describe("the Crawling Clock widget", () => {
         });
     });
 
+    describe("the die picker", () => {
+        const options = () => game.modules.get(MODULE_ID).api.dieOptions;
+
+        it("offers the presets", () => {
+            assert.deepEqual(options()("1d6"), ["1d3", "1d4", "1d6", "1d8", "1d10", "1d12"]);
+        });
+
+        // The setting is free text and a GM may have typed something the presets do not
+        // cover. Dropping it would make the picker misreport what the clock is rolling,
+        // and choosing any option would silently discard their formula.
+        it("keeps a hand-typed die that is not a preset", () => {
+            const list = options()("2d4");
+            assert.ok(list.includes("2d4"), "the current die vanished from its own picker");
+            assert.equal(list.length, 7);
+        });
+
+        it("does not list a preset twice", () => {
+            const list = options()("1d10");
+            assert.equal(new Set(list).size, list.length);
+        });
+    });
+
     describe("reconciling against the stored value", () => {
         // The regression this exists for: every roll ends with the GM persisting it,
         // which lands back on every client — the roller included — a few tens of
