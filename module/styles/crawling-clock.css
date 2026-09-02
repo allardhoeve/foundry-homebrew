@@ -3,6 +3,10 @@
  * Palette and type follow docs/ui-design-guide.md: #1a1a1e ground, #e8dcc8 parchment,
  * amber primary. The die is inline SVG (tools/d20/generate-d20.py) so its strokes can
  * take the state colours — an <img> could not be restyled.
+ *
+ * The die is a real icosahedron in CSS 3D: twenty face elements, each turned into its
+ * own plane. Its geometry — every transform, every light level — is generated into
+ * crawling-clock-d20.css. This file is the look: colour, ink, type, state.
  */
 
 #crawling-clock {
@@ -17,6 +21,12 @@
        number keeps its fit at any size. */
     --cc-die-size: 180px;
 
+    /* How long the die takes to turn to the rolled number, and how it settles. The ease
+       overshoots a little, so the die arrives and rocks back rather than gliding to a
+       halt -- which is the difference between a die landing and a dial moving. */
+    --cc-spin-duration: 700ms;
+    --cc-spin-ease: cubic-bezier(0.34, 1.16, 0.64, 1);
+
     display: flex;
     flex-direction: column;
     align-items: center;
@@ -25,57 +35,123 @@
 
 /* --- The die ------------------------------------------------------------- */
 
+/* How much light a face catches, 0 to 1. Registered so it interpolates: the generated
+   stylesheet sets it per face per orientation, so declaring it a number is what makes
+   the light sweep across the die as it turns instead of snapping at the end. */
+@property --cc-face-lit {
+    syntax: "<number>";
+    inherits: true;
+    initial-value: 0.5;
+}
+
 .crawling-clock__die {
     position: relative;
     width: var(--cc-die-size);
+    height: var(--cc-die-size);
 }
 
-.crawling-clock .cc-d20 {
+.cc-d20-3d {
+    width: 100%;
+    height: 100%;
+    perspective: var(--cc-d20-perspective);
+}
+
+/* The one moving part. Swapping this element's --to<value> class is the whole
+   animation: both classes are 3D matrices, so the browser decomposes them and slerps
+   the rotation, taking the short way round to the new face on its own. */
+.cc-d20-3d__body {
+    position: absolute;
+    inset: 0;
+    transform-style: preserve-3d;
+    transition: transform var(--cc-spin-duration, 700ms) var(--cc-spin-ease, cubic-bezier(0.34, 1.16, 0.64, 1));
+}
+
+/* Positioned so the triangle's *centroid* sits at the die's centre, because that is the
+   point the generated transforms rotate about — 2/3 down the box, not half. */
+.cc-d20-3d__face {
+    position: absolute;
+    left: 50%;
+    top: 50%;
+    width: var(--cc-d20-face-w);
+    height: var(--cc-d20-face-h);
+    margin-left: calc(var(--cc-d20-face-w) / -2);
+    margin-top: calc(var(--cc-d20-face-h) * -2 / 3);
+    transform-origin: 50% 66.6667%;
+    /* The ten faces pointing away are the far side of a solid. Culling them is what
+       makes this read as one rather than as twenty triangles. */
+    backface-visibility: hidden;
+    transition: --cc-face-lit var(--cc-spin-duration, 700ms) linear;
+}
+
+.cc-d20-3d__art {
     display: block;
     width: 100%;
-    height: auto;
+    height: 100%;
 }
 
-.crawling-clock .cc-d20__hatch path {
+/* The facet itself: parchment turned right down, so a lit face lifts off the ground
+   colour and an unlit one all but vanishes into it. */
+.cc-d20-3d__plate {
+    fill: #e8dcc8;
+    fill-opacity: calc(0.02 + 0.07 * var(--cc-face-lit));
+}
+
+.cc-d20-3d__hatch path {
     stroke: #e8dcc8;
-    stroke-width: 0.5;
+    stroke-width: var(--cc-d20-hatch-width);
     stroke-linecap: round;
     fill: none;
-    opacity: 0.55;
+    opacity: calc(0.15 + 0.55 * var(--cc-face-lit));
 }
 
-.crawling-clock .cc-d20__edges path {
+.cc-d20-3d__edges path {
     stroke: #e8dcc8;
-    stroke-width: 1.4;
+    stroke-width: var(--cc-d20-edge-width);
     stroke-linecap: round;
     fill: none;
+    opacity: calc(0.5 + 0.5 * var(--cc-face-lit));
 }
 
-/* Seated on the die's bare centre facet. This rule holds the layout; the per-value table
-   below supplies each number's position and, where it needs one, its size. */
+/* Seated on its own facet. This rule holds the layout; the per-value table below
+   supplies each number's position and, where it needs one, its size. */
 .crawling-clock__value {
     position: absolute;
     left: 0;
     right: 0;
-    top: 55%;
+    top: var(--cc-d20-figure-top);
     transform: translateY(calc(-50% + var(--cc-figure-shift, -0.156em)));
     text-align: center;
     font-family: "JSL Blackletter", serif;
-    /* Sized in the die's own viewBox units (0-100 across), which is how the fit below
-       was measured, then scaled to whatever the die is drawn at. */
-    font-size: calc(var(--cc-die-size) * var(--cc-figure-size, 26.67) / 100);
+    /* Sized in the die's own units (0-100 across it), which is how the fit below was
+       measured, then scaled to whatever the die is drawn at. --cc-d20-figure-scale
+       takes perspective back out: the fitting was measured on the magnified front
+       face, but this element is drawn before the magnification is applied. */
+    font-size: calc(var(--cc-die-size) * var(--cc-figure-size, 26.67) / 100 * var(--cc-d20-figure-scale));
     line-height: 1;
     color: #e8dcc8;
+    opacity: calc(0.35 + 0.65 * var(--cc-face-lit));
 }
 
-/* Per-value fitting. The clock only ever shows 0-20, so each number is placed against
- * the die's centre facet individually — see ccFigureClass() in crawling-clock.js.
+@media (prefers-reduced-motion: reduce) {
+    .cc-d20-3d__body,
+    .cc-d20-3d__face {
+        transition: none;
+    }
+}
+
+/* Per-value fitting. The clock only ever shows 1-20 and the die has exactly twenty
+ * faces, so every number here is inked on a face of its own — see ccFigureClass() in
+ * crawling-clock.js.
  *
  * How these were derived, so they can be re-derived if the die or the type changes:
  * the facet runs from its apex at y 21.5 to its base at 64.3 and is 49.3 wide there
  * (generator coordinates, viewBox units). Each number's ink box was measured from the
  * font, then placed with its centre on the facet's centroid (y 50.03) and sized to the
  * largest that keeps 1.6 units of clearance from the base and the sloping sides.
+ *
+ * The table survived the move to a 3D die because the generator was made to preserve
+ * what it was fitted against: the solid is scaled until its front face, once perspective
+ * has magnified it, projects to exactly that 49.3-unit facet. Nothing here had to move.
  *
  * Two consequences worth knowing before changing anything. The facet narrows towards
  * the apex, so raising a number forces it smaller — targeting 3 units higher made seven
@@ -87,7 +163,6 @@
  * width, so the whole table survives a change to --cc-die-size untouched.
  *
  * Nudge an individual number here. Nothing else needs to change. */
-.crawling-clock__value--v0  { --cc-figure-shift: -0.156em; }
 .crawling-clock__value--v1  { --cc-figure-shift: -0.158em; }
 .crawling-clock__value--v2  { --cc-figure-shift: -0.157em; }
 .crawling-clock__value--v3  { --cc-figure-shift: -0.263em; }
@@ -152,9 +227,9 @@
 }
 
 /* --- States --------------------------------------------------------------
- * One signal at a time (design guide): low colours the number only, and the die
- * is left alone. Zero is the exception — the whole die turns, because that is the
- * moment the table is meant to notice. */
+ * One signal at a time (design guide): low colours the numbers only, and the die
+ * is left alone. The floor is the exception — the whole die turns, because that is
+ * the moment the table is meant to notice. */
 
 .crawling-clock--low .crawling-clock__value {
     color: #cc6666;
@@ -164,15 +239,15 @@
     color: #cc4444;
 }
 
-.crawling-clock--stirs .cc-d20__edges path {
+.crawling-clock--stirs .cc-d20-3d__edges path {
     stroke: #cc4444;
 }
 
-.crawling-clock--stirs .cc-d20__hatch path {
-    opacity: 0.28;
+.crawling-clock--stirs .cc-d20-3d__hatch path {
+    opacity: calc(0.08 + 0.28 * var(--cc-face-lit));
 }
 
-/* At zero the roll is disabled in the markup; this is only the matching cue.
+/* At 1 the roll is disabled in the markup; this is only the matching cue.
    The GM's Reset is the way forward. */
 .crawling-clock__roll:disabled {
     opacity: 0.4;

@@ -1,9 +1,14 @@
-import { CRAWLING_CLOCK_D20 } from "./crawling-clock-d20.js";
+import {
+    CRAWLING_CLOCK_D20_ART,
+    CRAWLING_CLOCK_D20_VALUES,
+    CRAWLING_CLOCK_D20_MIN,
+    CRAWLING_CLOCK_D20_MAX
+} from "./crawling-clock-d20.js";
 
 // The Crawling Clock — a shared, player-visible dungeon timer.
 //
 // A counter starts at 20. Any player rolls a die (default 1d6) and the result is
-// subtracted. At 0 the dungeon stirs; the GM handles the actual encounter.
+// subtracted. At 1 the dungeon stirs; the GM handles the actual encounter.
 //
 // Division of labour, and why it cannot be flattened:
 //   - The world setting `crawlingClockValue` is the truth, and Foundry makes world
@@ -23,9 +28,15 @@ const CC_SOCKET = `module.${CC_MODULE_ID}`;
 const CC_VALUE_KEY = "crawlingClockValue";
 const CC_DIE_KEY = "crawlingClockDie";
 
-// The clock is a d20 and starts at 20. Not configurable: any other number would make
-// the die on the widget a lie. What the GM can change is the die that decrements it.
-const CC_CLOCK_MAX = 20;
+// The clock is a d20, so it runs across the die's own faces: 20 down to 1, one value per
+// face. Not configurable — any other range would make the die on the widget a lie — and
+// taken from the die itself so the two can never drift apart. What the GM can change is
+// the die that decrements it.
+//
+// The floor is 1 rather than 0 because 1 is where the encounter happens, and because a
+// twenty-faced die has no face to show a 0 on.
+const CC_CLOCK_MAX = CRAWLING_CLOCK_D20_MAX;
+const CC_CLOCK_MIN = CRAWLING_CLOCK_D20_MIN;
 
 // --- Module-scope helpers ------------------------------------------------------
 //
@@ -41,15 +52,35 @@ function ccApp() {
 // *ink* sits somewhere different, so centring the text box leaves the number visibly
 // off-centre on the die's facet.
 //
-// The clock only ever shows 0-20, so each value gets its own class and the stylesheet
+// The clock only ever shows 1-20, so each value gets its own class and the stylesheet
 // holds a position (and where needed a size) fitted to that exact number. See the table
 // in crawling-clock.css for how those were derived.
 function ccFigureClass(value) {
     return `crawling-clock__value--v${value}`;
 }
 
+// Clamped on the way out, because the stored value predates the floor moving to 1: a
+// world that was already sitting on 0 would otherwise ask the die to show a face it does
+// not have. The next write settles it for good.
 function ccStoredValue() {
-    return game.settings.get(CC_MODULE_ID, CC_VALUE_KEY);
+    const stored = game.settings.get(CC_MODULE_ID, CC_VALUE_KEY);
+    return Math.min(CC_CLOCK_MAX, Math.max(CC_CLOCK_MIN, stored));
+}
+
+// The die's twenty faces, each inked with its own number, and the body turned to bring
+// `value` to the front. Every transform lives in crawling-clock-d20.css; this only picks
+// which orientation class the body wears.
+function ccDieMarkup(value) {
+    const faces = CRAWLING_CLOCK_D20_ART.map((art, face) => {
+        const number = CRAWLING_CLOCK_D20_VALUES[face];
+        return `<div class="cc-d20-3d__face cc-d20-3d__face--f${face}">${art}
+                    <div class="crawling-clock__value ${ccFigureClass(number)}">${number}</div>
+                </div>`;
+    }).join("");
+
+    return `<div class="cc-d20-3d">
+                <div class="cc-d20-3d__body cc-d20-3d__body--to${value}" data-cc-face="${value}">${faces}</div>
+            </div>`;
 }
 
 // Runs on every client that receives a roll, including the roller (sockets do not
@@ -65,16 +96,16 @@ function ccHandleRoll(payload) {
     if (game.users.activeGM === game.user) ccPersistRoll(roll, userId);
 }
 
-// Every write to the clock goes through here, GM controls included, so reaching zero
-// announces itself however it was reached. Only a GM ever gets here.
+// Every write to the clock goes through here, GM controls included, so reaching the
+// floor announces itself however it was reached. Only a GM ever gets here.
 //
 // A write that changes nothing is dropped rather than sent: it saves the round trip,
-// and it stops the GM's minus at 0 announcing the stirring a second time.
+// and it stops the GM's minus at 1 announcing the stirring a second time.
 async function ccSetValue(next) {
     if (next === ccStoredValue()) return;
 
     await game.settings.set(CC_MODULE_ID, CC_VALUE_KEY, next);
-    if (next === 0) await ChatMessage.create({ content: "The dungeon stirs." });
+    if (next === CC_CLOCK_MIN) await ChatMessage.create({ content: "The dungeon stirs." });
 }
 
 // Only the active GM gets here, so the setting is written once and the roll is posted
@@ -89,7 +120,7 @@ async function ccSetValue(next) {
 // mean publishing their optimistic guess as the record. `author` makes it read as theirs
 // all the same (BaseChatMessage#canCreate lets a GM, and only a GM, do this).
 async function ccPersistRoll(rollData, userId) {
-    const next = Math.max(0, ccStoredValue() - rollData.total);
+    const next = Math.max(CC_CLOCK_MIN, ccStoredValue() - rollData.total);
     const name = game.users.get(userId)?.name ?? "Someone";
     const roll = Roll.fromData(rollData);
 
@@ -121,6 +152,10 @@ class CrawlingClockApp extends foundry.applications.api.ApplicationV2 {
     // Local, ephemeral: { name, rolled } from the last payload seen.
     _lastRoll = null;
 
+    // The value the die should be facing when the next render starts, so it has
+    // somewhere to turn *from*. Null means paint the die already landed.
+    _spinFrom = null;
+
     toggleInterface() {
         if (this.rendered) {
             this.close();
@@ -129,10 +164,12 @@ class CrawlingClockApp extends foundry.applications.api.ApplicationV2 {
         }
     }
 
-    // Live path: a roll arrived. Tick down from what we last painted.
+    // Live path: a roll arrived. Tick down from what we last painted, and remember where
+    // the die was so it can be seen turning off it.
     applyRoll(rolled, userId) {
         const current = this._displayed ?? ccStoredValue();
-        this._displayed = Math.max(0, current - rolled);
+        this._displayed = Math.max(CC_CLOCK_MIN, current - rolled);
+        this._spinFrom = current;
         this._lastRoll = {
             name: game.users.get(userId)?.name ?? "Someone",
             rolled
@@ -146,9 +183,13 @@ class CrawlingClockApp extends foundry.applications.api.ApplicationV2 {
     // agrees with what we painted, this is the write catching up with a roll we already
     // showed and the line still holds. If it disagrees, the clock moved for some other
     // reason — a GM reset or nudge — and the line now describes a number that is gone.
+    //
+    // This path snaps. It is the write catching up, or a correction, and neither is a
+    // roll; a die that turned here would be animating something that already happened.
     syncValue(value) {
         if (value !== this._displayed) this._lastRoll = null;
         this._displayed = value;
+        this._spinFrom = null;
         this.render();
     }
 
@@ -158,6 +199,13 @@ class CrawlingClockApp extends foundry.applications.api.ApplicationV2 {
         const value = this._displayed ?? ccStoredValue();
         this._displayed = value;
 
+        // The die goes into the markup facing where it *was*, and _onRender turns it to
+        // where it is. Painting the landed face straight away would be a jump: a fresh
+        // element has no previous orientation for the browser to transition from.
+        const spinFrom = this._spinFrom;
+        this._spinFrom = null;
+        const spins = spinFrom !== null && spinFrom !== value;
+
         const die = game.settings.get(CC_MODULE_ID, CC_DIE_KEY);
 
         // Empty when there is nothing to say; the stylesheet holds the line's height
@@ -166,7 +214,7 @@ class CrawlingClockApp extends foundry.applications.api.ApplicationV2 {
             ? `${this._lastRoll.name} rolled ${this._lastRoll.rolled}`
             : "";
 
-        const stirs = value === 0
+        const stirs = value === CC_CLOCK_MIN
             ? `<div class="crawling-clock__stirs">The dungeon stirs.</div>`
             : "";
 
@@ -180,19 +228,18 @@ class CrawlingClockApp extends foundry.applications.api.ApplicationV2 {
 
         // State lives on the container so the die and the number restyle together.
         let stateClass = "";
-        if (value === 0) stateClass = " crawling-clock--stirs";
+        if (value === CC_CLOCK_MIN) stateClass = " crawling-clock--stirs";
         else if (value <= 6) stateClass = " crawling-clock--low";
 
         const container = document.createElement("div");
         container.innerHTML = `<div class="crawling-clock${stateClass}">
-            <div class="crawling-clock__die">
-                ${CRAWLING_CLOCK_D20}
-                <div class="crawling-clock__value ${ccFigureClass(value)}">${value}</div>
+            <div class="crawling-clock__die"${spins ? ` data-cc-spin-to="${value}"` : ""}>
+                ${ccDieMarkup(spins ? spinFrom : value)}
             </div>
             ${stirs}
             <div class="crawling-clock__roll-line">${rollLine}</div>
             <button type="button" class="crawling-clock__roll" data-cc-action="roll"
-                    ${value === 0 ? "disabled" : ""}>Roll ${die}</button>
+                    ${value === CC_CLOCK_MIN ? "disabled" : ""}>Roll ${die}</button>
             ${gmControls}
         </div>`;
         return container;
@@ -208,6 +255,29 @@ class CrawlingClockApp extends foundry.applications.api.ApplicationV2 {
         this.element.querySelectorAll("[data-cc-action]").forEach(button => {
             button.addEventListener("click", () => this._onAction(button.dataset.ccAction));
         });
+
+        this._turnDie();
+    }
+
+    // Turn the die from the face it was rendered on to the one it rolled. Both faces are
+    // classes in the generated stylesheet, so all that happens here is a class swap; the
+    // browser reads both as 3D matrices and slerps between them.
+    //
+    // Two frames, not one. The first lets the browser take the rendered orientation as
+    // the element's computed style — without it there is no previous value to leave, and
+    // the swap is a jump.
+    _turnDie() {
+        const die = this.element.querySelector("[data-cc-spin-to]");
+        if (!die) return;
+
+        const body = die.querySelector(".cc-d20-3d__body");
+        const from = body.dataset.ccFace;
+        const to = die.dataset.ccSpinTo;
+
+        requestAnimationFrame(() => requestAnimationFrame(() => {
+            body.classList.replace(`cc-d20-3d__body--to${from}`, `cc-d20-3d__body--to${to}`);
+            body.dataset.ccFace = to;
+        }));
     }
 
     async _onClose(options) {
@@ -215,6 +285,7 @@ class CrawlingClockApp extends foundry.applications.api.ApplicationV2 {
         // Reopening should show the truth, not whatever this client last painted.
         this._displayed = null;
         this._lastRoll = null;
+        this._spinFrom = null;
     }
 
     async _onAction(action) {
@@ -226,7 +297,7 @@ class CrawlingClockApp extends foundry.applications.api.ApplicationV2 {
             case "up":
                 return ccSetValue(Math.min(CC_CLOCK_MAX, ccStoredValue() + 1));
             case "down":
-                return ccSetValue(Math.max(0, ccStoredValue() - 1));
+                return ccSetValue(Math.max(CC_CLOCK_MIN, ccStoredValue() - 1));
         }
     }
 

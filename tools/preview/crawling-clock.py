@@ -1,4 +1,4 @@
-"""Build the Crawling Clock reference page: every value 0-20, outside Foundry.
+"""Build the Crawling Clock reference page: every value 1-20, outside Foundry.
 
 The page it produces is the artefact — `docs/design/crawling-clock-values.html`, committed
 and self-contained, openable by double-clicking with no server and no Foundry running.
@@ -6,11 +6,16 @@ This script exists only to rebuild it after `crawling-clock.css` or the die chan
 
     uv run python tools/preview/crawling-clock.py     # or: npm run preview:clock
 
-The page draws all 21 values plus the low and stirs states from the **shipped** stylesheet
-and the **generated** die, at the real 180px width. A checkbox overlays the die's centre
-facet in red and the target ink centre in blue — that is the view the counter's per-value
-fitting was judged against, and the one to reach for when a number looks wrong: it shows
-whether it is off-centre or simply too big for the plate.
+The page draws all 20 values plus the low and stirs states from the **shipped** stylesheet
+and the **generated** die, at the real 180px width. It also drives the real rotation: the
+demo at the top swaps the same orientation class the widget swaps, so the turn can be
+judged here rather than in Foundry.
+
+A checkbox overlays the die's centre facet in red and the target ink centre in blue — that
+is the view the counter's per-value fitting was judged against, and the one to reach for
+when a number looks wrong: it shows whether it is off-centre or simply too big for the
+plate. It doubles as a check on the geometry: the solid is scaled so that its front face,
+once perspective has magnified it, lands exactly inside that red outline.
 
 The font is JSL Blackletter, which ships with the Shadowdark system rather than with us. It
 is embedded as a data URI so the page stands alone. Its licence permits free distribution
@@ -20,12 +25,14 @@ beside the page and must stay there.
 
 import base64
 import pathlib
+import re
 import shutil
 import subprocess
 import sys
 
 REPO = pathlib.Path(__file__).resolve().parents[2]
 CSS = REPO / "module/styles/crawling-clock.css"
+DIE_CSS = REPO / "module/styles/crawling-clock-d20.css"
 DIE_JS = REPO / "module/src/crawling-clock-d20.js"
 
 OUT_DIR = REPO / "docs/design"
@@ -39,6 +46,9 @@ FONT_IN_CONTAINER = "/data/Data/systems/shadowdark/fonts"
 # The centre facet, from tools/d20/generate-d20.py.
 FACET = "25.3,64.3 50.4,21.5 74.6,64.3"
 FACET_CENTROID_Y = (21.5 + 64.3 + 64.3) / 3
+
+# The clock runs across the die's faces, one value each.
+MIN, MAX = 1, 20
 
 
 def font_files():
@@ -58,31 +68,44 @@ def font_files():
     return ttf.read_bytes(), txt.read_text(errors="replace")
 
 
-def die_svg():
-    """The generated die, lifted out of the JS module's template literal."""
-    return DIE_JS.read_text().split("`", 1)[1].rsplit("`", 1)[0]
+def die_parts():
+    """The generated face artwork and its numbering, lifted out of the JS module."""
+    js = DIE_JS.read_text()
+    art = re.findall(r"`(<svg.*?</svg>)`", js, re.S)
+    numbers = [int(n) for n in
+               re.search(r"D20_VALUES = \[([^\]]+)\]", js).group(1).split(",")]
+    assert len(art) == len(numbers) == 20, (len(art), len(numbers))
+    return art, numbers
+
+
+def die(value, art, numbers):
+    """Mirrors ccDieMarkup() in crawling-clock.js. Keep the two in step."""
+    faces = "".join(
+        f'<div class="cc-d20-3d__face cc-d20-3d__face--f{i}">{svg}'
+        f'<div class="crawling-clock__value crawling-clock__value--v{n}">{n}</div></div>'
+        for i, (svg, n) in enumerate(zip(art, numbers)))
+    return (f'<div class="cc-d20-3d"><div class="cc-d20-3d__body cc-d20-3d__body--to{value}" '
+            f'data-cc-face="{value}">{faces}</div></div>')
 
 
 def state_class(value):
-    """Mirrors the widget: 0 is stirs, 6 and under is low."""
-    if value == 0:
+    """Mirrors the widget: 1 is stirs, 6 and under is low."""
+    if value == MIN:
         return " crawling-clock--stirs"
     return " crawling-clock--low" if value <= 6 else ""
 
 
-def widget(value, svg):
+def widget(value, art, numbers):
     stirs = ('<div class="crawling-clock__stirs">The dungeon stirs.</div>'
-             if value == 0 else "")
-    disabled = " disabled" if value == 0 else ""
+             if value == MIN else "")
+    disabled = " disabled" if value == MIN else ""
     guides = (f'<svg class="pv-guide" viewBox="0 0 100 100">'
               f'<polygon points="{FACET}"/>'
               f'<line x1="20" y1="{FACET_CENTROID_Y:.2f}" '
               f'x2="80" y2="{FACET_CENTROID_Y:.2f}"/></svg>')
     return f"""<div class="pv-cell">
   <div id="crawling-clock"><div class="crawling-clock{state_class(value)}">
-    <div class="crawling-clock__die">{svg}{guides}
-      <div class="crawling-clock__value crawling-clock__value--v{value}">{value}</div>
-    </div>
+    <div class="crawling-clock__die">{die(value, art, numbers)}{guides}</div>
     {stirs}
     <div class="crawling-clock__roll-line">Player2 rolled 4</div>
     <button type="button" class="crawling-clock__roll"{disabled}>Roll 1d6</button>
@@ -97,8 +120,9 @@ def widget(value, svg):
 
 def main():
     ttf, licence = font_files()
-    svg = die_svg()
-    cells = "\n".join(widget(v, svg) for v in range(20, -1, -1))
+    art, numbers = die_parts()
+    cells = "\n".join(widget(v, art, numbers) for v in range(MAX, MIN - 1, -1))
+    demo = die(MAX, art, numbers)
 
     OUT_DIR.mkdir(parents=True, exist_ok=True)
     FONT_LICENCE.write_text(licence)
@@ -124,12 +148,23 @@ h1 {{ color: #e8dcc8; font-size: 15px; font-weight: normal; margin: 0 0 6px; }}
 .pv-toggle {{ color: #b0a898; font-size: 12px; display: block; margin: 0 0 16px;
               cursor: pointer; user-select: none; }}
 .pv-grid {{ display: grid; grid-template-columns: repeat(7, 1fr); gap: 8px; }}
+.pv-demo {{ display: flex; align-items: center; gap: 18px; margin: 0 0 18px;
+            padding: 14px; border: 1px solid #26262b; border-radius: 4px; }}
+.pv-demo #crawling-clock {{ width: 200px; }}
+.pv-demo button {{ background: transparent; border: 1px solid #c9a54a; border-radius: 3px;
+                   padding: 7px 14px; color: #d4a843; font: inherit; font-size: 12px;
+                   cursor: pointer; }}
+.pv-demo p {{ color: #7a7a80; font-size: 12px; margin: 0; max-width: 46ch;
+              line-height: 1.5; }}
 .pv-cell #crawling-clock {{ width: 100%; }}
 .pv-label {{ color: #5a5a60; font-size: 11px; text-align: center; margin-top: 2px; }}
 .pv-guide {{ position: absolute; inset: 0; width: 100%; height: 100%; display: none; }}
 .pv-guide polygon {{ fill: none; stroke: #cc4444; stroke-width: .5; opacity: .85; }}
 .pv-guide line {{ stroke: #4488cc; stroke-width: .5; opacity: .9; }}
 #pv-guides:checked ~ .pv-grid .pv-guide {{ display: block; }}
+
+/* ---- module/styles/crawling-clock-d20.css, verbatim (generated geometry) ---- */
+{DIE_CSS.read_text()}
 
 /* ---- module/styles/crawling-clock.css, verbatim ---- */
 {CSS.read_text()}
@@ -138,9 +173,37 @@ h1 {{ color: #e8dcc8; font-size: 15px; font-weight: normal; margin: 0 0 6px; }}
 <p class="pv-note">
   The widget as it ships: the real stylesheet, the generated die at its real 180px, and
   JSL Blackletter embedded so this page stands alone. Values 6 and under carry the low
-  state, 0 the stirs state. Rebuild with <code>npm run preview:clock</code> after changing
+  state, 1 the stirs state. Rebuild with <code>npm run preview:clock</code> after changing
   the stylesheet or the die.
 </p>
+<div class="pv-demo">
+  <div id="crawling-clock"><div class="crawling-clock">
+    <div class="crawling-clock__die">{demo}</div>
+  </div></div>
+  <div>
+    <p>The turn itself, driven exactly as the widget drives it: one class swapped on the
+    body, and the browser slerps between the two orientations. Roll to watch it land, and
+    watch the light stay put while the die moves under it.</p>
+    <p style="margin-top:10px"><button id="pv-roll" type="button">Roll 1d6</button>
+    <span id="pv-said" style="margin-left:10px"></span></p>
+  </div>
+</div>
+
+<script>
+// Mirrors _turnDie() in crawling-clock.js: swap the orientation class, let CSS do the rest.
+const body = document.querySelector(".pv-demo .cc-d20-3d__body");
+const said = document.getElementById("pv-said");
+document.getElementById("pv-roll").addEventListener("click", () => {{
+  const from = Number(body.dataset.ccFace);
+  const rolled = 1 + Math.floor(Math.random() * 6);
+  const to = Math.max({MIN}, from - rolled);
+  said.textContent = from === to ? "already at " + {MIN} : "rolled " + rolled + " \u2192 " + to;
+  if (from === to) return;
+  body.classList.replace("cc-d20-3d__body--to" + from, "cc-d20-3d__body--to" + to);
+  body.dataset.ccFace = to;
+}});
+</script>
+
 <input type="checkbox" id="pv-guides" hidden>
 <label class="pv-toggle" for="pv-guides">
   ☐ Show the facet guides — red outlines the die's centre facet, blue marks where each
