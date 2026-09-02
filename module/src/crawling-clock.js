@@ -186,8 +186,16 @@ class CrawlingClockApp extends foundry.applications.api.ApplicationV2 {
     //
     // This path snaps. It is the write catching up, or a correction, and neither is a
     // roll; a die that turned here would be animating something that already happened.
+    //
+    // A value we are already showing is the write catching up, and there is nothing to
+    // reconcile. Returning here is not an optimisation: every roll ends with the GM
+    // persisting it, which lands back on every client — the roller included — a few tens
+    // of milliseconds later. Re-rendering then would replace the die mid-turn with one
+    // already landed, and the rotation would be over before it was seen.
     syncValue(value) {
-        if (value !== this._displayed) this._lastRoll = null;
+        if (value === this._displayed) return;
+
+        this._lastRoll = null;
         this._displayed = value;
         this._spinFrom = null;
         this.render();
@@ -263,9 +271,10 @@ class CrawlingClockApp extends foundry.applications.api.ApplicationV2 {
     // classes in the generated stylesheet, so all that happens here is a class swap; the
     // browser reads both as 3D matrices and slerps between them.
     //
-    // Two frames, not one. The first lets the browser take the rendered orientation as
-    // the element's computed style — without it there is no previous value to leave, and
-    // the swap is a jump.
+    // The die element is new — _renderHTML rebuilt it — so the browser has not resolved
+    // its style yet, and a class swapped onto it now would have no previous value to
+    // transition from. Reading a layout property forces that resolution, which is what
+    // makes the swap on the next line a turn rather than a jump.
     _turnDie() {
         const die = this.element.querySelector("[data-cc-spin-to]");
         if (!die) return;
@@ -274,10 +283,10 @@ class CrawlingClockApp extends foundry.applications.api.ApplicationV2 {
         const from = body.dataset.ccFace;
         const to = die.dataset.ccSpinTo;
 
-        requestAnimationFrame(() => requestAnimationFrame(() => {
-            body.classList.replace(`cc-d20-3d__body--to${from}`, `cc-d20-3d__body--to${to}`);
-            body.dataset.ccFace = to;
-        }));
+        void body.offsetWidth;
+
+        body.classList.replace(`cc-d20-3d__body--to${from}`, `cc-d20-3d__body--to${to}`);
+        body.dataset.ccFace = to;
     }
 
     async _onClose(options) {
