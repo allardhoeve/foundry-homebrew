@@ -20,3 +20,7 @@ backups/
 tools/output/
 tools/**/.env
 tools/foundry/
+
+# Mirrored "You see this." token art -- free to use in VTTs, not for publishing,
+# so it lives in the module tree locally but never in the repo or module.zip.
+module/assets/tokens/youseethis/

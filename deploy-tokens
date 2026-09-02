@@ -1,0 +1,41 @@
+#!/usr/bin/env bash
+set -euo pipefail
+
+# Push the mirrored "You see this." token art to production.
+#
+# These tokens are gitignored, so they are not in a checkout and the regular
+# `deploy` skips them.  This script pushes them separately: run it after
+# tools/boogers/download_tokens.py picks up new tokens.
+
+SCRIPT_DIR="$(cd "$(dirname "$0")" && pwd)"
+SECRETS_FILE="$SCRIPT_DIR/.deploy-secrets"
+TOKENS_DIR="module/assets/tokens/youseethis"
+
+if [[ ! -f "$SECRETS_FILE" ]]; then
+  echo "Error: secrets file not found: $SECRETS_FILE" >&2
+  echo "Create it with DEPLOY_USER, DEPLOY_HOST, and DEPLOY_BASE." >&2
+  exit 1
+fi
+
+source "$SECRETS_FILE"
+
+if [[ -z "${DEPLOY_USER:-}" || -z "${DEPLOY_HOST:-}" || -z "${DEPLOY_BASE:-}" ]]; then
+  echo "Error: .deploy-secrets must define DEPLOY_USER, DEPLOY_HOST, and DEPLOY_BASE." >&2
+  exit 1
+fi
+
+if [[ ! -d "$SCRIPT_DIR/$TOKENS_DIR" ]]; then
+  echo "Error: $TOKENS_DIR does not exist." >&2
+  echo "Run: cd tools/boogers && uv run python download_tokens.py" >&2
+  exit 1
+fi
+
+cd "$SCRIPT_DIR/module"
+
+DEST="${DEPLOY_USER}@${DEPLOY_HOST}:${DEPLOY_BASE}"
+COUNT=$(find "$SCRIPT_DIR/$TOKENS_DIR" -name '*.png' | wc -l | tr -d ' ')
+
+echo "Deploying $COUNT tokens to $DEST"
+rsync -aizR --exclude '*.part' \
+  assets/tokens/youseethis/ \
+  "$DEST"

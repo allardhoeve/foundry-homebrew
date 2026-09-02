@@ -28,7 +28,9 @@ echo "Stamped module.json with version $VERSION"
 DEST="${DEPLOY_USER}@${DEPLOY_HOST}:${DEPLOY_BASE}"
 
 echo "Deploying to $DEST"
-rsync -aizR \
+# The mirrored "You see this." tokens are ~95 MB that almost never change, so
+# they are pushed separately by ./deploy-tokens rather than on every deploy.
+rsync -aizR --exclude 'assets/tokens/youseethis' \
   module.json src/ styles/ macros/ assets/ \
   "$DEST"
 

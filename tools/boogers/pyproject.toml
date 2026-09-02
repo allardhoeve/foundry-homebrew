@@ -1,0 +1,10 @@
+[project]
+name = "boogers"
+version = "0.1.0"
+description = "Mirror the \"You see this.\" token gallery into the module's asset tree."
+requires-python = ">=3.12"
+dependencies = [
+    "beautifulsoup4>=4.12",
+    "httpx>=0.27",
+    "lxml>=5.2",
+]
