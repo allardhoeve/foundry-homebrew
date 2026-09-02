@@ -850,9 +850,20 @@ sum to 21, as on a real d20. */
     pointer-events: none;
 }
 
+/* Present for the select's accessible name, absent from the layout.
+   A visible label ate 25px off the left of the row, which left the select as the only
+   control in the panel whose edge did not sit on the same column as the Roll button and
+   the GM buttons. The cogwheel that opens this row is already labelled "Choose the die",
+   so the word was carrying no information the alignment was not worth more than. */
 .crawling-clock__settings label {
-    font-size: var(--font-size-12);
-    color: #b0a898;
+    position: absolute;
+    width: 1px;
+    height: 1px;
+    margin: -1px;
+    padding: 0;
+    overflow: hidden;
+    clip-path: inset(50%);
+    white-space: nowrap;
 }
 
 .crawling-clock__settings select {
