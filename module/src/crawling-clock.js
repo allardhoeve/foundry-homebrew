@@ -338,7 +338,12 @@ class CrawlingClockApp extends foundry.applications.api.ApplicationV2 {
             event.stopPropagation();
         });
 
-        header.querySelector("button[data-action=close]")?.before(cog) ?? header.append(cog);
+        // Not `before(cog) ?? append(cog)`: before() returns undefined, so the fallback
+        // fires every time and appends the button it just placed, landing it past the
+        // close control again.
+        const close = header.querySelector("button[data-action=close]");
+        if (close) close.before(cog);
+        else header.append(cog);
     }
 
     // Turn the die from the face it was rendered on to the one it rolled. Both faces are
