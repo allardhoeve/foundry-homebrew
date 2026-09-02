@@ -89,11 +89,17 @@
     height: 100%;
 }
 
-/* The facet itself: parchment turned right down, so a lit face lifts off the ground
-   colour and an unlit one all but vanishes into it. */
+/* Ink weights are raised across the board from what an unfiltered drawing would need,
+   because the paper's tooth mask (see the generator) eats roughly a third of the alpha
+   before any of this reaches the screen. Judge these numbers on the rendered die, not
+   on the values. */
+
+/* Graphite dust rather than a flat tint: the plate is raised, then the tooth punches it
+   full of holes, so a facet's tone comes out mottled and its silhouette comes out
+   chewed instead of running dead straight to each vertex. */
 .cc-d20-3d__plate {
     fill: #e8dcc8;
-    fill-opacity: calc(0.02 + 0.07 * var(--cc-face-lit));
+    fill-opacity: calc(0.04 + 0.13 * var(--cc-face-lit));
 }
 
 .cc-d20-3d__hatch path {
@@ -101,7 +107,7 @@
     stroke-width: var(--cc-d20-hatch-width);
     stroke-linecap: round;
     fill: none;
-    opacity: calc(0.15 + 0.55 * var(--cc-face-lit));
+    opacity: calc(0.24 + 0.70 * var(--cc-face-lit));
 }
 
 .cc-d20-3d__edges path {
@@ -109,7 +115,7 @@
     stroke-width: var(--cc-d20-edge-width);
     stroke-linecap: round;
     fill: none;
-    opacity: calc(0.5 + 0.5 * var(--cc-face-lit));
+    opacity: calc(0.55 + 0.45 * var(--cc-face-lit));
 }
 
 /* Seated on its own facet. This rule holds the layout; the per-value table below
@@ -129,7 +135,12 @@
     font-size: calc(var(--cc-die-size) * var(--cc-figure-size, 26.67) / 100 * var(--cc-d20-figure-scale));
     line-height: 1;
     color: #e8dcc8;
-    opacity: calc(0.35 + 0.65 * var(--cc-face-lit));
+    /* The old floor was 0.35, which let an unlit face's number go so faint that the
+       hatching behind it read through the strokes. A number is the one thing on this die
+       that has to stay a number, so it now only ever dims by a quarter. The generator
+       does the other half of this by lifting the pen where the figure sits, so there is
+       less behind it to show through in the first place. */
+    opacity: calc(0.74 + 0.26 * var(--cc-face-lit));
 }
 
 @media (prefers-reduced-motion: reduce) {

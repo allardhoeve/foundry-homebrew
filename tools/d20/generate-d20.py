@@ -1,26 +1,55 @@
-"""Generate the Crawling Clock's d20 as a real, rotatable icosahedron.
+"""Generate the Crawling Clock's d20 as a real, rotatable icosahedron, drawn by hand.
 
-The die used to be one flat drawing of an icosahedron seen face-on, with the counter
-painted on top of its centre facet. That could not turn. This builds the solid itself:
-twenty triangular faces, each a CSS 3D plane carrying its own inked artwork and its own
-number, so the die rotates to bring a face to the front and the number arrives with it.
+The die is the solid itself: twenty triangular faces placed as CSS 3D planes, each
+carrying its own artwork and its own number, so a roll rotates the die and the value
+arrives on the face that comes forward. The geometry is solved (see SOLVE below) and is
+not the interesting part any more. The inking is.
+
+The inking is a combination of three things, each of which was built and rendered on its
+own before being merged, and each of which answers a different complaint about the first
+version of this die:
+
+  1. THE PAPER, which fixes "the vertices are very sharp". Every face owns two private
+     feTurbulence fields. A low-frequency warp is fed to feDisplacementMap so the whole
+     drawing sits on a sheet that is not flat, and a high-frequency tooth becomes an
+     alpha mask so the ink skips the way graphite does. Corners stop being the meeting
+     of two vectors and become a soft cluster of marks. See "The paper" below.
+
+  2. THE VARIANCE, which fixes "the lines are all too regular per face". Hatch spacing is
+     driven per face by `step = max(0.75, 3.2 - 2.4 * tone)`. That is the flat die's own
+     formula, restored deliberately: an experiment that spread the twenty faces evenly
+     across the full range looked mechanical in a different way, and the honest Lambert
+     falloff reads better. Across the twenty faces the step runs about 0.9 to 3.2, so
+     some facets are nearly solid tone and others are nearly bare.
+
+     The light that drives it is fixed to the SOLID, not to the room. Shade cannot come
+     from the viewing orientation, because the ink is drawn once and then turns with the
+     die. The room's light is what --cc-face-lit does, separately, in the stylesheet.
+
+  3. THE HAND, which keeps the facets from filling in. The pen is only down for a few
+     units at a time; where it is up there is bare ground, and that bare ground is the
+     grey. Nothing here fills a facet.
+
+And the numeral gets its own clearing: the pen lifts more often where the number's ink
+lands, so every face keeps a little bare plate under its figure the way the flat die's
+bare centre facet did.
+
+    uv run --with numpy python tools/d20/generate-d20.py
 
 Two files come out, and the split is the point:
 
   module/src/crawling-clock-d20.js     the artwork and the value/face tables
-  module/styles/crawling-clock-d20.css the geometry: every transform, every light level
+  module/styles/crawling-clock-d20.css the geometry: transforms, lighting, per-face ink
 
 Geometry is CSS, not JavaScript. CLAUDE.md forbids inline styles in the JS, and this is
 why the rule pays: the widget rotates the die by swapping one class, and the browser
 slerps between the two orientations on its own. No transform is ever computed at runtime.
 
-    uv run --with numpy python tools/d20/generate-d20.py
-
 The seed is fixed, so the output is stable; change it for a different hand.
 
 ---
 
-Coordinates are CSS's throughout: x right, **y down**, z towards the viewer. Every vector
+Coordinates are CSS's throughout: x right, y down, z towards the viewer. Every vector
 here can go straight into a matrix3d() without a flip. The vertex set is symmetric under
 y -> -y, so reading the usual construction in this frame still gives a true icosahedron.
 
@@ -59,8 +88,34 @@ PERSPECTIVE = 5.0
 FIGURE_DROP = 55.0 - (21.5 + 64.3 + 64.3) / 3
 
 # Ink weights from crawling-clock.css, in the flat die's units. Faces are drawn in those
-# same units, so they carry over directly.
-HATCH_WIDTH, EDGE_WIDTH = 0.5, 1.4
+# same units, so they carry over directly. These are the die-wide defaults; each face
+# then nudges its own weight by a few hundredths, because a pencil does not hold one
+# point for twenty facets.
+HATCH_WIDTH, EDGE_WIDTH = 0.5, 1.22
+
+# --- The paper -------------------------------------------------------------------
+#
+# Every number below is in viewBox units, and one unit is 1.8 CSS pixels on a 180px die.
+#
+# WARP is the sheet buckling under the pen: low frequency so a whole run of hatch lines
+# leans the same way. Period 1/0.075 = 13 units, roughly a quarter of a facet, with
+# three finer octaves under it. feDisplacementMap moves by scale * (channel - 0.5), so the
+# throw is half of WARP_SCALE either way: about 1.4 units, 2.6 pixels.
+#
+# That ceiling is not a taste call, it is the one hard limit in this variant. Each face
+# owns its own noise field, so the two faces that share a crease displace their two
+# drawings of it in different directions, and the throw is how far apart they can get. At
+# 1.4 units they read as two pencil passes over one line, which is what a crease should
+# look like. Push past about 2 and a black slit opens down the middle of the crease and
+# the solid starts to look unglued.
+#
+# TOOTH is the grain of the paper itself. Period around 1.2 units, so a little over two
+# pixels: coarse enough to see as skip, fine enough not to look like a texture map.
+WARP_FREQ = (0.062, 0.092)      # per-face range
+WARP_SCALE = (2.3, 3.4)
+TOOTH_FREQ = (0.72, 1.05)
+TOOTH_GAIN = (1.45, 1.95)       # alpha = GAIN * noise + BIAS, clamped to 0..1
+TOOTH_BIAS = (-0.40, -0.10)
 
 # --- The solid ------------------------------------------------------------------
 
@@ -191,41 +246,190 @@ def inside(poly, x, y, margin=.07):
     return a >= margin and b >= margin and (1 - a - b) >= margin
 
 
-def hatch(poly, angle, step=2.0):
-    """Pen strokes across a triangle, clipped to it and jittered off true."""
+# --- The variance, and the numeral's clearing ------------------------------------
+#
+# The flat die took each facet's hatch density straight off its Lambert shade. That is
+# restored here, with one necessary change: the shade has to come from a light fixed to
+# the SOLID, not to the room. The ink is drawn once and then turns with the die, so a
+# room-fixed light would bake this orientation's shading into the artwork and the die
+# would carry its own highlight around with it as it rolled. --cc-face-lit in the
+# stylesheet is the room's light, and it stays a separate thing.
+#
+# INK_LIGHT is the room light as it falls in the solid's own frame when 20 is forward, so
+# the die is inked as if drawn in that pose and then picked up.
+INK_LIGHT = frames[face_of_value[20]] @ LIGHT
+INK_LIGHT /= np.linalg.norm(INK_LIGHT)
+
+# The flat die's own formula, kept verbatim. Across the twenty faces it yields a step of
+# roughly 0.9 to 3.2, a 3.6x spread: some facets nearly solid, some nearly bare. A version
+# that forced the twenty faces evenly across the whole range was built and rejected. It
+# varies more and looks less like a hand, because an even spread is its own kind of
+# regularity. The honest falloff clumps, and hands clump.
+tones = [max(0.0, float(normals[i].dot(INK_LIGHT))) for i in range(20)]
+
+
+def face_step(idx):
+    return max(0.75, 3.2 - 2.4 * tones[idx])
+
+
+# Where the numeral's ink lands on a facet, in that facet's own box. The same solve the
+# stylesheet uses to place the figure, so the clearing tracks the type rather than being
+# eyeballed against it.
+FIG_X, FIG_Y = W / 2, face_r + FIGURE_DROP / magnify
+FIG_RX, FIG_RY = 10.0, 7.6
+
+
+def clearance(x, y):
+    """1 out on the facet, dropping where the number sits.
+
+    Not a hole. The pen still crosses the figure, it just lifts more often, so the
+    numeral keeps some bare ground under it without the facet showing a bald ellipse.
+    This is what stops a number reading as though the hatching runs straight through it.
+    """
+    r = (((x - FIG_X) / FIG_RX) ** 2 + ((y - FIG_Y) / FIG_RY) ** 2) ** .5
+    if r >= 1.3:
+        return 1.0
+    if r <= 1.0:
+        return 0.34
+    return 0.34 + 0.66 * (r - 1.0) / 0.3
+
+
+def hatch(poly, angle, step0, grad_dir):
+    """Pen strokes across a triangle: clipped to it, barely jittered, and broken.
+
+    Three things keep this from filling the facet in.
+
+    The pen lifts. It is down for a few units, up for a gap, down again. Where it is up
+    there is bare ground, and that bare ground is the grey. Nothing here fills anything.
+
+    The spacing drifts across the facet, closing towards one side and opening towards the
+    other, so a single angle never lays an even tone.
+
+    And it lifts more often under the numeral, so the figure keeps some paper.
+
+    Geometrically this is flatter than a pen-only generator would be: 30 samples along a
+    line instead of 48, and a twentieth of a unit of jitter instead of a fifth. The wander
+    is the paper filter's job. Geometric wobble underneath a displacement field only reads
+    as noise on noise, and costs bytes to say so.
+    """
     xs = [p[0] for p in poly]; ys = [p[1] for p in poly]
     cx, cy = sum(xs) / 3, sum(ys) / 3
-    ca, sa = np.cos(angle), np.sin(angle)
+    ca, sa = float(np.cos(angle)), float(np.sin(angle))
     span = max(max(xs) - min(xs), max(ys) - min(ys))
-    lines, seg, t = [], [], -span
+    du = 2 * span / 29                                  # sample spacing along a line
+
+    lines, t = [], -span
     while t <= span:
-        seg = []
-        for u in np.linspace(-span, span, 48):
+        frac = (t + span) / (2 * span)
+        if grad_dir < 0:
+            frac = 1 - frac
+        step = step0 * (0.82 + 0.52 * frac)
+
+        if random.random() < .07:                       # a line the hand simply skipped
+            t += step * random.uniform(.82, 1.18)
+            continue
+
+        seg, down, run, u = [], False, 0.0, -span
+        while u <= span:
             x, y = cx + ca * u - sa * t, cy + sa * u + ca * t
-            if inside(poly, x, y):
-                seg.append((x + random.uniform(-.18, .18), y + random.uniform(-.18, .18)))
-            else:
-                if len(seg) > 2:
+            on = inside(poly, x, y)
+            if on:
+                run -= du
+                if run <= 0:
+                    if down:
+                        down, run = False, random.uniform(0.8, 2.6)     # pen up
+                    else:
+                        down = random.random() < clearance(x, y)
+                        run = random.uniform(4.0, 13.0)                 # pen down
+                        if down:
+                            seg = []
+            if on and down:
+                seg.append((x + random.uniform(-.05, .05), y + random.uniform(-.05, .05)))
+            elif seg:
+                if len(seg) > 1:
                     lines.append(seg)
-                seg = []
-        if len(seg) > 2:
+                seg, down = [], False
+            u += du
+        if len(seg) > 1:
             lines.append(seg)
         t += step * random.uniform(.82, 1.18)
     return lines
 
 
+grain = []          # the per-face paper, kept so the CSS can hook each face to its own
+
+
+def paper(idx):
+    """This face's filter: its warp field, its tooth, and the SVG that carries them.
+
+    One filter per face, wrapping the whole drawing, not one per stroke. Chromium runs
+    it once over the face's own little raster and the result is reused while the die
+    turns, which is what keeps twenty of these affordable.
+
+    The primitives, in order:
+      warp    low-frequency fractal noise, four octaves. The finest of them lands at
+              roughly the hatch spacing, so neighbouring lines crowd and open as well
+              as lean together, which is what stops the field reading as corduroy
+      drawn   the whole face displaced by it, R across and G down
+      tooth   high-frequency fractal noise, the paper itself
+      grain   that noise as an alpha ramp, gain and bias drawn per face
+      (out)   `in` composite, so the ink keeps only the alpha the paper gives it
+
+    color-interpolation-filters is set from the stylesheet rather than as an attribute:
+    CLAUDE.md's no-inline-CSS rule covers presentation attributes too, and this way the
+    look stays restylable alongside the rest of the ink.
+    """
+    p = dict(wf=random.uniform(*WARP_FREQ), ws=random.uniform(*WARP_SCALE),
+             tf=random.uniform(*TOOTH_FREQ), gain=random.uniform(*TOOTH_GAIN),
+             bias=random.uniform(*TOOTH_BIAS),
+             s1=random.randrange(1, 9999), s2=random.randrange(1, 9999),
+             hw=HATCH_WIDTH * random.uniform(0.86, 1.20),
+             ew=EDGE_WIDTH * random.uniform(0.88, 1.16))
+    grain.append(p)
+    return (
+        f'<defs><filter id="cc-paper-{idx}" class="cc-d20-3d__paper" '
+        f'x="-14%" y="-14%" width="128%" height="128%">'
+        f'<feTurbulence type="fractalNoise" baseFrequency="{p["wf"]:.4f}" '
+        f'numOctaves="4" seed="{p["s1"]}" result="warp"/>'
+        f'<feDisplacementMap in="SourceGraphic" in2="warp" scale="{p["ws"]:.2f}" '
+        f'xChannelSelector="R" yChannelSelector="G" result="drawn"/>'
+        f'<feTurbulence type="fractalNoise" baseFrequency="{p["tf"]:.4f}" '
+        f'numOctaves="4" seed="{p["s2"]}" result="tooth"/>'
+        f'<feColorMatrix in="tooth" type="matrix" result="grain" values="'
+        f'0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 {p["gain"]:.3f} 0 0 0 {p["bias"]:.3f}"/>'
+        f'<feComposite in="drawn" in2="grain" operator="in"/>'
+        f'</filter>'
+        # The numeral's own filter. Same warp field, a third of the throw, and the tooth
+        # left out. The figure needs to sit on the same sheet as the ink around it, or it
+        # reads as type pasted onto a drawing, but at 26 units tall it cannot afford to
+        # have holes punched in it the way the hatching can.
+        f'<filter id="cc-figure-{idx}" class="cc-d20-3d__paper" '
+        f'x="-20%" y="-20%" width="140%" height="140%">'
+        f'<feTurbulence type="fractalNoise" baseFrequency="{p["wf"]:.4f}" '
+        f'numOctaves="3" seed="{p["s1"]}" result="warp"/>'
+        f'<feDisplacementMap in="SourceGraphic" in2="warp" scale="{p["ws"] * 0.34:.2f}" '
+        f'xChannelSelector="R" yChannelSelector="G"/>'
+        f'</filter></defs>')
+
+
 def art(idx):
-    """One face's SVG: hatching, then its three inked edges."""
+    """One face's SVG: its paper, then the hatching and the three inked edges on it."""
     f, R = faces[idx], frames[idx]
     c = V[list(f)].mean(axis=0)
     poly = [to_local(Vw[i], R, c) for i in f]
 
     out = [f'<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 {W:.2f} {H:.2f}" '
            f'class="cc-d20-3d__art" preserveAspectRatio="none" aria-hidden="true">',
+           paper(idx),
+           # Everything the face draws goes through the filter together, plate included,
+           # so the facet's silhouette warps with the strokes lying on it instead of
+           # cutting a clean vector edge underneath them.
+           '<g class="cc-d20-3d__ink">',
            f'<polygon class="cc-d20-3d__plate" points="'
            + ' '.join(f'{x:.2f},{y:.2f}' for x, y in poly) + '"/>',
            '<g class="cc-d20-3d__hatch">']
-    for seg in hatch(poly, random.uniform(0, np.pi)):
+    for seg in hatch(poly, random.uniform(0, np.pi), face_step(idx),
+                     1 if random.random() < .5 else -1):
         out.append('<path d="M' + ' L'.join(f'{x:.2f},{y:.2f}' for x, y in seg) + '"/>')
     out.append('</g><g class="cc-d20-3d__edges">')
 
@@ -241,7 +445,7 @@ def art(idx):
         o = bows[(min(a, b), max(a, b))]
         out.append(f'<path d="M{x1:.2f},{y1:.2f} '
                    f'Q{mx - dy / L * o:.2f},{my + dx / L * o:.2f} {x2:.2f},{y2:.2f}"/>')
-    out.append('</g></svg>')
+    out.append('</g></g></svg>')
     return ''.join(out)
 
 
@@ -340,6 +544,33 @@ for v in range(1, 21):
         sel = ",\n".join(f".cc-d20-3d__body--to{v} .cc-d20-3d__face--f{f}"
                          for f in by_level[level])
         css.append(f"{sel} {{ --cc-face-lit: {level:.1f}; }}")
+
+# --- The paper, hooked up -------------------------------------------------------
+#
+# Each face's ink group is pointed at that face's own filter from here rather than from a
+# filter= attribute in the markup, for the same reason the transforms live in CSS: the JS
+# carries no styling, and the whole look stays overridable from one stylesheet.
+
+css += ["",
+        "/* Filters run in sRGB. The default is linearRGB, which pushes the tooth mask's",
+        "   midtones around and makes the grain read grey rather than as skipped ink. */",
+        ".cc-d20-3d__paper { color-interpolation-filters: sRGB; }",
+        "",
+        "/* The filter region reaches past the viewBox, and so do the wobbled vertices.",
+        "   Without this the UA rule svg:root { overflow: hidden } cuts a dead-straight",
+        "   line across every corner that pokes out, which is all twenty of them. */",
+        ".cc-d20-3d__art { overflow: visible; }",
+        "",
+        "/* Each face on its own paper, and holding its own pencil. The weights vary by a",
+        "   sixth either way; the seeds and frequencies vary much more, which is where the",
+        "   twenty faces stop being one swatch turned twenty ways. */"]
+for i, p in enumerate(grain):
+    css.append(f".cc-d20-3d__face--f{i} {{"
+               f" --cc-d20-hatch-width: {p['hw']:.3f};"
+               f" --cc-d20-edge-width: {p['ew']:.3f}; }}")
+    css.append(f".cc-d20-3d__face--f{i} .cc-d20-3d__ink {{ filter: url(#cc-paper-{i}); }}")
+    css.append(f".cc-d20-3d__face--f{i} .crawling-clock__value "
+               f"{{ filter: url(#cc-figure-{i}); }}")
 
 CSS_OUT.write_text("\n".join(css) + "\n")
 

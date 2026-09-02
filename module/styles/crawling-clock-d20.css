@@ -19,7 +19,7 @@ sum to 21, as on a real d20. */
     --cc-d20-figure-top: 78.2996%;
 
     --cc-d20-hatch-width: 0.500;
-    --cc-d20-edge-width: 1.400;
+    --cc-d20-edge-width: 1.220;
 }
 
 /* Where each face sits on the solid. matrix3d turns the element into the face's
@@ -473,3 +473,76 @@ sum to 21, as on a real d20. */
 .cc-d20-3d__body--to20 .cc-d20-3d__face--f17,
 .cc-d20-3d__body--to20 .cc-d20-3d__face--f18,
 .cc-d20-3d__body--to20 .cc-d20-3d__face--f19 { --cc-face-lit: 0.0; }
+
+/* Filters run in sRGB. The default is linearRGB, which pushes the tooth mask's
+   midtones around and makes the grain read grey rather than as skipped ink. */
+.cc-d20-3d__paper { color-interpolation-filters: sRGB; }
+
+/* The filter region reaches past the viewBox, and so do the wobbled vertices.
+   Without this the UA rule svg:root { overflow: hidden } cuts a dead-straight
+   line across every corner that pokes out, which is all twenty of them. */
+.cc-d20-3d__art { overflow: visible; }
+
+/* Each face on its own paper, and holding its own pencil. The weights vary by a
+   sixth either way; the seeds and frequencies vary much more, which is where the
+   twenty faces stop being one swatch turned twenty ways. */
+.cc-d20-3d__face--f0 { --cc-d20-hatch-width: 0.443; --cc-d20-edge-width: 1.090; }
+.cc-d20-3d__face--f0 .cc-d20-3d__ink { filter: url(#cc-paper-0); }
+.cc-d20-3d__face--f0 .crawling-clock__value { filter: url(#cc-figure-0); }
+.cc-d20-3d__face--f1 { --cc-d20-hatch-width: 0.568; --cc-d20-edge-width: 1.149; }
+.cc-d20-3d__face--f1 .cc-d20-3d__ink { filter: url(#cc-paper-1); }
+.cc-d20-3d__face--f1 .crawling-clock__value { filter: url(#cc-figure-1); }
+.cc-d20-3d__face--f2 { --cc-d20-hatch-width: 0.560; --cc-d20-edge-width: 1.244; }
+.cc-d20-3d__face--f2 .cc-d20-3d__ink { filter: url(#cc-paper-2); }
+.cc-d20-3d__face--f2 .crawling-clock__value { filter: url(#cc-figure-2); }
+.cc-d20-3d__face--f3 { --cc-d20-hatch-width: 0.457; --cc-d20-edge-width: 1.414; }
+.cc-d20-3d__face--f3 .cc-d20-3d__ink { filter: url(#cc-paper-3); }
+.cc-d20-3d__face--f3 .crawling-clock__value { filter: url(#cc-figure-3); }
+.cc-d20-3d__face--f4 { --cc-d20-hatch-width: 0.572; --cc-d20-edge-width: 1.114; }
+.cc-d20-3d__face--f4 .cc-d20-3d__ink { filter: url(#cc-paper-4); }
+.cc-d20-3d__face--f4 .crawling-clock__value { filter: url(#cc-figure-4); }
+.cc-d20-3d__face--f5 { --cc-d20-hatch-width: 0.465; --cc-d20-edge-width: 1.413; }
+.cc-d20-3d__face--f5 .cc-d20-3d__ink { filter: url(#cc-paper-5); }
+.cc-d20-3d__face--f5 .crawling-clock__value { filter: url(#cc-figure-5); }
+.cc-d20-3d__face--f6 { --cc-d20-hatch-width: 0.505; --cc-d20-edge-width: 1.089; }
+.cc-d20-3d__face--f6 .cc-d20-3d__ink { filter: url(#cc-paper-6); }
+.cc-d20-3d__face--f6 .crawling-clock__value { filter: url(#cc-figure-6); }
+.cc-d20-3d__face--f7 { --cc-d20-hatch-width: 0.482; --cc-d20-edge-width: 1.149; }
+.cc-d20-3d__face--f7 .cc-d20-3d__ink { filter: url(#cc-paper-7); }
+.cc-d20-3d__face--f7 .crawling-clock__value { filter: url(#cc-figure-7); }
+.cc-d20-3d__face--f8 { --cc-d20-hatch-width: 0.483; --cc-d20-edge-width: 1.368; }
+.cc-d20-3d__face--f8 .cc-d20-3d__ink { filter: url(#cc-paper-8); }
+.cc-d20-3d__face--f8 .crawling-clock__value { filter: url(#cc-figure-8); }
+.cc-d20-3d__face--f9 { --cc-d20-hatch-width: 0.449; --cc-d20-edge-width: 1.408; }
+.cc-d20-3d__face--f9 .cc-d20-3d__ink { filter: url(#cc-paper-9); }
+.cc-d20-3d__face--f9 .crawling-clock__value { filter: url(#cc-figure-9); }
+.cc-d20-3d__face--f10 { --cc-d20-hatch-width: 0.441; --cc-d20-edge-width: 1.248; }
+.cc-d20-3d__face--f10 .cc-d20-3d__ink { filter: url(#cc-paper-10); }
+.cc-d20-3d__face--f10 .crawling-clock__value { filter: url(#cc-figure-10); }
+.cc-d20-3d__face--f11 { --cc-d20-hatch-width: 0.572; --cc-d20-edge-width: 1.084; }
+.cc-d20-3d__face--f11 .cc-d20-3d__ink { filter: url(#cc-paper-11); }
+.cc-d20-3d__face--f11 .crawling-clock__value { filter: url(#cc-figure-11); }
+.cc-d20-3d__face--f12 { --cc-d20-hatch-width: 0.590; --cc-d20-edge-width: 1.392; }
+.cc-d20-3d__face--f12 .cc-d20-3d__ink { filter: url(#cc-paper-12); }
+.cc-d20-3d__face--f12 .crawling-clock__value { filter: url(#cc-figure-12); }
+.cc-d20-3d__face--f13 { --cc-d20-hatch-width: 0.453; --cc-d20-edge-width: 1.404; }
+.cc-d20-3d__face--f13 .cc-d20-3d__ink { filter: url(#cc-paper-13); }
+.cc-d20-3d__face--f13 .crawling-clock__value { filter: url(#cc-figure-13); }
+.cc-d20-3d__face--f14 { --cc-d20-hatch-width: 0.567; --cc-d20-edge-width: 1.281; }
+.cc-d20-3d__face--f14 .cc-d20-3d__ink { filter: url(#cc-paper-14); }
+.cc-d20-3d__face--f14 .crawling-clock__value { filter: url(#cc-figure-14); }
+.cc-d20-3d__face--f15 { --cc-d20-hatch-width: 0.510; --cc-d20-edge-width: 1.122; }
+.cc-d20-3d__face--f15 .cc-d20-3d__ink { filter: url(#cc-paper-15); }
+.cc-d20-3d__face--f15 .crawling-clock__value { filter: url(#cc-figure-15); }
+.cc-d20-3d__face--f16 { --cc-d20-hatch-width: 0.582; --cc-d20-edge-width: 1.345; }
+.cc-d20-3d__face--f16 .cc-d20-3d__ink { filter: url(#cc-paper-16); }
+.cc-d20-3d__face--f16 .crawling-clock__value { filter: url(#cc-figure-16); }
+.cc-d20-3d__face--f17 { --cc-d20-hatch-width: 0.524; --cc-d20-edge-width: 1.161; }
+.cc-d20-3d__face--f17 .cc-d20-3d__ink { filter: url(#cc-paper-17); }
+.cc-d20-3d__face--f17 .crawling-clock__value { filter: url(#cc-figure-17); }
+.cc-d20-3d__face--f18 { --cc-d20-hatch-width: 0.517; --cc-d20-edge-width: 1.214; }
+.cc-d20-3d__face--f18 .cc-d20-3d__ink { filter: url(#cc-paper-18); }
+.cc-d20-3d__face--f18 .crawling-clock__value { filter: url(#cc-figure-18); }
+.cc-d20-3d__face--f19 { --cc-d20-hatch-width: 0.510; --cc-d20-edge-width: 1.295; }
+.cc-d20-3d__face--f19 .cc-d20-3d__ink { filter: url(#cc-paper-19); }
+.cc-d20-3d__face--f19 .crawling-clock__value { filter: url(#cc-figure-19); }
