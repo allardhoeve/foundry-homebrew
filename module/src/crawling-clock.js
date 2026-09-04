@@ -1,5 +1,4 @@
 import {
-    CRAWLING_CLOCK_D20_ART,
     CRAWLING_CLOCK_D20_VALUES,
     CRAWLING_CLOCK_D20_MIN,
     CRAWLING_CLOCK_D20_MAX
@@ -72,16 +71,15 @@ function ccStoredValue() {
     return Math.min(CC_CLOCK_MAX, Math.max(CC_CLOCK_MIN, stored));
 }
 
-// The die's twenty faces, each inked with its own number, and the body turned to bring
+// The die's twenty faces, each carrying its own number, and the body turned to bring
 // `value` to the front. Every transform lives in crawling-clock-d20.css; this only picks
 // which orientation class the body wears.
 function ccDieMarkup(value) {
-    const faces = CRAWLING_CLOCK_D20_ART.map((art, face) => {
-        const number = CRAWLING_CLOCK_D20_VALUES[face];
-        return `<div class="cc-d20-3d__face cc-d20-3d__face--f${face}">${art}
-                    <div class="crawling-clock__value ${ccFigureClass(number)}">${number}</div>
-                </div>`;
-    }).join("");
+    const faces = CRAWLING_CLOCK_D20_VALUES.map((number, face) =>
+        `<div class="cc-d20-3d__face cc-d20-3d__face--f${face}">
+             <div class="cc-d20-3d__plate"></div>
+             <div class="crawling-clock__value ${ccFigureClass(number)}">${number}</div>
+         </div>`).join("");
 
     return `<div class="cc-d20-3d">
                 <div class="cc-d20-3d__body cc-d20-3d__body--to${value}" data-cc-face="${value}">${faces}</div>

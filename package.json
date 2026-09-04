@@ -15,7 +15,8 @@
     "test:generate": "npx bddgen --config tests/playwright.config.js",
     "test:install": "npx playwright install chromium",
     "test:storybook": "open tests/visual-storybook/index.html",
-    "preview:clock": "uv run python tools/preview/crawling-clock.py"
+    "preview:clock": "uv run python tools/preview/crawling-clock.py",
+    "gen:d20": "uv run --with numpy python tools/d20/d20.py"
   },
   "devDependencies": {
     "@foundryvtt/foundryvtt-cli": "^1.0.0",

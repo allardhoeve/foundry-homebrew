@@ -1,12 +1,16 @@
 /* The Crawling Clock.
  *
  * Palette and type follow docs/ui-design-guide.md: #1a1a1e ground, #e8dcc8 parchment,
- * amber primary. The die is inline SVG (tools/d20/generate-d20.py) so its strokes can
- * take the state colours — an <img> could not be restyled.
+ * amber primary.
  *
  * The die is a real icosahedron in CSS 3D: twenty face elements, each turned into its
- * own plane. Its geometry — every transform, every light level — is generated into
- * crawling-clock-d20.css. This file is the look: colour, ink, type, state.
+ * own plane, each drawn as an outlined triangle. Where those planes sit is generated
+ * into crawling-clock-d20.css by tools/d20/d20.py. This file is the look: line, colour,
+ * type, state.
+ *
+ * It is a line drawing, not a rendering. No fill, no shading, no light: the facets are
+ * empty and the die is nothing but its own creases and its numbers, which is the look
+ * the flat die had in 1.4.0. What 1.4.0 could not do is turn.
  */
 
 #crawling-clock {
@@ -34,15 +38,6 @@
 }
 
 /* --- The die ------------------------------------------------------------- */
-
-/* How much light a face catches, 0 to 1. Registered so it interpolates: the generated
-   stylesheet sets it per face per orientation, so declaring it a number is what makes
-   the light sweep across the die as it turns instead of snapping at the end. */
-@property --cc-face-lit {
-    syntax: "<number>";
-    inherits: true;
-    initial-value: 0.5;
-}
 
 .crawling-clock__die {
     position: relative;
@@ -80,42 +75,32 @@
     /* The ten faces pointing away are the far side of a solid. Culling them is what
        makes this read as one rather than as twenty triangles. */
     backface-visibility: hidden;
-    transition: --cc-face-lit var(--cc-spin-duration, 700ms) linear;
 }
 
-.cc-d20-3d__art {
-    display: block;
-    width: 100%;
-    height: 100%;
-}
+/* The facet, drawn rather than filled: an even-odd clip leaves the ring between the
+   triangle and a copy of it inset a little way, which is the crease and the whole of the
+   die's line work. Nothing fills the middle, so the panel shows through exactly as it did
+   on the flat die.
 
-/* Ink weights are raised across the board from what an unfiltered drawing would need,
-   because the paper's tooth mask (see the generator) eats roughly a third of the alpha
-   before any of this reaches the screen. Judge these numbers on the rendered die, not
-   on the values. */
+   Both triangles are scaled about the centroid, and because an equilateral triangle's
+   centroid is also its incentre, a uniform scale is a uniform inset: the line comes out
+   the same weight on all three sides.
 
-/* Graphite dust rather than a flat tint: the plate is raised, then the tooth punches it
-   full of holes, so a facet's tone comes out mottled and its silhouette comes out
-   chewed instead of running dead straight to each vertex. */
+   The plate is then scaled up past its own facet so the ring *straddles* the crease
+   rather than sitting inside it. Without that, two neighbouring facets each draw their
+   own line just inside a shared edge and every crease comes out doubled, with a dark gap
+   down the middle. Scaled out, the two rings overlap into one line. 1.06 out and 0.94 in
+   makes a line an eighth of the inradius wide, so the inner triangle is 0.94/1.06 of the
+   outer. */
 .cc-d20-3d__plate {
-    fill: #e8dcc8;
-    fill-opacity: calc(0.04 + 0.13 * var(--cc-face-lit));
-}
-
-.cc-d20-3d__hatch path {
-    stroke: #e8dcc8;
-    stroke-width: var(--cc-d20-hatch-width);
-    stroke-linecap: round;
-    fill: none;
-    opacity: calc(0.24 + 0.70 * var(--cc-face-lit));
-}
-
-.cc-d20-3d__edges path {
-    stroke: #e8dcc8;
-    stroke-width: var(--cc-d20-edge-width);
-    stroke-linecap: round;
-    fill: none;
-    opacity: calc(0.55 + 0.45 * var(--cc-face-lit));
+    position: absolute;
+    inset: 0;
+    background: #e8dcc8;
+    transform-origin: 50% 66.6667%;
+    transform: scale(1.06);
+    clip-path: polygon(evenodd,
+        50% 0, 100% 100%, 0 100%,
+        50% 7.547%, 94.34% 96.226%, 5.66% 96.226%);
 }
 
 /* Seated on its own facet. This rule holds the layout; the per-value table below
@@ -135,17 +120,10 @@
     font-size: calc(var(--cc-die-size) * var(--cc-figure-size, 26.67) / 100 * var(--cc-d20-figure-scale));
     line-height: 1;
     color: #e8dcc8;
-    /* The old floor was 0.35, which let an unlit face's number go so faint that the
-       hatching behind it read through the strokes. A number is the one thing on this die
-       that has to stay a number, so it now only ever dims by a quarter. The generator
-       does the other half of this by lifting the pen where the figure sits, so there is
-       less behind it to show through in the first place. */
-    opacity: calc(0.74 + 0.26 * var(--cc-face-lit));
 }
 
 @media (prefers-reduced-motion: reduce) {
-    .cc-d20-3d__body,
-    .cc-d20-3d__face {
+    .cc-d20-3d__body {
         transition: none;
     }
 }
@@ -295,12 +273,10 @@
     color: #cc4444;
 }
 
-.crawling-clock--stirs .cc-d20-3d__edges path {
-    stroke: #cc4444;
-}
-
-.crawling-clock--stirs .cc-d20-3d__hatch path {
-    opacity: calc(0.08 + 0.28 * var(--cc-face-lit));
+/* The die keeps its colour; the numeral carries the alarm, matching the line below it.
+   One red thing on the card, not two. */
+.crawling-clock--stirs .crawling-clock__value {
+    color: #cc4444;
 }
 
 /* At 1 the roll is disabled in the markup; this is only the matching cue.

@@ -4,17 +4,16 @@ import { readFileSync } from "node:fs";
 import { fileURLToPath } from "node:url";
 
 import {
-    CRAWLING_CLOCK_D20_ART,
     CRAWLING_CLOCK_D20_VALUES,
     CRAWLING_CLOCK_D20_MIN,
     CRAWLING_CLOCK_D20_MAX
 } from "../../module/src/crawling-clock-d20.js";
 
-// Both halves of the die come out of tools/d20/generate-d20.py, and they have to agree:
-// the JS says which number is on which face, the CSS says how to turn to it and how it
-// catches the light. Nothing at runtime checks that. A regenerate that dropped a face,
-// or a hand-edit to either file, would leave a die that renders perfectly and simply
-// stops turning for some values — which is exactly the kind of silent break worth a test.
+// Both halves of the die come out of tools/d20/d20.py, and they have to agree: the JS
+// says which number is on which face, the CSS says how to turn to it. Nothing at runtime
+// checks that. A regenerate that dropped a face, or a hand-edit to either file, would
+// leave a die that renders perfectly and simply stops turning for some values, which is
+// exactly the kind of silent break worth a test.
 
 const CSS = readFileSync(
     fileURLToPath(new URL("../../module/styles/crawling-clock-d20.css", import.meta.url)),
@@ -28,12 +27,11 @@ const values = () => Array.from(
 );
 
 describe("the Crawling Clock d20", () => {
-    it("has twenty faces of artwork", () => {
-        assert.equal(CRAWLING_CLOCK_D20_ART.length, FACES);
+    it("has twenty faces", () => {
         assert.equal(CRAWLING_CLOCK_D20_VALUES.length, FACES);
     });
 
-    it("inks each of 1-20 on exactly one face", () => {
+    it("puts each of 1-20 on exactly one face", () => {
         assert.deepEqual([...CRAWLING_CLOCK_D20_VALUES].sort((a, b) => a - b), values());
     });
 
@@ -42,12 +40,12 @@ describe("the Crawling Clock d20", () => {
         assert.equal(CRAWLING_CLOCK_D20_MAX, FACES);
     });
 
-    it("draws every face as its own triangle plate", () => {
-        for (const [face, art] of CRAWLING_CLOCK_D20_ART.entries()) {
-            const plate = art.match(/class="cc-d20-3d__plate" points="([^"]+)"/);
-            assert.ok(plate, `face ${face} has no plate`);
-            assert.equal(plate[1].split(" ").length, 3, `face ${face} is not a triangle`);
-        }
+    // The numbering is frozen data in the generator, not a shuffle, because the numeral
+    // fitting table and every player's memory of the die are keyed off it. Pinning it
+    // here is what turns "do not move this" into something that fails rather than drifts.
+    it("keeps the numbering it was fitted for", () => {
+        assert.deepEqual([...CRAWLING_CLOCK_D20_VALUES],
+            [14, 10, 8, 15, 18, 5, 20, 12, 4, 2, 19, 17, 9, 1, 3, 6, 16, 13, 11, 7]);
     });
 });
 
@@ -66,22 +64,9 @@ describe("the generated die stylesheet", () => {
         }
     });
 
-    it("lights all twenty faces in every orientation", () => {
-        for (const value of values()) {
-            for (let face = 0; face < FACES; face++) {
-                assert.match(
-                    CSS,
-                    new RegExp(`\\.cc-d20-3d__body--to${value} \\.cc-d20-3d__face--f${face}\\b`),
-                    `face ${face} is unlit while the die shows ${value}`
-                );
-            }
-        }
-    });
-
     it("supplies every metric the hand-written stylesheet reads", () => {
         for (const metric of ["--cc-d20-perspective", "--cc-d20-inradius", "--cc-d20-face-w",
-                              "--cc-d20-face-h", "--cc-d20-figure-scale", "--cc-d20-figure-top",
-                              "--cc-d20-hatch-width", "--cc-d20-edge-width"]) {
+                              "--cc-d20-face-h", "--cc-d20-figure-scale", "--cc-d20-figure-top"]) {
             assert.ok(CSS.includes(`${metric}:`), `${metric} is missing`);
         }
     });

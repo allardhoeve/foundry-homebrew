@@ -68,22 +68,22 @@ def font_files():
     return ttf.read_bytes(), txt.read_text(errors="replace")
 
 
-def die_parts():
-    """The generated face artwork and its numbering, lifted out of the JS module."""
+def numbering():
+    """Which number is on which face, lifted out of the generated JS module."""
     js = DIE_JS.read_text()
-    art = re.findall(r"`(<svg.*?</svg>)`", js, re.S)
     numbers = [int(n) for n in
                re.search(r"D20_VALUES = \[([^\]]+)\]", js).group(1).split(",")]
-    assert len(art) == len(numbers) == 20, (len(art), len(numbers))
-    return art, numbers
+    assert len(numbers) == 20, len(numbers)
+    return numbers
 
 
-def die(value, art, numbers):
+def die(value, numbers):
     """Mirrors ccDieMarkup() in crawling-clock.js. Keep the two in step."""
     faces = "".join(
-        f'<div class="cc-d20-3d__face cc-d20-3d__face--f{i}">{svg}'
+        f'<div class="cc-d20-3d__face cc-d20-3d__face--f{i}">'
+        f'<div class="cc-d20-3d__plate"></div>'
         f'<div class="crawling-clock__value crawling-clock__value--v{n}">{n}</div></div>'
-        for i, (svg, n) in enumerate(zip(art, numbers)))
+        for i, n in enumerate(numbers))
     return (f'<div class="cc-d20-3d"><div class="cc-d20-3d__body cc-d20-3d__body--to{value}" '
             f'data-cc-face="{value}">{faces}</div></div>')
 
@@ -95,7 +95,7 @@ def state_class(value):
     return " crawling-clock--low" if value <= 6 else ""
 
 
-def widget(value, art, numbers):
+def widget(value, numbers):
     stirs = ('<div class="crawling-clock__stirs">The dungeon stirs.</div>'
              if value == MIN else "")
     disabled = " disabled" if value == MIN else ""
@@ -105,7 +105,7 @@ def widget(value, art, numbers):
               f'x2="80" y2="{FACET_CENTROID_Y:.2f}"/></svg>')
     return f"""<div class="pv-cell">
   <div id="crawling-clock"><div class="crawling-clock{state_class(value)}">
-    <div class="crawling-clock__die">{die(value, art, numbers)}{guides}</div>
+    <div class="crawling-clock__die">{die(value, numbers)}{guides}</div>
     {stirs}
     <div class="crawling-clock__roll-line">Player2 rolled 4</div>
     <button type="button" class="crawling-clock__roll"{disabled}>Roll 1d6</button>
@@ -120,9 +120,9 @@ def widget(value, art, numbers):
 
 def main():
     ttf, licence = font_files()
-    art, numbers = die_parts()
-    cells = "\n".join(widget(v, art, numbers) for v in range(MAX, MIN - 1, -1))
-    demo = die(MAX, art, numbers)
+    numbers = numbering()
+    cells = "\n".join(widget(v, numbers) for v in range(MAX, MIN - 1, -1))
+    demo = die(MAX, numbers)
 
     OUT_DIR.mkdir(parents=True, exist_ok=True)
     FONT_LICENCE.write_text(licence)
@@ -182,8 +182,8 @@ h1 {{ color: #e8dcc8; font-size: 15px; font-weight: normal; margin: 0 0 6px; }}
   </div></div>
   <div>
     <p>The turn itself, driven exactly as the widget drives it: one class swapped on the
-    body, and the browser slerps between the two orientations. Roll to watch it land, and
-    watch the light stay put while the die moves under it.</p>
+    body, and the browser slerps between the two orientations. Nothing computes a path;
+    both classes are 3D matrices and the browser takes the short way round on its own.</p>
     <p style="margin-top:10px"><button id="pv-roll" type="button">Roll 1d6</button>
     <span id="pv-said" style="margin-left:10px"></span></p>
   </div>
