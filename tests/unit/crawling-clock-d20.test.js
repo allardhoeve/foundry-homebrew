@@ -3,11 +3,7 @@ import assert from "node:assert/strict";
 import { readFileSync } from "node:fs";
 import { fileURLToPath } from "node:url";
 
-import {
-    CRAWLING_CLOCK_D20_VALUES,
-    CRAWLING_CLOCK_D20_MIN,
-    CRAWLING_CLOCK_D20_MAX
-} from "../../module/src/crawling-clock-d20.js";
+import { CRAWLING_CLOCK_D20_VALUES } from "../../module/src/crawling-clock-d20.js";
 
 // Both halves of the die come out of tools/d20/d20.py, and they have to agree: the JS
 // says which number is on which face, the CSS says how to turn to it. Nothing at runtime
@@ -21,10 +17,7 @@ const CSS = readFileSync(
 );
 
 const FACES = 20;
-const values = () => Array.from(
-    { length: CRAWLING_CLOCK_D20_MAX - CRAWLING_CLOCK_D20_MIN + 1 },
-    (_, i) => CRAWLING_CLOCK_D20_MIN + i
-);
+const values = () => Array.from({ length: FACES }, (_, i) => i + 1);
 
 describe("the Crawling Clock d20", () => {
     it("has twenty faces", () => {
@@ -35,9 +28,12 @@ describe("the Crawling Clock d20", () => {
         assert.deepEqual([...CRAWLING_CLOCK_D20_VALUES].sort((a, b) => a - b), values());
     });
 
-    it("covers the clock's whole range, so no value is ever unshowable", () => {
-        assert.equal(CRAWLING_CLOCK_D20_MIN, 1);
-        assert.equal(CRAWLING_CLOCK_D20_MAX, FACES);
+    // The widget counts its ceiling off this array (CC_CLOCK_MAX in crawling-clock.js) and
+    // takes 1 as its floor. Both are only safe while the numbering is 1..length with no
+    // gaps, which the test above pins; this one says out loud why that matters.
+    it("is numbered 1 upwards with no gaps, so its length is the clock's ceiling", () => {
+        assert.equal(Math.min(...CRAWLING_CLOCK_D20_VALUES), 1);
+        assert.equal(Math.max(...CRAWLING_CLOCK_D20_VALUES), CRAWLING_CLOCK_D20_VALUES.length);
     });
 
     // The numbering is frozen data in the generator, not a shuffle, because the numeral

@@ -189,11 +189,6 @@ def js():
         "export const CRAWLING_CLOCK_D20_VALUES = ["
         + ", ".join(str(value_of_face[i]) for i in range(FACES)) + "];",
         "",
-        "// The clock runs 20 down to 1 and every one of those is a real face, so the die",
-        "// never has to lie about what it reads.",
-        "export const CRAWLING_CLOCK_D20_MIN = 1;",
-        f"export const CRAWLING_CLOCK_D20_MAX = {FACES};",
-        "",
     ]
     return "\n".join(out)
 

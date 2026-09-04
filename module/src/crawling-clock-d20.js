@@ -7,8 +7,3 @@
 
 // The number on each face, indexed by face. Opposite faces sum to 21.
 export const CRAWLING_CLOCK_D20_VALUES = [14, 10, 8, 15, 18, 5, 20, 12, 4, 2, 19, 17, 9, 1, 3, 6, 16, 13, 11, 7];
-
-// The clock runs 20 down to 1 and every one of those is a real face, so the die
-// never has to lie about what it reads.
-export const CRAWLING_CLOCK_D20_MIN = 1;
-export const CRAWLING_CLOCK_D20_MAX = 20;

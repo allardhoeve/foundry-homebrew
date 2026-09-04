@@ -1,8 +1,4 @@
-import {
-    CRAWLING_CLOCK_D20_VALUES,
-    CRAWLING_CLOCK_D20_MIN,
-    CRAWLING_CLOCK_D20_MAX
-} from "./crawling-clock-d20.js";
+import { CRAWLING_CLOCK_D20_VALUES } from "./crawling-clock-d20.js";
 
 // The Crawling Clock — a shared, player-visible dungeon timer.
 //
@@ -29,13 +25,13 @@ const CC_DIE_KEY = "crawlingClockDie";
 
 // The clock is a d20, so it runs across the die's own faces: 20 down to 1, one value per
 // face. Not configurable — any other range would make the die on the widget a lie — and
-// taken from the die itself so the two can never drift apart. What the GM can change is
-// the die that decrements it.
+// the ceiling is counted off the die itself so the two can never drift apart. What the GM
+// can change is the die that decrements it.
 //
 // The floor is 1 rather than 0 because 1 is where the encounter happens, and because a
 // twenty-faced die has no face to show a 0 on.
-const CC_CLOCK_MAX = CRAWLING_CLOCK_D20_MAX;
-const CC_CLOCK_MIN = CRAWLING_CLOCK_D20_MIN;
+const CC_CLOCK_MAX = CRAWLING_CLOCK_D20_VALUES.length;
+const CC_CLOCK_MIN = 1;
 
 // The dice the cogwheel offers. The setting itself stays free text, because a GM who
 // wants 2d4 should still be able to type it in the module settings; these are the ones
@@ -56,8 +52,12 @@ const CC_CURRENT = "crawling-clock__value--current";
 // The socket handler lives here, not on the Application. The GM must keep persisting
 // the clock with the widget closed.
 
-function ccApp() {
-    return game.modules.get(CC_MODULE_ID)?.api?.crawlingClock;
+// The widget, but only when it has something on screen. Everything arriving from outside
+// — a roll, a setting changing — is only ever news to a rendered widget, and a client that
+// missed it snaps to the stored value the next time it opens one.
+function ccLiveApp() {
+    const app = game.modules.get(CC_MODULE_ID)?.api?.crawlingClock;
+    return app?.rendered ? app : null;
 }
 
 // JSL Blackletter has old-style figures: 3 4 5 7 9 drop below the baseline, 6 rises
@@ -72,12 +72,24 @@ function ccFigureClass(value) {
     return `crawling-clock__value--v${value}`;
 }
 
+// Which way the die is turned. Written twice — once into the markup so the widget opens
+// already facing the value, once by _paint to turn it afterwards — so both go through
+// here and cannot come to disagree about the name.
+function ccBodyClass(value) {
+    return `cc-d20-3d__body--to${value}`;
+}
+
+// Every value the clock takes goes through here, so how far it may fall is decided once
+// rather than by each caller doing the arithmetic again.
+function ccClamp(value) {
+    return Math.min(CC_CLOCK_MAX, Math.max(CC_CLOCK_MIN, value));
+}
+
 // Clamped on the way out, because the stored value predates the floor moving to 1: a
 // world that was already sitting on 0 would otherwise ask the die to show a face it does
 // not have. The next write settles it for good.
 function ccStoredValue() {
-    const stored = game.settings.get(CC_MODULE_ID, CC_VALUE_KEY);
-    return Math.min(CC_CLOCK_MAX, Math.max(CC_CLOCK_MIN, stored));
+    return ccClamp(game.settings.get(CC_MODULE_ID, CC_VALUE_KEY));
 }
 
 // The die's twenty faces, each carrying its own number, and the body turned to bring
@@ -91,7 +103,7 @@ function ccDieMarkup(value) {
          </div>`).join("");
 
     return `<div class="cc-d20-3d">
-                <div class="cc-d20-3d__body cc-d20-3d__body--to${value}">${faces}</div>
+                <div class="cc-d20-3d__body ${ccBodyClass(value)}">${faces}</div>
             </div>`;
 }
 
@@ -112,8 +124,7 @@ function ccHandleRoll(payload) {
 
     // Serialised rolls carry their total, so moving the widget costs no deserialisation.
     // Only the GM, who has to build the chat message, rebuilds the Roll itself.
-    const app = ccApp();
-    if (app?.rendered) app.applyRoll(roll.total, userId);
+    ccLiveApp()?.applyRoll(roll.total, userId);
 
     if (game.users.activeGM === game.user) ccPersistRoll(roll, userId);
 }
@@ -142,7 +153,7 @@ async function ccSetValue(next) {
 // mean publishing their optimistic guess as the record. `author` makes it read as theirs
 // all the same (BaseChatMessage#canCreate lets a GM, and only a GM, do this).
 async function ccPersistRoll(rollData, userId) {
-    const next = Math.max(CC_CLOCK_MIN, ccStoredValue() - rollData.total);
+    const next = ccClamp(ccStoredValue() - rollData.total);
     const name = game.users.get(userId)?.name ?? "Someone";
     const roll = Roll.fromData(rollData);
 
@@ -188,7 +199,7 @@ class CrawlingClockApp extends foundry.applications.api.ApplicationV2 {
     // Live path: a roll arrived. Tick down from what we last painted and turn the die
     // onto the new face. Guarded by `rendered` at the call site.
     applyRoll(rolled, userId) {
-        this._displayed = Math.max(CC_CLOCK_MIN, (this._displayed ?? ccStoredValue()) - rolled);
+        this._displayed = ccClamp((this._displayed ?? ccStoredValue()) - rolled);
         this._lastRoll = {
             name: game.users.get(userId)?.name ?? "Someone",
             rolled
@@ -249,14 +260,15 @@ class CrawlingClockApp extends foundry.applications.api.ApplicationV2 {
             : "";
 
         const container = document.createElement("div");
-        container.innerHTML = `<div class="crawling-clock">
+        container.className = "crawling-clock";
+        container.innerHTML = `
             <div class="crawling-clock__die">${ccDieMarkup(value)}</div>
             <div class="crawling-clock__stirs">The dungeon stirs.</div>
             <div class="crawling-clock__roll-line"></div>
             <button type="button" class="crawling-clock__roll" data-cc-action="roll">Roll ${die}</button>
             ${gmControls}
             ${settings}
-        </div>`;
+        `;
         return container;
     }
 
@@ -357,7 +369,7 @@ class CrawlingClockApp extends foundry.applications.api.ApplicationV2 {
         root.querySelector(".crawling-clock__roll").disabled = value === CC_CLOCK_MIN;
 
         root.querySelector(".cc-d20-3d__body").className =
-            `cc-d20-3d__body cc-d20-3d__body--to${value}`;
+            `cc-d20-3d__body ${ccBodyClass(value)}`;
     }
 
     async _onClose(options) {
@@ -375,9 +387,9 @@ class CrawlingClockApp extends foundry.applications.api.ApplicationV2 {
             case "reset":
                 return ccSetValue(CC_CLOCK_MAX);
             case "up":
-                return ccSetValue(Math.min(CC_CLOCK_MAX, ccStoredValue() + 1));
+                return ccSetValue(ccClamp(ccStoredValue() + 1));
             case "down":
-                return ccSetValue(Math.max(CC_CLOCK_MIN, ccStoredValue() - 1));
+                return ccSetValue(ccClamp(ccStoredValue() - 1));
         }
     }
 
@@ -409,10 +421,7 @@ Hooks.once("init", () => {
         config: false,
         type: Number,
         default: CC_CLOCK_MAX,
-        onChange: value => {
-            const app = ccApp();
-            if (app?.rendered) app.syncValue(value);
-        }
+        onChange: value => ccLiveApp()?.syncValue(value)
     });
 
     game.settings.register(CC_MODULE_ID, CC_DIE_KEY, {
@@ -432,8 +441,7 @@ Hooks.once("init", () => {
                 ui.notifications.warn(`"${die}" is not a roll formula. The Crawling Clock cannot be rolled until it is.`);
             }
 
-            const app = ccApp();
-            if (app?.rendered) app.render();
+            ccLiveApp()?.render();
         }
     });
 
