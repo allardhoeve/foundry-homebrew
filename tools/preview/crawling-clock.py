@@ -78,14 +78,15 @@ def numbering():
 
 
 def die(value, numbers):
-    """Mirrors ccDieMarkup() in crawling-clock.js. Keep the two in step."""
+    """Mirrors ccDieMarkup() plus the part of _paint() that marks the front numeral."""
     faces = "".join(
         f'<div class="cc-d20-3d__face cc-d20-3d__face--f{i}">'
         f'<div class="cc-d20-3d__plate"></div>'
-        f'<div class="crawling-clock__value crawling-clock__value--v{n}">{n}</div></div>'
+        f'<div class="crawling-clock__value crawling-clock__value--v{n}'
+        f'{" crawling-clock__value--current" if n == value else ""}">{n}</div></div>'
         for i, n in enumerate(numbers))
-    return (f'<div class="cc-d20-3d"><div class="cc-d20-3d__body cc-d20-3d__body--to{value}" '
-            f'data-cc-face="{value}">{faces}</div></div>')
+    return (f'<div class="cc-d20-3d">'
+            f'<div class="cc-d20-3d__body cc-d20-3d__body--to{value}">{faces}</div></div>')
 
 
 def state_class(value):
@@ -96,8 +97,6 @@ def state_class(value):
 
 
 def widget(value, numbers):
-    stirs = ('<div class="crawling-clock__stirs">The dungeon stirs.</div>'
-             if value == MIN else "")
     disabled = " disabled" if value == MIN else ""
     guides = (f'<svg class="pv-guide" viewBox="0 0 100 100">'
               f'<polygon points="{FACET}"/>'
@@ -106,7 +105,7 @@ def widget(value, numbers):
     return f"""<div class="pv-cell">
   <div id="crawling-clock"><div class="crawling-clock{state_class(value)}">
     <div class="crawling-clock__die">{die(value, numbers)}{guides}</div>
-    {stirs}
+    <div class="crawling-clock__stirs">The dungeon stirs.</div>
     <div class="crawling-clock__roll-line">Player2 rolled 4</div>
     <button type="button" class="crawling-clock__roll"{disabled}>Roll 1d6</button>
     <div class="crawling-clock__gm">
@@ -190,17 +189,25 @@ h1 {{ color: #e8dcc8; font-size: 15px; font-weight: normal; margin: 0 0 6px; }}
 </div>
 
 <script>
-// Mirrors _turnDie() in crawling-clock.js: swap the orientation class, let CSS do the rest.
-const body = document.querySelector(".pv-demo .cc-d20-3d__body");
+// Mirrors _paint() in crawling-clock.js: swap the orientation class, move the current
+// marker onto the numeral now facing us, and let CSS do the rest.
+const root = document.querySelector(".pv-demo .crawling-clock");
+const body = root.querySelector(".cc-d20-3d__body");
 const said = document.getElementById("pv-said");
+let face = {MAX};
 document.getElementById("pv-roll").addEventListener("click", () => {{
-  const from = Number(body.dataset.ccFace);
   const rolled = 1 + Math.floor(Math.random() * 6);
-  const to = Math.max({MIN}, from - rolled);
-  said.textContent = from === to ? "already at " + {MIN} : "rolled " + rolled + " \u2192 " + to;
-  if (from === to) return;
-  body.classList.replace("cc-d20-3d__body--to" + from, "cc-d20-3d__body--to" + to);
-  body.dataset.ccFace = to;
+  const to = Math.max({MIN}, face - rolled);
+  said.textContent = face === to ? "already at " + {MIN} : "rolled " + rolled + " \u2192 " + to;
+  if (face === to) return;
+  body.className = "cc-d20-3d__body cc-d20-3d__body--to" + to;
+  root.querySelector(".crawling-clock__value--current")
+      .classList.remove("crawling-clock__value--current");
+  root.querySelector(".crawling-clock__value--v" + to)
+      .classList.add("crawling-clock__value--current");
+  root.classList.toggle("crawling-clock--stirs", to === {MIN});
+  root.classList.toggle("crawling-clock--low", to > {MIN} && to <= 6);
+  face = to;
 }});
 </script>
 

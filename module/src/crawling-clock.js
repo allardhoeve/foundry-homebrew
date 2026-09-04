@@ -42,6 +42,15 @@ const CC_CLOCK_MIN = CRAWLING_CLOCK_D20_MIN;
 // worth reaching for mid-session without leaving the table.
 const CC_DIE_PRESETS = ["1d3", "1d4", "1d6", "1d8", "1d10", "1d12"];
 
+// Where the clock starts to look dangerous: a fifth of the way from the top, and low
+// enough that one roll of the default die could end it.
+const CC_CLOCK_LOW = 6;
+
+// Carried by the numeral on whichever face is turned towards us. The states colour that
+// one and leave the other nineteen alone: a die whose whole rim goes red is not a signal,
+// it is a repaint.
+const CC_CURRENT = "crawling-clock__value--current";
+
 // --- Module-scope helpers ------------------------------------------------------
 //
 // The socket handler lives here, not on the Application. The GM must keep persisting
@@ -82,7 +91,7 @@ function ccDieMarkup(value) {
          </div>`).join("");
 
     return `<div class="cc-d20-3d">
-                <div class="cc-d20-3d__body cc-d20-3d__body--to${value}" data-cc-face="${value}">${faces}</div>
+                <div class="cc-d20-3d__body cc-d20-3d__body--to${value}">${faces}</div>
             </div>`;
 }
 
@@ -165,10 +174,6 @@ class CrawlingClockApp extends foundry.applications.api.ApplicationV2 {
     // Local, ephemeral: { name, rolled } from the last payload seen.
     _lastRoll = null;
 
-    // The value the die should be facing when the next render starts, so it has
-    // somewhere to turn *from*. Null means paint the die already landed.
-    _spinFrom = null;
-
     // Whether the GM's die picker is showing. Local and GM-only.
     _settingsOpen = false;
 
@@ -180,67 +185,49 @@ class CrawlingClockApp extends foundry.applications.api.ApplicationV2 {
         }
     }
 
-    // Live path: a roll arrived. Tick down from what we last painted, and remember where
-    // the die was so it can be seen turning off it.
+    // Live path: a roll arrived. Tick down from what we last painted and turn the die
+    // onto the new face. Guarded by `rendered` at the call site.
     applyRoll(rolled, userId) {
-        const current = this._displayed ?? ccStoredValue();
-        this._displayed = Math.max(CC_CLOCK_MIN, current - rolled);
-        this._spinFrom = current;
+        this._displayed = Math.max(CC_CLOCK_MIN, (this._displayed ?? ccStoredValue()) - rolled);
         this._lastRoll = {
             name: game.users.get(userId)?.name ?? "Someone",
             rolled
         };
-        this.render();
+        this._paint();
     }
 
     // Reconcile path: the stored value wins. Guarded by `rendered` at the call site.
     //
     // The roll line says how the clock came to read what it reads. If the stored value
-    // agrees with what we painted, this is the write catching up with a roll we already
-    // showed and the line still holds. If it disagrees, the clock moved for some other
-    // reason — a GM reset or nudge — and the line now describes a number that is gone.
+    // agrees with what we painted, this is the GM's write catching up with a roll we
+    // already showed: there is nothing to reconcile and the line still holds. Returning
+    // here is not an optimisation. Every roll ends with that write landing back on every
+    // client, the roller included, a few tens of milliseconds later, and re-applying the
+    // same face would restart the turn from where it had got to.
     //
-    // This path snaps. It is the write catching up, or a correction, and neither is a
-    // roll; a die that turned here would be animating something that already happened.
-    //
-    // A value we are already showing is the write catching up, and there is nothing to
-    // reconcile. Returning here is not an optimisation: every roll ends with the GM
-    // persisting it, which lands back on every client — the roller included — a few tens
-    // of milliseconds later. Re-rendering then would replace the die mid-turn with one
-    // already landed, and the rotation would be over before it was seen.
+    // A value that disagrees means the clock moved for some other reason, a GM reset or
+    // nudge, and the line now describes a number that is gone.
     syncValue(value) {
         if (value === this._displayed) return;
 
         this._lastRoll = null;
         this._displayed = value;
-        this._spinFrom = null;
-        this.render();
+        this._paint();
     }
 
+    // The widget's shape. Everything that follows the value (which face is forward, the
+    // state colours, the roll line, whether the button is live) is left to _paint, which
+    // runs once here and again on every change afterwards.
+    //
+    // The die goes in already facing the current value so that opening the widget is not
+    // an animation. From then on the element stays put and _paint turns it.
     async _renderHTML(_context, _options) {
-        // Remember what went on screen: syncValue compares against it to tell a roll
+        // Remember what went on screen: syncValue compares against it to tell a write
         // catching up from a clock that moved underneath us.
         const value = this._displayed ?? ccStoredValue();
         this._displayed = value;
 
-        // The die goes into the markup facing where it *was*, and _onRender turns it to
-        // where it is. Painting the landed face straight away would be a jump: a fresh
-        // element has no previous orientation for the browser to transition from.
-        const spinFrom = this._spinFrom;
-        this._spinFrom = null;
-        const spins = spinFrom !== null && spinFrom !== value;
-
         const die = game.settings.get(CC_MODULE_ID, CC_DIE_KEY);
-
-        // Empty when there is nothing to say; the stylesheet holds the line's height
-        // open so the widget does not resize under the button.
-        const rollLine = this._lastRoll
-            ? `${this._lastRoll.name} rolled ${this._lastRoll.rolled}`
-            : "";
-
-        const stirs = value === CC_CLOCK_MIN
-            ? `<div class="crawling-clock__stirs">The dungeon stirs.</div>`
-            : "";
 
         const gmControls = game.user.isGM
             ? `<div class="crawling-clock__gm">
@@ -250,30 +237,23 @@ class CrawlingClockApp extends foundry.applications.api.ApplicationV2 {
                </div>`
             : "";
 
-        // Only a GM can write a world setting, so only a GM is offered the picker.
+        // Only a GM can write a world setting, so only a GM is offered the picker. The
+        // select carries its own accessible name: a visible label would be the one thing
+        // in the panel not on the same column as the buttons above it.
         const settings = game.user.isGM && this._settingsOpen
             ? `<div class="crawling-clock__settings">
-                   <label for="cc-die-select">Die</label>
-                   <select id="cc-die-select" data-cc-die>
+                   <select data-cc-die aria-label="Die">
                        ${ccDieOptions(die).map(d => `<option value="${d}"${d === die ? " selected" : ""}>${d}</option>`).join("")}
                    </select>
                </div>`
             : "";
 
-        // State lives on the container so the die and the number restyle together.
-        let stateClass = "";
-        if (value === CC_CLOCK_MIN) stateClass = " crawling-clock--stirs";
-        else if (value <= 6) stateClass = " crawling-clock--low";
-
         const container = document.createElement("div");
-        container.innerHTML = `<div class="crawling-clock${stateClass}">
-            <div class="crawling-clock__die"${spins ? ` data-cc-spin-to="${value}"` : ""}>
-                ${ccDieMarkup(spins ? spinFrom : value)}
-            </div>
-            ${stirs}
-            <div class="crawling-clock__roll-line">${rollLine}</div>
-            <button type="button" class="crawling-clock__roll" data-cc-action="roll"
-                    ${value === CC_CLOCK_MIN ? "disabled" : ""}>Roll ${die}</button>
+        container.innerHTML = `<div class="crawling-clock">
+            <div class="crawling-clock__die">${ccDieMarkup(value)}</div>
+            <div class="crawling-clock__stirs">The dungeon stirs.</div>
+            <div class="crawling-clock__roll-line"></div>
+            <button type="button" class="crawling-clock__roll" data-cc-action="roll">Roll ${die}</button>
             ${gmControls}
             ${settings}
         </div>`;
@@ -284,23 +264,6 @@ class CrawlingClockApp extends foundry.applications.api.ApplicationV2 {
         content.replaceChildren(result);
     }
 
-    async _onRender(context, options) {
-        await super._onRender(context, options);
-
-        this.element.querySelectorAll("[data-cc-action]").forEach(button => {
-            button.addEventListener("click", () => this._onAction(button.dataset.ccAction));
-        });
-
-        // Writing a world setting is a GM-only act, and the picker is only rendered for a
-        // GM, so this listener can only ever be reached by one.
-        this.element.querySelector("[data-cc-die]")?.addEventListener("change", event => {
-            game.settings.set(CC_MODULE_ID, CC_DIE_KEY, event.target.value);
-        });
-
-        this._renderCog();
-        this._turnDie();
-    }
-
     // The cogwheel, built the way Foundry builds its own header buttons: the same
     // `header-control icon fa-solid` classes the frame gives the ellipsis and the close
     // button, and inserted *before* the close button, which is where core puts its own
@@ -308,14 +271,16 @@ class CrawlingClockApp extends foundry.applications.api.ApplicationV2 {
     // means it takes the frame's own sizing, colour and hover for free rather than
     // needing a stylesheet to win an argument about it.
     //
-    // The header survives a re-render, because ApplicationV2 replaces only the window
-    // content, so the button is rebuilt each time rather than accumulating one per render.
-    _renderCog() {
+    // Built here rather than in _onRender because ApplicationV2 replaces only the window
+    // content: the header, and this button with it, outlives every repaint. Closing the
+    // widget drops the frame and the next open counts as a first render again, so the
+    // button comes back with it.
+    async _onFirstRender(context, options) {
+        await super._onFirstRender(context, options);
+        if (!game.user.isGM) return;
+
         const header = this.window?.header ?? this.element.querySelector(".window-header");
         if (!header) return;
-
-        header.querySelector(".crawling-clock__cog")?.remove();
-        if (!game.user.isGM) return;
 
         const cog = document.createElement("button");
         cog.type = "button";
@@ -327,6 +292,7 @@ class CrawlingClockApp extends foundry.applications.api.ApplicationV2 {
             event.preventDefault();
             event.stopPropagation();
             this._settingsOpen = !this._settingsOpen;
+            cog.setAttribute("aria-expanded", String(this._settingsOpen));
             this.render();
         });
         // The header treats a double click as "maximise"; swallow it so a quick second
@@ -344,26 +310,54 @@ class CrawlingClockApp extends foundry.applications.api.ApplicationV2 {
         else header.append(cog);
     }
 
-    // Turn the die from the face it was rendered on to the one it rolled. Both faces are
-    // classes in the generated stylesheet, so all that happens here is a class swap; the
-    // browser reads both as 3D matrices and slerps between them.
+    async _onRender(context, options) {
+        await super._onRender(context, options);
+
+        this.element.querySelectorAll("[data-cc-action]").forEach(button => {
+            button.addEventListener("click", () => this._onAction(button.dataset.ccAction));
+        });
+
+        // Writing a world setting is a GM-only act, and the picker is only rendered for a
+        // GM, so this listener can only ever be reached by one.
+        this.element.querySelector("[data-cc-die]")?.addEventListener("change", event => {
+            game.settings.set(CC_MODULE_ID, CC_DIE_KEY, event.target.value);
+        });
+
+        this._paint();
+    }
+
+    // Everything that follows the value, written onto the DOM that is already there.
     //
-    // The die element is new — _renderHTML rebuilt it — so the browser has not resolved
-    // its style yet, and a class swapped onto it now would have no previous value to
-    // transition from. Reading a layout property forces that resolution, which is what
-    // makes the swap on the next line a turn rather than a jump.
-    _turnDie() {
-        const die = this.element.querySelector("[data-cc-spin-to]");
-        if (!die) return;
+    // This is the only place the clock changes what it shows, and it is why a roll no
+    // longer repaints the widget. The die element survives, so the browser has a resolved
+    // transform to interpolate from and swapping the orientation class is a turn: for a
+    // roll, and equally for a GM nudge, which is a die being moved and may as well look
+    // like one. On the first render the class it writes is the one already there, so
+    // opening the widget stays still.
+    _paint() {
+        const value = this._displayed;
+        const root = this.element.querySelector(".crawling-clock");
 
-        const body = die.querySelector(".cc-d20-3d__body");
-        const from = body.dataset.ccFace;
-        const to = die.dataset.ccSpinTo;
+        // One signal at a time (design guide): the numeral on the face turned towards us
+        // carries the state, and the other nineteen stay parchment.
+        root.querySelector(`.${CC_CURRENT}`)?.classList.remove(CC_CURRENT);
+        root.querySelector(`.${ccFigureClass(value)}`).classList.add(CC_CURRENT);
 
-        void body.offsetWidth;
+        root.classList.toggle("crawling-clock--stirs", value === CC_CLOCK_MIN);
+        root.classList.toggle("crawling-clock--low",
+            value > CC_CLOCK_MIN && value <= CC_CLOCK_LOW);
 
-        body.classList.replace(`cc-d20-3d__body--to${from}`, `cc-d20-3d__body--to${to}`);
-        body.dataset.ccFace = to;
+        // Empty when there is nothing to say; the stylesheet holds the line's height
+        // open so the widget does not resize under the button.
+        root.querySelector(".crawling-clock__roll-line").textContent = this._lastRoll
+            ? `${this._lastRoll.name} rolled ${this._lastRoll.rolled}`
+            : "";
+
+        // At the floor the Reset is the way forward, so the roll goes dead.
+        root.querySelector(".crawling-clock__roll").disabled = value === CC_CLOCK_MIN;
+
+        root.querySelector(".cc-d20-3d__body").className =
+            `cc-d20-3d__body cc-d20-3d__body--to${value}`;
     }
 
     async _onClose(options) {
@@ -371,7 +365,6 @@ class CrawlingClockApp extends foundry.applications.api.ApplicationV2 {
         // Reopening should show the truth, not whatever this client last painted.
         this._displayed = null;
         this._lastRoll = null;
-        this._spinFrom = null;
         this._settingsOpen = false;
     }
 
@@ -447,7 +440,6 @@ Hooks.once("init", () => {
     const module = game.modules.get(CC_MODULE_ID);
     module.api ??= {};
     module.api.crawlingClock = new CrawlingClockApp();
-    module.api.dieOptions = ccDieOptions;
 });
 
 Hooks.once("ready", () => {

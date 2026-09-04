@@ -183,11 +183,16 @@
 }
 
 .crawling-clock__stirs {
+    display: none;
     margin-top: 4px;
     color: #cc4444;
     font-size: var(--font-size-12);
     text-transform: uppercase;
     letter-spacing: 1px;
+}
+
+.crawling-clock--stirs .crawling-clock__stirs {
+    display: block;
 }
 
 .crawling-clock__roll {
@@ -236,21 +241,6 @@
     flex: 1;
 }
 
-/* Present for the select's accessible name, absent from the layout. A visible label ate
-   25px off the left of the row, which left the select as the only control in the panel
-   whose edge did not sit on the same column as the Roll button and the GM buttons. The
-   cogwheel that opens this row is already labelled "Choose the die". */
-.crawling-clock__settings label {
-    position: absolute;
-    width: 1px;
-    height: 1px;
-    margin: -1px;
-    padding: 0;
-    overflow: hidden;
-    clip-path: inset(50%);
-    white-space: nowrap;
-}
-
 .crawling-clock__gm button {
     flex: 1;
     background: transparent;
@@ -261,21 +251,18 @@
 }
 
 /* --- States --------------------------------------------------------------
- * One signal at a time (design guide): low colours the numbers only, and the die
- * is left alone. The floor is the exception — the whole die turns, because that is
- * the moment the table is meant to notice. */
+ * One signal at a time (design guide): the numeral carries the state and the line work
+ * keeps its colour.
+ *
+ * Both rules take --current, which _paint() moves onto whichever numeral is turned
+ * towards us. Matching .crawling-clock__value instead would take all twenty, and a die
+ * whose entire rim goes red reads as a repaint rather than as a warning. */
 
-.crawling-clock--low .crawling-clock__value {
+.crawling-clock--low .crawling-clock__value--current {
     color: #cc6666;
 }
 
-.crawling-clock--stirs .crawling-clock__value {
-    color: #cc4444;
-}
-
-/* The die keeps its colour; the numeral carries the alarm, matching the line below it.
-   One red thing on the card, not two. */
-.crawling-clock--stirs .crawling-clock__value {
+.crawling-clock--stirs .crawling-clock__value--current {
     color: #cc4444;
 }
 
