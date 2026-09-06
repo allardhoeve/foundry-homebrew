@@ -52,9 +52,8 @@ const CC_CURRENT = "crawling-clock__value--current";
 // The socket handler lives here, not on the Application. The GM must keep persisting
 // the clock with the widget closed.
 
-// The widget, but only when it has something on screen. Everything arriving from outside
-// — a roll, a setting changing — is only ever news to a rendered widget, and a client that
-// missed it snaps to the stored value the next time it opens one.
+// The widget, but only when it has something on screen: everything arriving from outside
+// — a roll, a setting changing — is only ever news to a rendered one.
 function ccLiveApp() {
     const app = game.modules.get(CC_MODULE_ID)?.api?.crawlingClock;
     return app?.rendered ? app : null;
@@ -141,17 +140,14 @@ async function ccSetValue(next) {
     if (next === CC_CLOCK_MIN) await ChatMessage.create({ content: "The dungeon stirs." });
 }
 
-// Only the active GM gets here, so the setting is written once and the roll is posted
-// once.
-//
 // The message is the clock's audit trail, and it is how anyone with the widget closed
 // follows the descent. It is a real roll message so the dice stay inspectable, and the
 // flavor says the whole thing in words so the log reads without expanding anything.
 //
-// The GM posts it on the roller's behalf. Only a GM can write the setting, so only a GM
-// knows the resulting value at the moment of writing; letting the player post it would
-// mean publishing their optimistic guess as the record. `author` makes it read as theirs
-// all the same (BaseChatMessage#canCreate lets a GM, and only a GM, do this).
+// The GM posts it on the roller's behalf: only a GM knows the resulting value at the
+// moment of writing, and letting the player post it would mean publishing their
+// optimistic guess as the record. `author` makes it read as theirs all the same
+// (BaseChatMessage#canCreate lets a GM, and only a GM, do this).
 async function ccPersistRoll(rollData, userId) {
     const next = ccClamp(ccStoredValue() - rollData.total);
     const name = game.users.get(userId)?.name ?? "Someone";
@@ -197,7 +193,7 @@ class CrawlingClockApp extends foundry.applications.api.ApplicationV2 {
     }
 
     // Live path: a roll arrived. Tick down from what we last painted and turn the die
-    // onto the new face. Guarded by `rendered` at the call site.
+    // onto the new face.
     applyRoll(rolled, userId) {
         this._displayed = ccClamp((this._displayed ?? ccStoredValue()) - rolled);
         this._lastRoll = {
@@ -207,7 +203,7 @@ class CrawlingClockApp extends foundry.applications.api.ApplicationV2 {
         this._paint();
     }
 
-    // Reconcile path: the stored value wins. Guarded by `rendered` at the call site.
+    // Reconcile path: the stored value wins.
     //
     // The roll line says how the clock came to read what it reads. If the stored value
     // agrees with what we painted, this is the GM's write catching up with a roll we
@@ -344,8 +340,7 @@ class CrawlingClockApp extends foundry.applications.api.ApplicationV2 {
     // longer repaints the widget. The die element survives, so the browser has a resolved
     // transform to interpolate from and swapping the orientation class is a turn: for a
     // roll, and equally for a GM nudge, which is a die being moved and may as well look
-    // like one. On the first render the class it writes is the one already there, so
-    // opening the widget stays still.
+    // like one.
     _paint() {
         const value = this._displayed;
         const root = this.element.querySelector(".crawling-clock");

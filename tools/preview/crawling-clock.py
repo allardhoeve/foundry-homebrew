@@ -34,6 +34,7 @@ REPO = pathlib.Path(__file__).resolve().parents[2]
 CSS = REPO / "module/styles/crawling-clock.css"
 DIE_CSS = REPO / "module/styles/crawling-clock-d20.css"
 DIE_JS = REPO / "module/src/crawling-clock-d20.js"
+WIDGET_JS = REPO / "module/src/crawling-clock.js"
 
 OUT_DIR = REPO / "docs/design"
 OUT = OUT_DIR / "crawling-clock-values.html"
@@ -43,12 +44,23 @@ FONT_LICENCE = OUT_DIR / "JBLACK.TXT"
 STORYBOOK = REPO / "tests/visual-storybook"
 FONT_IN_CONTAINER = "/data/Data/systems/shadowdark/fonts"
 
-# The centre facet, from tools/d20/generate-d20.py.
+# The centre facet, from tools/d20/d20.py.
 FACET = "25.3,64.3 50.4,21.5 74.6,64.3"
 FACET_CENTROID_Y = (21.5 + 64.3 + 64.3) / 3
 
-# The clock runs across the die's faces, one value each.
-MIN, MAX = 1, 20
+
+def constant(name):
+    """A literal const lifted out of crawling-clock.js."""
+    m = re.search(rf"^const {name} = (\d+);", WIDGET_JS.read_text(), re.M)
+    assert m, f"{name} is not a literal in crawling-clock.js"
+    return int(m.group(1))
+
+
+# Read from the widget rather than restated here, so the page cannot come to disagree
+# with it about where the states begin. The ceiling is the die's own face count, which
+# numbering() already reads out of the generated module.
+MIN = constant("CC_CLOCK_MIN")
+LOW = constant("CC_CLOCK_LOW")
 
 
 def font_files():
@@ -90,10 +102,10 @@ def die(value, numbers):
 
 
 def state_class(value):
-    """Mirrors the widget: 1 is stirs, 6 and under is low."""
+    """Mirrors _paint(): the floor is stirs, the low threshold and under is low."""
     if value == MIN:
         return " crawling-clock--stirs"
-    return " crawling-clock--low" if value <= 6 else ""
+    return " crawling-clock--low" if value <= LOW else ""
 
 
 def widget(value, numbers):
@@ -120,6 +132,7 @@ def widget(value, numbers):
 def main():
     ttf, licence = font_files()
     numbers = numbering()
+    MAX = len(numbers)
     cells = "\n".join(widget(v, numbers) for v in range(MAX, MIN - 1, -1))
     demo = die(MAX, numbers)
 
@@ -171,8 +184,8 @@ h1 {{ color: #e8dcc8; font-size: 15px; font-weight: normal; margin: 0 0 6px; }}
 <h1>The Crawling Clock — every value</h1>
 <p class="pv-note">
   The widget as it ships: the real stylesheet, the generated die at its real 180px, and
-  JSL Blackletter embedded so this page stands alone. Values 6 and under carry the low
-  state, 1 the stirs state. Rebuild with <code>npm run preview:clock</code> after changing
+  JSL Blackletter embedded so this page stands alone. Values {LOW} and under carry the low
+  state, {MIN} the stirs state. Rebuild with <code>npm run preview:clock</code> after changing
   the stylesheet or the die.
 </p>
 <div class="pv-demo">
@@ -206,7 +219,7 @@ document.getElementById("pv-roll").addEventListener("click", () => {{
   root.querySelector(".crawling-clock__value--v" + to)
       .classList.add("crawling-clock__value--current");
   root.classList.toggle("crawling-clock--stirs", to === {MIN});
-  root.classList.toggle("crawling-clock--low", to > {MIN} && to <= 6);
+  root.classList.toggle("crawling-clock--low", to > {MIN} && to <= {LOW});
   face = to;
 }});
 </script>
