@@ -20,8 +20,8 @@
   },
   "devDependencies": {
     "@foundryvtt/foundryvtt-cli": "^1.0.0",
-    "@playwright/test": "^1.52.0",
-    "playwright-bdd": "^8.4.0",
+    "@playwright/test": "^1.64.0",
+    "playwright-bdd": "^9.2.1",
     "rimraf": "^5.0.0"
   }
 }

@@ -6,6 +6,10 @@ import { request } from '@playwright/test';
 const __dirname = dirname(fileURLToPath(import.meta.url));
 
 const BASE_URL = 'http://localhost:30000';
+
+// Foundry 14.368 rejects a POST to /join or /setup that carries no Origin header
+// (a browser always sends one; Playwright's API request context does not).
+const REQUEST_CONTEXT = { baseURL: BASE_URL, extraHTTPHeaders: { Origin: BASE_URL } };
 const POLL_TIMEOUT_MS = 60_000;
 const POLL_INITIAL_MS = 500;
 const POLL_MULTIPLIER = 1.5;
@@ -36,11 +40,12 @@ export default async function globalSetup() {
   if (worldAlreadyReady) {
     console.log('[global-setup] World already active — skipping setup');
   } else {
-    const ctx = await request.newContext({ baseURL: BASE_URL });
+    const ctx = await request.newContext(REQUEST_CONTEXT);
     try {
       // Step 1: Authenticate as server admin
-      const authRes = await ctx.post('/setup', {
-        data: { action: 'adminAuth', adminPassword: secrets.foundry_admin_key },
+      // 14.368 moved admin login to a plain HTML form posted to /auth
+      const authRes = await ctx.post('/auth', {
+        form: { action: 'adminAuth', adminPassword: secrets.foundry_admin_key },
       });
       if (!authRes.ok()) {
         throw new Error(`Admin auth failed (${authRes.status()}). Check foundry_admin_key in docker/secrets.json`);
@@ -92,12 +97,14 @@ export default async function globalSetup() {
   ];
 
   for (const user of users) {
-    const ctx = await request.newContext({ baseURL: BASE_URL });
+    const ctx = await request.newContext(REQUEST_CONTEXT);
     try {
       const joinRes = await ctx.post('/join', {
+        // 14.368 posts the typed username plus the userId it resolves from it
         data: {
           action: 'join',
-          userid: user.userid,
+          username: user.name,
+          userId: user.userid,
           password: user.password,
         },
       });
