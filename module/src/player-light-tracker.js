@@ -101,8 +101,9 @@ function getAssetPath(filename) {
 }
 
 class PlayerLightTrackerApp extends foundry.applications.api.ApplicationV2 {
-    static DEFAULT_OPTIONS = foundry.utils.mergeObject(super.DEFAULT_OPTIONS, {
+    static DEFAULT_OPTIONS = {
         id: "player-light-tracker",
+        classes: ["fh-dark-window"],
         window: {
             title: "Player Light Tracker",
             resizable: false,
@@ -112,7 +113,7 @@ class PlayerLightTrackerApp extends foundry.applications.api.ApplicationV2 {
             width: PLT_WINDOW_WIDTH,
         },
         popOutModuleDisable: true,
-    }, { inplace: false });
+    };
 
     constructor(options = {}) {
         super(options);
@@ -277,26 +278,26 @@ class PlayerLightTrackerApp extends foundry.applications.api.ApplicationV2 {
         }
     }
 
+    // Built like Foundry's own header buttons (`header-control icon fa-solid`), so they
+    // take the frame's sizing and sit with its controls; dark-window.css colours them.
     _createHeaderButton(title, iconClass, isActive, onClick) {
         const btn = document.createElement("button");
         btn.type = "button";
-        btn.className = `plt-header-btn ${isActive ? "plt-active" : ""}`;
-        btn.innerHTML = `<i class="fas ${iconClass}"></i>`;
+        btn.className = `header-control icon fa-solid ${iconClass} plt-header-btn`;
         btn.title = title;
+        btn.setAttribute("aria-label", title);
+        btn.setAttribute("aria-pressed", String(isActive));
         btn.addEventListener("click", onClick);
         return btn;
     }
 
     _injectHeaderButtons(root) {
         const header = root.closest("#player-light-tracker")?.querySelector(".window-header");
-        if (!header || header.querySelector(".plt-header-right")) return;
-
-        const rightGroup = document.createElement("div");
-        rightGroup.className = "plt-header-right";
+        if (!header || header.querySelector(".plt-header-btn")) return;
 
         const resizeBtn = this._createHeaderButton("Toggle size", "fa-expand-alt", this._compact, () => {
             this._compact = !this._compact;
-            resizeBtn.classList.toggle("plt-active", this._compact);
+            resizeBtn.setAttribute("aria-pressed", String(this._compact));
             const appEl = document.getElementById("player-light-tracker");
             if (appEl) appEl.classList.toggle("plt-compact", this._compact);
             game.settings.set(PLT_MODULE_ID, PLT_SETTING_COMPACT, this._compact);
@@ -305,14 +306,13 @@ class PlayerLightTrackerApp extends foundry.applications.api.ApplicationV2 {
 
         const bwBtn = this._createHeaderButton("Black & White", "fa-adjust", this._bwMode, () => {
             this._bwMode = !this._bwMode;
+            bwBtn.setAttribute("aria-pressed", String(this._bwMode));
             const pltWindow = root.querySelector(".plt-window");
             if (pltWindow) pltWindow.classList.toggle("plt-bw", this._bwMode);
             game.settings.set(PLT_MODULE_ID, PLT_SETTING_BW_MODE, this._bwMode);
         });
 
-        rightGroup.appendChild(resizeBtn);
-        rightGroup.appendChild(bwBtn);
-        header.appendChild(rightGroup);
+        header.append(resizeBtn, bwBtn);
     }
 
     async _onClose(options) {
@@ -435,4 +435,17 @@ Hooks.once("init", () => {
     const module = game.modules.get("foundry-homebrew");
     module.api ??= {};
     module.api.lightTracker = new PlayerLightTrackerApp();
+});
+
+// Torch button in the token controls toolbar, opens and closes the tracker
+Hooks.on("getSceneControlButtons", controls => {
+    if (!controls.tokens?.tools) return;
+    controls.tokens.tools.playerLightTracker = {
+        name: "playerLightTracker",
+        title: "Light Tracker",
+        icon: "fa-solid fa-fire-flame-curved",
+        order: Object.keys(controls.tokens.tools).length,
+        button: true,
+        onChange: () => game.modules.get("foundry-homebrew").api.lightTracker.toggleInterface(),
+    };
 });

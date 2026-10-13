@@ -165,7 +165,7 @@ async function ccPersistRoll(rollData, userId) {
 // --- Application ---------------------------------------------------------------
 
 class CrawlingClockApp extends foundry.applications.api.ApplicationV2 {
-    static DEFAULT_OPTIONS = foundry.utils.mergeObject(super.DEFAULT_OPTIONS, {
+    static DEFAULT_OPTIONS = {
         id: "crawling-clock",
         window: {
             title: "The Crawling Clock",
@@ -173,7 +173,7 @@ class CrawlingClockApp extends foundry.applications.api.ApplicationV2 {
             minimizable: true
         },
         position: { width: 260 }
-    }, { inplace: false });
+    };
 
     // What this client last painted. Null means "read the stored value".
     _displayed = null;

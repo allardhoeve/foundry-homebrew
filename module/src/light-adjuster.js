@@ -9,15 +9,16 @@ const LA_MODULE_ID = "foundry-homebrew";
 // --- Application ---------------------------------------------------------------
 
 class LightAdjusterApp extends foundry.applications.api.ApplicationV2 {
-    static DEFAULT_OPTIONS = foundry.utils.mergeObject(super.DEFAULT_OPTIONS, {
+    static DEFAULT_OPTIONS = {
         id: "light-adjuster",
+        classes: ["fh-dark-window"],
         window: {
             title:       "Light Adjuster",
             resizable:   false,
             minimizable: true
         },
         position: { width: 320 }
-    }, { inplace: false });
+    };
 
     _statusMessage = "";
     _hookIds = [];

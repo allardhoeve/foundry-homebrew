@@ -40,15 +40,16 @@ const SME_ROLLMODE_KEY = "rollMode";
 // --- Application ---------------------------------------------------------------
 
 class ScarletMinotaurEncounterApp extends foundry.applications.api.ApplicationV2 {
-    static DEFAULT_OPTIONS = foundry.utils.mergeObject(super.DEFAULT_OPTIONS, {
+    static DEFAULT_OPTIONS = {
         id: "scarlet-minotaur-encounter",
+        classes: ["fh-dark-window"],
         window: {
             title:       "The Lost Citadel: Random Encounter",
             resizable:   false,
             minimizable: true
         },
         position: { width: 380 }
-    }, { inplace: false });
+    };
 
     toggleInterface() {
         if (this.rendered) {
@@ -282,9 +283,9 @@ class ScarletMinotaurEncounterApp extends foundry.applications.api.ApplicationV2
         // Cog button — re-opens the style picker (which doubles as help).
         const cogBtn = document.createElement("button");
         cogBtn.type = "button";
-        cogBtn.className = "sme-header-btn";
+        cogBtn.className = "header-control icon fa-solid fa-cog sme-header-btn";
         cogBtn.title = "Change roll mode";
-        cogBtn.innerHTML = '<i class="fas fa-cog"></i>';
+        cogBtn.setAttribute("aria-label", "Change roll mode");
         cogBtn.addEventListener("click", (event) => {
             event.preventDefault();
             event.stopPropagation();
@@ -396,7 +397,7 @@ class ScarletMinotaurEncounterApp extends foundry.applications.api.ApplicationV2
 // --- Encounter Picker Dialog ---------------------------------------------------
 
 class ScarletMinotaurPickerDialog extends foundry.applications.api.ApplicationV2 {
-    static DEFAULT_OPTIONS = foundry.utils.mergeObject(super.DEFAULT_OPTIONS, {
+    static DEFAULT_OPTIONS = {
         id: "scarlet-minotaur-picker",
         window: {
             title: "Choose Encounter",
@@ -404,7 +405,7 @@ class ScarletMinotaurPickerDialog extends foundry.applications.api.ApplicationV2
             minimizable: false
         },
         position: { width: 440 }
-    }, { inplace: false });
+    };
 
     constructor(parentApp, rollData) {
         super();

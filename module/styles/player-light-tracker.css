@@ -1,24 +1,6 @@
-/* Override Foundry window chrome */
+/* Window chrome comes from dark-window.css; the popup portrait may spill outside */
 #player-light-tracker {
-    background: #1a1a1e;
-    border: 1px solid #3a3a3e;
-    border-radius: 4px;
-    box-shadow: 0 0 20px rgba(0, 0, 0, 0.8);
     overflow: visible;
-}
-
-#player-light-tracker .window-header {
-    background: transparent;
-    border: none;
-    padding: 2px 4px;
-    min-height: 0;
-    display: flex;
-    justify-content: space-between;
-}
-
-/* Move close button to the left */
-#player-light-tracker .window-header [data-action="close"] {
-    order: -1;
 }
 
 #player-light-tracker .window-title {
@@ -192,31 +174,6 @@
 }
 
 /* Header toolbar buttons */
-#player-light-tracker .window-header .plt-header-btn {
-    background: none;
-    border: none;
-    cursor: pointer;
-    color: #999;
-    font-size: var(--font-size-14);
-    padding: 2px 6px;
-    margin: 0;
-    transition: color 0.3s;
-}
-
-#player-light-tracker .window-header .plt-header-btn:hover {
-    color: #e8dcc8;
-}
-
-#player-light-tracker .window-header .plt-header-btn.plt-active {
-    color: #e8dcc8;
-}
-
-.plt-header-right {
-    display: flex;
-    gap: 4px;
-    margin-right: 4px;
-}
-
 /* Compact portrait + popup (only visible in compact mode) */
 .plt-compact-portrait-wrap {
     display: none;

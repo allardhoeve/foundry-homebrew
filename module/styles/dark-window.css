@@ -1,0 +1,40 @@
+/* Shared chrome for our dark, frameless-looking windows (Light Tracker, Light Adjuster,
+   Scarlet Minotaur, Asset Browser). Apply with `classes: ["fh-dark-window"]` in DEFAULT_OPTIONS.
+
+   The header layout must not depend on which buttons Foundry puts in it: v14 added a
+   ⋮ controls menu (Detach / Attach) that the old `justify-content: space-between`
+   layout pushed into the middle. So the close button goes first and its auto margin
+   sends everything else, Foundry's controls and ours alike, to the right edge. A
+   visible window title has flex-grow, which takes the free space before the margin
+   does, so it still sits next to the close button. */
+
+.fh-dark-window {
+    background: #1a1a1e;
+    border: 1px solid #3a3a3e;
+    border-radius: 4px;
+    box-shadow: 0 0 20px rgba(0, 0, 0, 0.8);
+}
+
+.fh-dark-window .window-header {
+    background: transparent;
+    border: none;
+    padding: 2px 4px;
+    min-height: 0;
+    display: flex;
+}
+
+.fh-dark-window .window-header [data-action="close"] {
+    order: -1;
+    margin-inline-end: auto;
+}
+
+/* Our own header buttons wear Foundry's `header-control icon fa-solid` classes so they
+   take the frame's size and hover. Only the muted resting colour is ours. */
+.fh-dark-window .window-header .header-control {
+    color: #999;
+}
+
+.fh-dark-window .window-header .header-control:hover,
+.fh-dark-window .window-header .header-control[aria-pressed="true"] {
+    color: #e8dcc8;
+}

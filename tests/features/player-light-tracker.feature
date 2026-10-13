@@ -19,6 +19,10 @@ Feature: Player Light Tracker
     And the tracker should show a status message
     And the tracker should show an animation area
 
+  Scenario: The torch button in the token controls opens the tracker
+    When I click the Light Tracker button in the token controls
+    Then the tracker window should be visible
+
   Scenario: Compact mode replaces the animation with the active portrait
     Given the Player Light Tracker is open
     When I click the compact toggle

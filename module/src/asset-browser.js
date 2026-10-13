@@ -22,15 +22,16 @@ const CATEGORY_CONFIG = {
 // --- Application ---------------------------------------------------------------
 
 class AssetBrowserApp extends foundry.applications.api.ApplicationV2 {
-    static DEFAULT_OPTIONS = foundry.utils.mergeObject(super.DEFAULT_OPTIONS, {
+    static DEFAULT_OPTIONS = {
         id: "asset-browser",
+        classes: ["fh-dark-window"],
         window: {
             title: "Asset Browser",
             resizable: true,
             minimizable: true
         },
         position: { width: 900, height: 700 }
-    }, { inplace: false });
+    };
 
     _category = "tokens";
     _sources = null;

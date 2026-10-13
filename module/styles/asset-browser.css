@@ -1,20 +1,3 @@
-/* Override Foundry window chrome */
-#asset-browser {
-    background: #1a1a1e;
-    border: 1px solid #3a3a3e;
-    border-radius: 4px;
-    box-shadow: 0 0 20px rgba(0, 0, 0, 0.8);
-}
-
-#asset-browser .window-header {
-    background: transparent;
-    border: none;
-    padding: 2px 4px;
-    min-height: 0;
-    display: flex;
-    justify-content: space-between;
-}
-
 /* Main container — fill window content area */
 .ab-window {
     background: #1a1a1e;

@@ -48,6 +48,12 @@ When('I open the Player Light Tracker', async ({ session }) => {
   await openTracker(session.page);
 });
 
+When('I click the Light Tracker button in the token controls', async ({ session }) => {
+  const page = session.page;
+  await page.locator('#scene-controls-layers button[data-control="tokens"]').click();
+  await page.locator('#scene-controls-tools button[data-tool="playerLightTracker"]').click();
+});
+
 When('I close the Player Light Tracker', async ({ session }) => {
   await closeTracker(session.page);
 });
