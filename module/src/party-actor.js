@@ -7,6 +7,7 @@
 import { computeHpClass } from "./party-hp.js";
 import { countRations, countLightSources, computeSlotStatus, collectEffects, isMemberOf } from "./party-members.js";
 import { computePartyOwnership } from "./party-ownership.js";
+import { computePartyVision } from "./party-vision.js";
 import { mergePartyTokens, explodePartyTokens } from "./party-tokens.js";
 
 const PA_MODULE_ID = "foundry-homebrew";
@@ -200,14 +201,6 @@ const _lightSourceMappings = foundry.utils.fetchJsonWithTimeout(
     "systems/shadowdark/assets/mappings/map-light-sources.json"
 );
 
-const PA_NO_LIGHT = {
-    bright: 0, dim: 0, angle: 360, alpha: 0.5,
-    animation: { speed: 0, intensity: 0, type: null },
-    color: null, coloration: 1, luminosity: 0.5,
-    attenuation: 0.5, contrast: 0, saturation: 0, shadows: 0,
-    darkness: { min: 0, max: 1 },
-};
-
 async function syncPartyState(partyActor) {
     const mappings = await _lightSourceMappings;
 
@@ -219,34 +212,16 @@ async function syncPartyState(partyActor) {
     }
 
     // --- Light & sight ---
-    let maxBright = 0;
-    let maxDim = 0;
-    let bestLight = null;
-
+    const lights = [];
     for (const actor of memberActors) {
         const activeLights = await actor.getActiveLightSources();
         for (const item of activeLights ?? []) {
             const template = item.system.light?.template;
             const mapping = template ? mappings[template] : null;
-            if (!mapping) continue;
-            const light = mapping.light;
-            if ((light.bright || 0) > maxBright) maxBright = light.bright;
-            if ((light.dim || 0) > maxDim) maxDim = light.dim;
-            const reach = Math.max(light.bright || 0, light.dim || 0);
-            if (!bestLight || reach > Math.max(bestLight.bright || 0, bestLight.dim || 0)) {
-                bestLight = light;
-            }
+            if (mapping) lights.push(mapping.light);
         }
     }
-
-    const hasLight = maxBright > 0 || maxDim > 0;
-    const lightData = hasLight
-        ? { ...bestLight, bright: maxBright, dim: maxDim }
-        : PA_NO_LIGHT;
-    const sightData = {
-        enabled: hasLight,
-        range: Math.max(maxBright, maxDim),
-    };
+    const { light: lightData, sight: sightData } = computePartyVision(lights);
 
     // --- Ownership ---
     const ownership = computePartyOwnership(
@@ -269,7 +244,10 @@ async function syncPartyState(partyActor) {
     });
 }
 
+// Only the active GM may update the party actor and its tokens; the hooks
+// fire on every client, so the others stand down.
 const syncAllPartyState = foundry.utils.debounce(async () => {
+    if (!game.user.isActiveGM) return;
     const typeKey = `${PA_MODULE_ID}.Party`;
     for (const actor of game.actors) {
         if (actor.type === typeKey) await syncPartyState(actor);
@@ -322,4 +300,7 @@ Hooks.on("ready", () => {
     Hooks.on("updateActor", (actor) => {
         if (actor.type === `${PA_MODULE_ID}.Party`) syncAllPartyState();
     });
+
+    // Repair tokens saved by an older version of this sync
+    syncAllPartyState();
 });
