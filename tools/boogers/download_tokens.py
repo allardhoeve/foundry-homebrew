@@ -48,7 +48,12 @@ USER_AGENT = (
     "(KHTML, like Gecko) Chrome/120.0 Safari/537.36"
 )
 
-DEFAULT_OUT = Path(__file__).resolve().parents[2] / "module/assets/tokens/youseethis"
+# Foundry's Data directory, not the module tree: a module reinstall replaces
+# the module folder wholesale and would take the art with it.
+DEFAULT_OUT = (
+    Path(__file__).resolve().parents[2]
+    / "docker/data/Data/assets/tokens/youseethis"
+)
 
 CREDITS = f"""# Token art credits
 
