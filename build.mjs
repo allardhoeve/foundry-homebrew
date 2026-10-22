@@ -1,10 +1,11 @@
 #!/usr/bin/env node
 /**
- * Build script: reads macros.json + .js source files, generates a LevelDB
- * compendium pack in packs/macros/ ready for distribution.
+ * Build script: reads macros.json + .js source files and the roll table JSON
+ * in module/tables/, generates LevelDB compendium packs in packs/ ready for
+ * distribution.
  */
 
-import { readFileSync, writeFileSync, mkdirSync, rmSync } from "fs";
+import { readFileSync, readdirSync, writeFileSync, mkdirSync, rmSync } from "fs";
 import { resolve } from "path";
 import { compilePack } from "@foundryvtt/foundryvtt-cli";
 
@@ -37,7 +38,47 @@ for (const macro of macros) {
 mkdirSync(outDir, { recursive: true });
 await compilePack(srcDir, outDir, { log: true });
 
-// Remove intermediate files — the .js files are the source of truth.
+// Roll tables: one JSON file per table, results listed in order. Result n
+// covers range [n, n]. Result IDs derive from the table ID so rebuilds are
+// stable.
+const tablesSrcDir = resolve(".build-tmp/packs/tables");
+const tablesOutDir = resolve("module/packs/tables");
+mkdirSync(tablesSrcDir, { recursive: true });
+for (const file of readdirSync("module/tables").filter(f => f.endsWith(".json"))) {
+  const table = JSON.parse(readFileSync(`module/tables/${file}`, "utf8"));
+  const results = table.results.map((text, i) => {
+    const _id = `${table.id.slice(0, 10)}${String(i + 1).padStart(6, "0")}`;
+    return {
+      _key: `!tables.results!${table.id}.${_id}`,
+      _id,
+      type: "text",
+      name: "",
+      description: text,
+      weight: 1,
+      range: [i + 1, i + 1],
+      drawn: false,
+      flags: {},
+    };
+  });
+  const doc = {
+    _key: `!tables!${table.id}`,
+    _id: table.id,
+    name: table.name,
+    img: "icons/svg/d20-grey.svg",
+    description: table.description,
+    results,
+    formula: table.formula,
+    replacement: true,
+    displayRoll: true,
+    ownership: { default: 0 },
+    flags: {},
+  };
+  writeFileSync(`${tablesSrcDir}/${file}`, JSON.stringify(doc, null, 2));
+}
+mkdirSync(tablesOutDir, { recursive: true });
+await compilePack(tablesSrcDir, tablesOutDir, { log: true });
+
+// Remove intermediate files — the .js and table .json files are the source of truth.
 rmSync(resolve(".build-tmp"), { recursive: true, force: true });
 
-console.log("Pack built in module/packs/macros/");
+console.log("Packs built in module/packs/macros/ and module/packs/tables/");

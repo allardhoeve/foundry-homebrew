@@ -34,13 +34,19 @@
       "label": "Macros",
       "path": "packs/macros",
       "type": "Macro"
+    },
+    {
+      "name": "tables",
+      "label": "Roll Tables",
+      "path": "packs/tables",
+      "type": "RollTable"
     }
   ],
   "packFolders": [
     {
       "name": "Allard's Foundry Homebrew",
       "sorting": "a",
-      "packs": ["macros"]
+      "packs": ["macros", "tables"]
     }
   ],
   "url": "https://github.com/allardhoeve/foundry-homebrew",
