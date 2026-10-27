@@ -1,0 +1,18 @@
+{
+  "id": "a5eBlessingBoons",
+  "name": "Blessing Boons",
+  "formula": "1d10",
+  "description": "<p>The gods are pleased with the party's actions. These boons are sometimes the result of divine favor, or sometimes reflect approval of local communities.</p><p><em>Source: <a href=\"https://a5e.tools\">Level Up: Advanced 5th Edition</a> by EN Publishing, licensed under <a href=\"https://creativecommons.org/licenses/by/4.0/\">CC BY 4.0</a>. Adapted for Shadowdark.</em></p>",
+  "results": [
+    "The adventurers discover an enchanted spring. When a creature consumes water directly from the spring, for the next hour it gains advantage on Strength checks, and the party can travel one extra hex today. Water that is bottled or otherwise stored for later retains this blessing for only 1 hour.",
+    "Spirit who wants to give the adventurers a gift. The item appears to be extremely mundane, but has an immense situational benefit (such as an arrow of dragon slaying or waterskin with a secret compartment holding a potion of superior healing).",
+    "Something the party did not intend frees a trapped spirit or undoes an ancient curse, granting each of them good fortune for 1 week. While an adventurer has good fortune, the next time they roll a natural 1 on a d20 they reroll the die, expending their good fortune.",
+    "The party witnesses an aurora in the night sky. Their camp is secure that night: no random encounter finds them, and the wolves pass the camp without noticing them.",
+    "Butterflies follow the party. If an adventurer holds out a finger, a butterfly lands on it and they gain +1d4 on their next saving throw. Once 1d4+1 butterflies have granted this boon the rest disappear.",
+    "The next time the party uses healing magic the location around them becomes a holy site infused with radiant power. The faithful begin traveling far and wide to rest at this site. Any living creature that spends 24 hours in the area gains +1d4 on its next Constitution check to stabilize, heal, or resist disease.",
+    "One adventurer finds an important trophy or trinket that grants them advantage on one roll (though they lose the keepsake after the advantage is used).",
+    "An air elemental impressed by the party lightens their burdens. The party can travel one extra hex, or each adventurer increases their Speed by 5 feet, whichever comes first. Then the blessing ends.",
+    "The adventurers find a book filled with stories about their quests and successes. Once per week, a new paragraph appears on its pages and after reading it one PC gains +1d4 on an ability check (whichever member of the party chooses to use it first).",
+    "One of the adventurers gets bitten by an insect that leaves a wound in a geometric shape which won't go away. The next time they fail a Wisdom saving throw against a spell, they succeed instead and the bite mark disappears."
+  ]
+}
