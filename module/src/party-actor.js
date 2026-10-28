@@ -68,8 +68,8 @@ class PartySheet extends foundry.appv1.sheets.ActorSheet {
         context.members = await this._getMemberData();
         context.notes = this.actor.system.notes;
         context.merged = this.actor.system.merged;
-        // Explode places members on a square spiral, which doesn't fit hex grids
-        context.showTokenActions = !(context.merged && canvas.grid?.isHexagonal);
+        // Merge/explode is for square-grid encounter maps; hex maps travel as one token
+        context.showTokenActions = !canvas.grid?.isHexagonal;
         context.isEmpty = context.members.length === 0;
         return context;
     }

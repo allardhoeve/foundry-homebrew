@@ -63,12 +63,18 @@ Feature: Party Actor
     And the party is merged
     Then the Party sheet should show the Explode button
 
-  Scenario: Merged party cannot be exploded on a hex map
+  Scenario: Party cannot be merged on a hex map
     Given I am viewing a "hex" grid scene
     When I create a Party actor named "Hex Party"
     And I add player "Iraga Draguul (1)" to the party
+    Then the Party sheet should not show the Party Token box
+
+  Scenario: Merged party cannot be exploded on a hex map
+    Given I am viewing a "hex" grid scene
+    When I create a Party actor named "Hex Merged Party"
+    And I add player "Iraga Draguul (1)" to the party
     And the party is merged
-    Then the Party sheet should not show the Explode button
+    Then the Party sheet should not show the Party Token box
 
   # --- Eye tests ---
 

@@ -183,6 +183,10 @@ Then('the Party sheet should not show the Explode button', async ({ session }) =
   await expect(session.page.locator('.party-sheet .pa-explode-btn')).toHaveCount(0);
 });
 
+Then('the Party sheet should not show the Party Token box', async ({ session }) => {
+  await expect(session.page.locator('.party-sheet .pa-token-actions')).toHaveCount(0);
+});
+
 Then('describe the Party sheet', async ({ session }) => {
   const data = await session.page.evaluate(() => {
     const sheet = document.querySelector('.party-sheet');

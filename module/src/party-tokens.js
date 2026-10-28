@@ -92,6 +92,10 @@ export async function mergePartyTokens(partyActor) {
         ui.notifications.warn("No active scene.");
         return;
     }
+    if (canvas.grid.isHexagonal) {
+        ui.notifications.warn("Merging and exploding the party is not available on hex maps.");
+        return;
+    }
 
     const memberTokens = findMemberTokens(scene, partyActor.system.members);
     if (memberTokens.length === 0) {
@@ -127,7 +131,7 @@ export async function explodePartyTokens(partyActor) {
         return;
     }
     if (canvas.grid.isHexagonal) {
-        ui.notifications.warn("Exploding the party is not available on hex maps.");
+        ui.notifications.warn("Merging and exploding the party is not available on hex maps.");
         return;
     }
 
