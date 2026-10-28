@@ -49,8 +49,8 @@ Add `tests/unit/party-vision.test.js`: sight stays enabled without lights (regre
 ## Acceptance criteria
 
 - [x] Unit tests pass (`npm run test:unit`, 97 pass)
-- [ ] On live: selecting the party token as GM shows its view with fog
-- [ ] On live: players see the party token and their fog is revealed hex by hex
+- [x] On live: selecting the party token as GM shows its view with fog
+- [x] On live: players see the party token and their fog is revealed hex by hex
 
 ## Scope boundaries
 
