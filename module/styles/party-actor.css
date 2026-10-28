@@ -67,6 +67,11 @@
     color: #cc4444;
 }
 
+.pa-xp--ready {
+    color: #b8860b;
+    font-weight: bold;
+}
+
 /* Remove action — hover color override (Shadowdark .actions a handles the rest) */
 .pa-remove:hover {
     color: #cc4444;

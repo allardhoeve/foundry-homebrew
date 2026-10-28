@@ -163,6 +163,13 @@ Then('the Party sheet should show slot usage for {string}', async ({ session }, 
   await expect(card.locator('.fa-weight-hanging').first()).toBeVisible();
 });
 
+Then('the Party sheet should show XP for {string}', async ({ session }, name) => {
+  const card = session.page.locator('.pa-member', {
+    has: session.page.locator(`.pa-member-name:text("${name}")`),
+  });
+  await expect(card.locator('.fa-star').first()).toBeVisible();
+});
+
 Then('the Party sheet should show notes {string}', async ({ session }, text) => {
   const notes = session.page.locator('.pa-notes-field');
   await expect(notes).toHaveValue(text);

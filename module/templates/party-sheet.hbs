@@ -38,6 +38,9 @@
                             <span class="pa-stat {{#if this.slotsOver}}pa-slots--over{{/if}}">
                                 <i class="fa-solid fa-weight-hanging"></i> {{this.slotsUsed}}/{{this.slotsMax}}
                             </span>
+                            <span class="pa-stat {{#if this.xpReady}}pa-xp--ready{{/if}}">
+                                <i class="fa-solid fa-star"></i> {{this.xp}}/{{this.xpNext}}
+                            </span>
                         </div>
                         {{#if this.effects.length}}
                         <div class="pa-member-effects">

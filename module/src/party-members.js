@@ -95,6 +95,19 @@ export function computeSlotStatus(system, items) {
 }
 
 /**
+ * Compute XP progress toward the next level. Mirrors PlayerSheetSD: the
+ * threshold is level x 10, and a level up is due once XP reaches it.
+ *
+ * @param {Object} level - Actor system.level with `value` and `xp`
+ * @returns {{ xp: number, next: number, ready: boolean }}
+ */
+export function computeXpStatus(level) {
+    const xp = level?.xp ?? 0;
+    const next = (level?.value ?? 0) * 10;
+    return { xp, next, ready: xp >= next };
+}
+
+/**
  * Collect active (non-suppressed) effects that carry statuses.
  * @param {Object} actor - Actor with allApplicableEffects()
  * @returns {{ statuses: Set<string>, effects: Array<{name: string, icon: string}> }}

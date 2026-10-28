@@ -49,6 +49,7 @@ Feature: Party Actor
     Then the Party sheet should show rations for "Iraga Draguul (1)"
     And the Party sheet should show light sources for "Iraga Draguul (1)"
     And the Party sheet should show slot usage for "Iraga Draguul (1)"
+    And the Party sheet should show XP for "Iraga Draguul (1)"
 
   Scenario: Notes field can be edited
     When I create a Party actor named "Notes Party"

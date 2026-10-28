@@ -6,6 +6,7 @@ import {
     computeSlotStatus,
     computeSlotUsage,
     collectEffects,
+    computeXpStatus,
     isMemberOf,
 } from '../../module/src/party-members.js';
 
@@ -281,5 +282,33 @@ describe('isMemberOf', () => {
 
     it('does not match partial IDs', () => {
         assert.equal(isMemberOf(['Actor.abc123def'], 'abc123'), false);
+    });
+});
+
+// --- computeXpStatus ---
+
+describe('computeXpStatus', () => {
+    it('uses level x 10 as the threshold', () => {
+        assert.deepEqual(computeXpStatus({ value: 2, xp: 7 }), { xp: 7, next: 20, ready: false });
+    });
+
+    it('is ready when XP equals the threshold', () => {
+        assert.equal(computeXpStatus({ value: 1, xp: 10 }).ready, true);
+    });
+
+    it('is ready when XP exceeds the threshold', () => {
+        assert.equal(computeXpStatus({ value: 1, xp: 11 }).ready, true);
+    });
+
+    it('is not ready one XP short of the threshold', () => {
+        assert.equal(computeXpStatus({ value: 3, xp: 29 }).ready, false);
+    });
+
+    it('treats level 0 as ready, like the Shadowdark sheet', () => {
+        assert.deepEqual(computeXpStatus({ value: 0, xp: 0 }), { xp: 0, next: 0, ready: true });
+    });
+
+    it('defaults missing level data to zero', () => {
+        assert.deepEqual(computeXpStatus(undefined), { xp: 0, next: 0, ready: true });
     });
 });

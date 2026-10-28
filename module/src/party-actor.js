@@ -5,7 +5,7 @@
 // actors and can be placed as a single token on a scene.
 
 import { computeHpClass } from "./party-hp.js";
-import { countRations, countLightSources, computeSlotStatus, collectEffects, isMemberOf } from "./party-members.js";
+import { countRations, countLightSources, computeSlotStatus, collectEffects, computeXpStatus, isMemberOf } from "./party-members.js";
 import { computePartyOwnership } from "./party-ownership.js";
 import { computePartyVision } from "./party-vision.js";
 import { mergePartyTokens, explodePartyTokens } from "./party-tokens.js";
@@ -144,12 +144,13 @@ class PartySheet extends foundry.appv1.sheets.ActorSheet {
             const hasLight = (await actor.getActiveLightSources())?.length > 0;
             const { used: slotsUsed, max: slotsMax, over: slotsOver } = computeSlotStatus(actor.system, actor.items);
             const { statuses, effects } = collectEffects(actor);
+            const { xp, next: xpNext, ready: xpReady } = computeXpStatus(actor.system.level);
             const hpClass = computeHpClass(hp, hpMax, statuses);
 
             members.push({
                 uuid, name: actor.name, img: actor.img,
                 hp, hpMax, hpClass, rations, lightSources, hasLight,
-                slotsUsed, slotsMax, slotsOver, effects,
+                slotsUsed, slotsMax, slotsOver, xp, xpNext, xpReady, effects,
             });
         }
         return members;
