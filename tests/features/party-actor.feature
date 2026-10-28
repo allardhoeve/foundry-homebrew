@@ -55,6 +55,20 @@ Feature: Party Actor
     And I set the party notes to "Watch out for traps"
     Then the Party sheet should show notes "Watch out for traps"
 
+  Scenario: Merged party can be exploded on a square map
+    Given I am viewing a "square" grid scene
+    When I create a Party actor named "Square Party"
+    And I add player "Iraga Draguul (1)" to the party
+    And the party is merged
+    Then the Party sheet should show the Explode button
+
+  Scenario: Merged party cannot be exploded on a hex map
+    Given I am viewing a "hex" grid scene
+    When I create a Party actor named "Hex Party"
+    And I add player "Iraga Draguul (1)" to the party
+    And the party is merged
+    Then the Party sheet should not show the Explode button
+
   # --- Eye tests ---
 
   Scenario: Describe empty party sheet

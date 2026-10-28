@@ -21,6 +21,18 @@ Given('all Party actors are deleted', async ({ session }) => {
   }, PARTY_TYPE);
 });
 
+Given('I am viewing a {string} grid scene', async ({ session }, gridType) => {
+  await session.page.evaluate(async (type) => {
+    const name = `_test_${type}_grid`;
+    for (const old of game.scenes.filter(s => s.name === name)) await old.delete();
+    const gridTypes = { square: CONST.GRID_TYPES.SQUARE, hex: CONST.GRID_TYPES.HEXODDR };
+    const scene = await Scene.create({ name, grid: { type: gridTypes[type] } });
+    const ready = new Promise(resolve => Hooks.once('canvasReady', resolve));
+    await scene.view();
+    await ready;
+  }, gridType);
+});
+
 // --- When steps ---------------------------------------------------------------
 
 When('I create a Party actor named {string}', async ({ session }, name) => {
@@ -75,6 +87,14 @@ When('I add a non-Player actor to the party', async ({ session }) => {
 
     // Clean up the temporary NPC
     await npc.delete();
+  }, PARTY_TYPE);
+  await session.page.waitForTimeout(500);
+});
+
+When('the party is merged', async ({ session }) => {
+  await session.page.evaluate(async (type) => {
+    const partyActor = game.actors.find(a => a.type === type);
+    await partyActor.update({ 'system.merged': true });
   }, PARTY_TYPE);
   await session.page.waitForTimeout(500);
 });
@@ -146,6 +166,14 @@ Then('the Party sheet should show slot usage for {string}', async ({ session }, 
 Then('the Party sheet should show notes {string}', async ({ session }, text) => {
   const notes = session.page.locator('.pa-notes-field');
   await expect(notes).toHaveValue(text);
+});
+
+Then('the Party sheet should show the Explode button', async ({ session }) => {
+  await expect(session.page.locator('.party-sheet .pa-explode-btn')).toBeVisible();
+});
+
+Then('the Party sheet should not show the Explode button', async ({ session }) => {
+  await expect(session.page.locator('.party-sheet .pa-explode-btn')).toHaveCount(0);
 });
 
 Then('describe the Party sheet', async ({ session }) => {

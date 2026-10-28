@@ -68,6 +68,8 @@ class PartySheet extends foundry.appv1.sheets.ActorSheet {
         context.members = await this._getMemberData();
         context.notes = this.actor.system.notes;
         context.merged = this.actor.system.merged;
+        // Explode places members on a square spiral, which doesn't fit hex grids
+        context.showTokenActions = !(context.merged && canvas.grid?.isHexagonal);
         context.isEmpty = context.members.length === 0;
         return context;
     }
@@ -178,6 +180,7 @@ class PartySheet extends foundry.appv1.sheets.ActorSheet {
         register("createActiveEffect", (effect) => { if (isMemberChild(effect)) refresh(); });
         register("deleteActiveEffect", (effect) => { if (isMemberChild(effect)) refresh(); });
         register("updateActiveEffect", (effect) => { if (isMemberChild(effect)) refresh(); });
+        register("canvasReady", refresh);
     }
 
     _unregisterHooks() {

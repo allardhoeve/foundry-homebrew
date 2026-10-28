@@ -126,6 +126,10 @@ export async function explodePartyTokens(partyActor) {
         ui.notifications.warn("No active scene.");
         return;
     }
+    if (canvas.grid.isHexagonal) {
+        ui.notifications.warn("Exploding the party is not available on hex maps.");
+        return;
+    }
 
     const partyToken = findPartyToken(scene, partyActor._id);
     if (!partyToken) {
